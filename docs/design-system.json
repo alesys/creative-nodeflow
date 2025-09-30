@@ -1,0 +1,350 @@
+{
+  "designSystem": {
+    "name": "Node Editor Design System",
+    "version": "1.0.0",
+    "colors": {
+      "background": {
+        "canvas": "#0A0A0A",
+        "nodeBody": "#18181B",
+        "control": "#27272A",
+        "hover": "#3F3F46",
+        "border": "#52525B"
+      },
+      "text": {
+        "primary": "#F3F4F6",
+        "secondary": "#9CA3AF",
+        "tertiary": "#6B7280",
+        "disabled": "#4B5563"
+      },
+      "accent": {
+        "primaryAction": "#3B82F6",
+        "success": "#10B981",
+        "warning": "#F59E0B",
+        "error": "#EF4444"
+      },
+      "nodeHeaders": {
+        "modelLoader": {
+          "from": "#9333EA",
+          "to": "#6B21A8"
+        },
+        "textEncodingPositive": {
+          "from": "#15803D",
+          "to": "#14532D"
+        },
+        "textEncodingNegative": {
+          "from": "#B91C1C",
+          "to": "#7F1D1D"
+        },
+        "utility": {
+          "from": "#3F3F46",
+          "to": "#27272A"
+        },
+        "output": {
+          "from": "#B45309",
+          "to": "#78350F"
+        }
+      },
+      "connectionWires": {
+        "MODEL": "#FACC15",
+        "CLIP": "#FACC15",
+        "LATENT": "#C084FC",
+        "CONDITIONING": "#4ADE80",
+        "IMAGE": "#F87171",
+        "VAE": "#F87171"
+      },
+      "portBadges": {
+        "MODEL": {
+          "background": "rgba(250, 204, 21, 0.2)",
+          "text": "#FACC15"
+        },
+        "CLIP": {
+          "background": "rgba(250, 204, 21, 0.2)",
+          "text": "#FACC15"
+        },
+        "LATENT": {
+          "background": "rgba(192, 132, 252, 0.2)",
+          "text": "#C084FC"
+        },
+        "CONDITIONING": {
+          "background": "rgba(74, 222, 128, 0.2)",
+          "text": "#4ADE80"
+        },
+        "IMAGE": {
+          "background": "rgba(248, 113, 113, 0.2)",
+          "text": "#F87171"
+        },
+        "VAE": {
+          "background": "rgba(248, 113, 113, 0.2)",
+          "text": "#F87171"
+        }
+      }
+    },
+    "spacing": {
+      "xxs": "2px",
+      "xs": "4px",
+      "sm": "8px",
+      "md": "12px",
+      "lg": "16px",
+      "xl": "24px",
+      "2xl": "32px",
+      "3xl": "48px"
+    },
+    "borderRadius": {
+      "none": "0px",
+      "sm": "4px",
+      "md": "8px",
+      "lg": "12px",
+      "full": "9999px"
+    },
+    "typography": {
+      "fontFamily": {
+        "primary": "system-ui, -apple-system, 'Segoe UI', sans-serif",
+        "monospace": "'SF Mono', Monaco, Consolas, monospace"
+      },
+      "fontSize": {
+        "xs": "12px",
+        "sm": "14px",
+        "base": "16px",
+        "lg": "18px",
+        "xl": "20px",
+        "2xl": "24px"
+      },
+      "fontWeight": {
+        "regular": 400,
+        "medium": 500,
+        "semibold": 600,
+        "bold": 700
+      },
+      "lineHeight": {
+        "tight": 1.25,
+        "normal": 1.5,
+        "relaxed": 1.625
+      }
+    },
+    "shadows": {
+      "sm": "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+      "md": "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+      "lg": "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+      "xl": "0 20px 25px -5px rgba(0, 0, 0, 0.1)"
+    },
+    "components": {
+      "node": {
+        "minWidth": "280px",
+        "maxWidth": "400px",
+        "borderRadius": "8px",
+        "borderWidth": "1px",
+        "borderColor": "#27272A",
+        "shadow": "lg",
+        "header": {
+          "padding": "10px 16px",
+          "fontSize": "14px",
+          "fontWeight": 600,
+          "borderRadius": "8px 8px 0 0"
+        },
+        "body": {
+          "padding": "12px",
+          "background": "#18181B"
+        },
+        "states": {
+          "default": {
+            "borderColor": "#27272A",
+            "opacity": 1
+          },
+          "hover": {
+            "borderColor": "#3F3F46"
+          },
+          "selected": {
+            "borderWidth": "2px",
+            "borderColor": "#3B82F6",
+            "boxShadow": "0 0 0 3px rgba(59, 130, 246, 0.2)"
+          },
+          "disabled": {
+            "opacity": 0.5
+          }
+        }
+      },
+      "connectionPort": {
+        "size": "10px",
+        "borderRadius": "9999px",
+        "gap": "8px",
+        "badge": {
+          "padding": "2px 6px",
+          "fontSize": "12px",
+          "fontWeight": 500,
+          "borderRadius": "4px"
+        }
+      },
+      "controls": {
+        "spacing": "8px",
+        "padding": "4px 0",
+        "fontSize": "12px",
+        "borderBottom": "1px solid #27272A",
+        "dropdown": {
+          "arrowColor": "#6B7280",
+          "labelColor": "#9CA3AF",
+          "valueColor": "#F3F4F6"
+        },
+        "number": {
+          "arrowColor": "#6B7280",
+          "labelColor": "#9CA3AF",
+          "valueColor": "#F3F4F6",
+          "fontFamily": "'SF Mono', Monaco, Consolas, monospace"
+        },
+        "slider": {
+          "trackHeight": "4px",
+          "trackBackground": "#3F3F46",
+          "fillBackground": "#3B82F6",
+          "borderRadius": "9999px",
+          "margin": "4px 16px"
+        },
+        "toggle": {
+          "enabledColor": "#4ADE80",
+          "disabledColor": "#F87171",
+          "values": ["enable", "disable"]
+        },
+        "textarea": {
+          "positive": {
+            "background": "rgba(20, 83, 45, 0.3)",
+            "borderColor": "rgba(21, 128, 61, 0.5)"
+          },
+          "negative": {
+            "background": "rgba(127, 29, 29, 0.3)",
+            "borderColor": "rgba(185, 28, 28, 0.5)"
+          },
+          "padding": "8px",
+          "fontSize": "12px",
+          "lineHeight": "1.625",
+          "textColor": "#D1D5DB",
+          "borderRadius": "4px",
+          "minHeight": "80px"
+        }
+      }
+    },
+    "nodeTemplates": {
+      "modelLoader": {
+        "title": "Load Diffusion Model",
+        "headerGradient": "modelLoader",
+        "inputPorts": [
+          {
+            "label": "model",
+            "type": "MODEL"
+          }
+        ],
+        "controls": [
+          {
+            "type": "dropdown",
+            "label": "model_name",
+            "hasSubLabel": true
+          }
+        ],
+        "outputPorts": [
+          {
+            "type": "MODEL"
+          }
+        ]
+      },
+      "ksampler": {
+        "title": "KSampler (Advanced)",
+        "headerGradient": "utility",
+        "inputPorts": [
+          {"label": "model", "type": "MODEL"},
+          {"label": "positive", "type": "CONDITIONING"},
+          {"label": "negative", "type": "CONDITIONING"},
+          {"label": "latent_image", "type": "LATENT"}
+        ],
+        "controls": [
+          {"type": "toggle", "label": "add_noise", "default": "enable"},
+          {"type": "number", "label": "noise_seed"},
+          {"type": "dropdown", "label": "control after generate", "default": "randomize"},
+          {"type": "number", "label": "steps", "default": 4},
+          {"type": "slider", "label": "cfg", "default": 1.0, "min": 0, "max": 20},
+          {"type": "dropdown", "label": "sampler_name", "default": "euler"},
+          {"type": "dropdown", "label": "scheduler", "default": "simple"},
+          {"type": "number", "label": "start_at_step", "default": 0},
+          {"type": "number", "label": "end_at_step", "default": 4},
+          {"type": "toggle", "label": "return_with_leftover_noise", "default": "enable"}
+        ],
+        "outputPorts": [
+          {"type": "LATENT"}
+        ]
+      },
+      "clipTextEncode": {
+        "title": "CLIP Text Encode",
+        "headerGradient": "textEncodingPositive",
+        "inputPorts": [
+          {"label": "clip", "type": "CLIP"}
+        ],
+        "controls": [
+          {"type": "textarea", "variant": "positive"}
+        ],
+        "outputPorts": [
+          {"type": "CONDITIONING"}
+        ]
+      },
+      "loadClip": {
+        "title": "Load CLIP",
+        "headerGradient": "utility",
+        "inputPorts": [],
+        "controls": [
+          {"type": "dropdown", "label": "clip"},
+          {"type": "dropdown", "label": "type", "default": "warn"},
+          {"type": "dropdown", "label": "device", "default": "default"}
+        ],
+        "outputPorts": [
+          {"type": "CLIP"}
+        ]
+      },
+      "modelSampling": {
+        "title": "ModelSamplingSD3",
+        "headerGradient": "utility",
+        "inputPorts": [
+          {"label": "model", "type": "MODEL"}
+        ],
+        "controls": [
+          {"type": "slider", "label": "shift", "default": 5.0, "min": 0, "max": 100}
+        ],
+        "outputPorts": [
+          {"type": "MODEL"}
+        ]
+      },
+      "loadImage": {
+        "title": "Load Image",
+        "headerGradient": "utility",
+        "inputPorts": [],
+        "controls": [
+          {"type": "text", "label": "T: 0.00s"},
+          {"type": "text", "label": "N: 24 (14)"},
+          {"type": "text", "label": "FPS:142.86"}
+        ],
+        "outputPorts": [
+          {"type": "IMAGE"}
+        ]
+      }
+    },
+    "canvas": {
+      "zoomLevels": [0.25, 0.5, 0.75, 1.0, 1.5, 2.0],
+      "defaultZoom": 1.0,
+      "gridSize": 20,
+      "gridColor": "rgba(255, 255, 255, 0.05)",
+      "backgroundColor": "#0A0A0A"
+    },
+    "accessibility": {
+      "minContrastRatio": 4.5,
+      "minTouchTarget": "44px",
+      "focusOutlineWidth": "2px",
+      "focusOutlineColor": "#3B82F6"
+    },
+    "animation": {
+      "duration": {
+        "fast": "150ms",
+        "normal": "200ms",
+        "slow": "300ms"
+      },
+      "easing": {
+        "default": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "in": "cubic-bezier(0.4, 0, 1, 1)",
+        "out": "cubic-bezier(0, 0, 0.2, 1)"
+      }
+    }
+  }
+}

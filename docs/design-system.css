@@ -1,0 +1,706 @@
+/**
+ * Node Editor Design System - CSS Variables
+ * Version: 1.0.0
+ * 
+ * Usage: Import this file and reference variables with var(--variable-name)
+ * Example: background-color: var(--color-bg-canvas);
+ */
+
+:root {
+  /* ============================================
+     COLORS - Background
+     ============================================ */
+  --color-bg-canvas: #0A0A0A;
+  --color-bg-node-body: #18181B;
+  --color-bg-control: #27272A;
+  --color-bg-hover: #3F3F46;
+  --color-border: #52525B;
+
+  /* ============================================
+     COLORS - Text
+     ============================================ */
+  --color-text-primary: #F3F4F6;
+  --color-text-secondary: #9CA3AF;
+  --color-text-tertiary: #6B7280;
+  --color-text-disabled: #4B5563;
+
+  /* ============================================
+     COLORS - Accent
+     ============================================ */
+  --color-accent-primary: #3B82F6;
+  --color-accent-success: #10B981;
+  --color-accent-warning: #F59E0B;
+  --color-accent-error: #EF4444;
+
+  /* ============================================
+     COLORS - Node Headers (Gradients)
+     ============================================ */
+  --color-header-model-loader-from: #9333EA;
+  --color-header-model-loader-to: #6B21A8;
+  
+  --color-header-text-positive-from: #15803D;
+  --color-header-text-positive-to: #14532D;
+  
+  --color-header-text-negative-from: #B91C1C;
+  --color-header-text-negative-to: #7F1D1D;
+  
+  --color-header-utility-from: #3F3F46;
+  --color-header-utility-to: #27272A;
+  
+  --color-header-output-from: #B45309;
+  --color-header-output-to: #78350F;
+
+  /* ============================================
+     COLORS - Connection Wires
+     ============================================ */
+  --color-wire-model: #FACC15;
+  --color-wire-clip: #FACC15;
+  --color-wire-latent: #C084FC;
+  --color-wire-conditioning: #4ADE80;
+  --color-wire-image: #F87171;
+  --color-wire-vae: #F87171;
+
+  /* ============================================
+     COLORS - Port Badges
+     ============================================ */
+  --color-badge-model-bg: rgba(250, 204, 21, 0.2);
+  --color-badge-model-text: #FACC15;
+  
+  --color-badge-clip-bg: rgba(250, 204, 21, 0.2);
+  --color-badge-clip-text: #FACC15;
+  
+  --color-badge-latent-bg: rgba(192, 132, 252, 0.2);
+  --color-badge-latent-text: #C084FC;
+  
+  --color-badge-conditioning-bg: rgba(74, 222, 128, 0.2);
+  --color-badge-conditioning-text: #4ADE80;
+  
+  --color-badge-image-bg: rgba(248, 113, 113, 0.2);
+  --color-badge-image-text: #F87171;
+  
+  --color-badge-vae-bg: rgba(248, 113, 113, 0.2);
+  --color-badge-vae-text: #F87171;
+
+  /* ============================================
+     COLORS - Control States
+     ============================================ */
+  --color-control-toggle-enabled: #4ADE80;
+  --color-control-toggle-disabled: #F87171;
+  --color-control-slider-fill: #3B82F6;
+  --color-control-slider-track: #3F3F46;
+
+  /* ============================================
+     COLORS - Text Area Controls
+     ============================================ */
+  --color-textarea-positive-bg: rgba(20, 83, 45, 0.3);
+  --color-textarea-positive-border: rgba(21, 128, 61, 0.5);
+  --color-textarea-negative-bg: rgba(127, 29, 29, 0.3);
+  --color-textarea-negative-border: rgba(185, 28, 28, 0.5);
+
+  /* ============================================
+     SPACING
+     ============================================ */
+  --spacing-xxs: 2px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 48px;
+
+  /* ============================================
+     BORDER RADIUS
+     ============================================ */
+  --radius-none: 0px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* ============================================
+     TYPOGRAPHY - Font Family
+     ============================================ */
+  --font-primary: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-monospace: 'SF Mono', Monaco, Consolas, monospace;
+
+  /* ============================================
+     TYPOGRAPHY - Font Size
+     ============================================ */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+
+  /* ============================================
+     TYPOGRAPHY - Font Weight
+     ============================================ */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* ============================================
+     TYPOGRAPHY - Line Height
+     ============================================ */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+
+  /* ============================================
+     SHADOWS
+     ============================================ */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+  /* ============================================
+     COMPONENT - Node
+     ============================================ */
+  --node-min-width: 280px;
+  --node-max-width: 400px;
+  --node-border-width: 1px;
+  --node-border-radius: 8px;
+  --node-border-color: #27272A;
+  --node-shadow: var(--shadow-lg);
+
+  --node-header-padding: 10px 16px;
+  --node-header-font-size: 14px;
+  --node-header-font-weight: 600;
+  --node-header-border-radius: 8px 8px 0 0;
+
+  --node-body-padding: 12px;
+  --node-body-background: #18181B;
+
+  /* Node States */
+  --node-state-default-border: #27272A;
+  --node-state-default-opacity: 1;
+  --node-state-hover-border: #3F3F46;
+  --node-state-selected-border: #3B82F6;
+  --node-state-selected-border-width: 2px;
+  --node-state-selected-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  --node-state-disabled-opacity: 0.5;
+
+  /* ============================================
+     COMPONENT - Connection Port
+     ============================================ */
+  --port-size: 10px;
+  --port-border-radius: var(--radius-full);
+  --port-gap: 8px;
+
+  --port-badge-padding: 2px 6px;
+  --port-badge-font-size: 12px;
+  --port-badge-font-weight: 500;
+  --port-badge-border-radius: 4px;
+
+  /* ============================================
+     COMPONENT - Controls
+     ============================================ */
+  --control-spacing: 8px;
+  --control-padding: 4px 0;
+  --control-font-size: 12px;
+  --control-border-bottom: 1px solid #27272A;
+
+  --control-arrow-color: #6B7280;
+  --control-label-color: #9CA3AF;
+  --control-value-color: #F3F4F6;
+
+  /* Slider Specific */
+  --slider-track-height: 4px;
+  --slider-track-background: #3F3F46;
+  --slider-fill-background: #3B82F6;
+  --slider-border-radius: var(--radius-full);
+  --slider-margin: 4px 16px;
+
+  /* Text Area Specific */
+  --textarea-padding: 8px;
+  --textarea-font-size: 12px;
+  --textarea-line-height: 1.625;
+  --textarea-text-color: #D1D5DB;
+  --textarea-border-radius: 4px;
+  --textarea-min-height: 80px;
+
+  /* ============================================
+     ANIMATION
+     ============================================ */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+
+  --easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-in: cubic-bezier(0.4, 0, 1, 1);
+  --easing-out: cubic-bezier(0, 0, 0.2, 1);
+
+  /* ============================================
+     ACCESSIBILITY
+     ============================================ */
+  --min-contrast-ratio: 4.5;
+  --min-touch-target: 44px;
+  --focus-outline-width: 2px;
+  --focus-outline-color: #3B82F6;
+
+  /* ============================================
+     CANVAS
+     ============================================ */
+  --canvas-bg: #0A0A0A;
+  --canvas-grid-size: 20px;
+  --canvas-grid-color: rgba(255, 255, 255, 0.05);
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* Node Panel Base */
+.node-panel {
+  min-width: var(--node-min-width);
+  max-width: var(--node-max-width);
+  background: var(--node-body-background);
+  border: var(--node-border-width) solid var(--node-border-color);
+  border-radius: var(--node-border-radius);
+  box-shadow: var(--node-shadow);
+  overflow: hidden;
+}
+
+.node-panel:hover {
+  border-color: var(--node-state-hover-border);
+  transition: border-color var(--duration-normal) var(--easing-default);
+}
+
+.node-panel.selected {
+  border-width: var(--node-state-selected-border-width);
+  border-color: var(--node-state-selected-border);
+  box-shadow: var(--node-state-selected-shadow);
+}
+
+.node-panel.disabled {
+  opacity: var(--node-state-disabled-opacity);
+  pointer-events: none;
+}
+
+/* Node Header */
+.node-header {
+  padding: var(--node-header-padding);
+  font-size: var(--node-header-font-size);
+  font-weight: var(--node-header-font-weight);
+  border-radius: var(--node-header-border-radius);
+}
+
+.node-header.model-loader {
+  background: linear-gradient(to right, var(--color-header-model-loader-from), var(--color-header-model-loader-to));
+}
+
+.node-header.text-positive {
+  background: linear-gradient(to right, var(--color-header-text-positive-from), var(--color-header-text-positive-to));
+}
+
+.node-header.text-negative {
+  background: linear-gradient(to right, var(--color-header-text-negative-from), var(--color-header-text-negative-to));
+}
+
+.node-header.utility {
+  background: linear-gradient(to right, var(--color-header-utility-from), var(--color-header-utility-to));
+}
+
+.node-header.output {
+  background: linear-gradient(to right, var(--color-header-output-from), var(--color-header-output-to));
+}
+
+/* Node Body */
+.node-body {
+  padding: var(--node-body-padding);
+}
+
+/* Connection Port */
+.connection-port {
+  display: flex;
+  align-items: center;
+  gap: var(--port-gap);
+  font-size: var(--font-size-xs);
+  margin-bottom: var(--control-spacing);
+}
+
+.connection-port-circle {
+  width: var(--port-size);
+  height: var(--port-size);
+  border-radius: var(--port-border-radius);
+}
+
+.connection-port-circle.model { background: var(--color-wire-model); }
+.connection-port-circle.clip { background: var(--color-wire-clip); }
+.connection-port-circle.latent { background: var(--color-wire-latent); }
+.connection-port-circle.conditioning { background: var(--color-wire-conditioning); }
+.connection-port-circle.image { background: var(--color-wire-image); }
+.connection-port-circle.vae { background: var(--color-wire-vae); }
+
+/* Port Badge */
+.port-badge {
+  padding: var(--port-badge-padding);
+  font-size: var(--port-badge-font-size);
+  font-weight: var(--port-badge-font-weight);
+  border-radius: var(--port-badge-border-radius);
+}
+
+.port-badge.model {
+  background: var(--color-badge-model-bg);
+  color: var(--color-badge-model-text);
+}
+
+.port-badge.clip {
+  background: var(--color-badge-clip-bg);
+  color: var(--color-badge-clip-text);
+}
+
+.port-badge.latent {
+  background: var(--color-badge-latent-bg);
+  color: var(--color-badge-latent-text);
+}
+
+.port-badge.conditioning {
+  background: var(--color-badge-conditioning-bg);
+  color: var(--color-badge-conditioning-text);
+}
+
+.port-badge.image {
+  background: var(--color-badge-image-bg);
+  color: var(--color-badge-image-text);
+}
+
+.port-badge.vae {
+  background: var(--color-badge-vae-bg);
+  color: var(--color-badge-vae-text);
+}
+
+/* Parameter Control */
+.parameter-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--control-padding);
+  font-size: var(--control-font-size);
+  border-bottom: var(--control-border-bottom);
+  margin-bottom: var(--control-spacing);
+}
+
+.parameter-control:hover {
+  background: rgba(39, 39, 42, 0.5);
+  cursor: pointer;
+}
+
+.control-arrow {
+  color: var(--control-arrow-color);
+}
+
+.control-label {
+  color: var(--control-label-color);
+  flex: 1;
+}
+
+.control-value {
+  color: var(--control-value-color);
+}
+
+.control-value.monospace {
+  font-family: var(--font-monospace);
+}
+
+.control-value.toggle-enabled {
+  color: var(--color-control-toggle-enabled);
+}
+
+.control-value.toggle-disabled {
+  color: var(--color-control-toggle-disabled);
+}
+
+/* Slider Control */
+.slider-control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.slider-track {
+  height: var(--slider-track-height);
+  background: var(--slider-track-background);
+  border-radius: var(--slider-border-radius);
+  margin: var(--slider-margin);
+  overflow: hidden;
+}
+
+.slider-fill {
+  height: 100%;
+  background: var(--slider-fill-background);
+  border-radius: var(--slider-border-radius);
+  transition: width var(--duration-fast) var(--easing-default);
+}
+
+/* Text Area Control */
+.textarea-control {
+  padding: var(--textarea-padding);
+  font-size: var(--textarea-font-size);
+  line-height: var(--textarea-line-height);
+  color: var(--textarea-text-color);
+  border-radius: var(--textarea-border-radius);
+  min-height: var(--textarea-min-height);
+  margin-top: var(--spacing-xs);
+}
+
+.textarea-control.positive {
+  background: var(--color-textarea-positive-bg);
+  border: 1px solid var(--color-textarea-positive-border);
+}
+
+.textarea-control.negative {
+  background: var(--color-textarea-negative-bg);
+  border: 1px solid var(--color-textarea-negative-border);
+}
+
+/* ============================================
+   CONNECTION WIRES (SVG)
+   ============================================ */
+
+.connection-wire {
+  stroke-width: 2px;
+  fill: none;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.connection-wire.model { stroke: var(--color-wire-model); }
+.connection-wire.clip { stroke: var(--color-wire-clip); }
+.connection-wire.latent { stroke: var(--color-wire-latent); }
+.connection-wire.conditioning { stroke: var(--color-wire-conditioning); }
+.connection-wire.image { stroke: var(--color-wire-image); }
+.connection-wire.vae { stroke: var(--color-wire-vae); }
+
+.connection-wire.selected {
+  stroke-width: 3px;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+/* ============================================
+   CANVAS
+   ============================================ */
+
+.node-canvas {
+  background-color: var(--canvas-bg);
+  background-image: 
+    linear-gradient(var(--canvas-grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--canvas-grid-color) 1px, transparent 1px);
+  background-size: var(--canvas-grid-size) var(--canvas-grid-size);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ============================================
+   FOCUS STYLES
+   ============================================ */
+
+.node-panel:focus-visible,
+.parameter-control:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: 2px;
+}
+
+/* ============================================
+   TRANSITION UTILITIES
+   ============================================ */
+
+.transition-fast {
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--easing-default);
+}
+
+.transition-normal {
+  transition-duration: var(--duration-normal);
+  transition-timing-function: var(--easing-default);
+}
+
+.transition-slow {
+  transition-duration: var(--duration-slow);
+  transition-timing-function: var(--easing-default);
+}
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS
+   ============================================ */
+
+@media (max-width: 768px) {
+  :root {
+    --node-min-width: 240px;
+    --node-max-width: 100%;
+  }
+}
+
+/* ============================================
+   DARK MODE (Already default)
+   ============================================ */
+
+/* Light mode override (optional) */
+@media (prefers-color-scheme: light) {
+  :root[data-theme="auto"] {
+    /* Override variables here if light mode needed */
+  }
+}
+
+:root[data-theme="light"] {
+  /* Light mode variables */
+  --color-bg-canvas: #F9FAFB;
+  --color-bg-node-body: #FFFFFF;
+  --color-bg-control: #F3F4F6;
+  --color-bg-hover: #E5E7EB;
+  --color-border: #D1D5DB;
+  
+  --color-text-primary: #111827;
+  --color-text-secondary: #4B5563;
+  --color-text-tertiary: #6B7280;
+  --color-text-disabled: #9CA3AF;
+  
+  --node-border-color: #D1D5DB;
+  --node-state-default-border: #D1D5DB;
+  --node-state-hover-border: #9CA3AF;
+  
+  --control-border-bottom: 1px solid #E5E7EB;
+  --control-arrow-color: #9CA3AF;
+  --control-label-color: #6B7280;
+  --control-value-color: #111827;
+  
+  --slider-track-background: #E5E7EB;
+  
+  --canvas-grid-color: rgba(0, 0, 0, 0.05);
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  .node-canvas {
+    background: white;
+  }
+  
+  .connection-wire {
+    stroke-width: 1px;
+  }
+  
+  .node-panel {
+    box-shadow: none;
+    page-break-inside: avoid;
+  }
+}
+
+/* ============================================
+   ANIMATION KEYFRAMES
+   ============================================ */
+
+@keyframes node-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes wire-draw {
+  from {
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.node-panel.animating {
+  animation: node-appear var(--duration-normal) var(--easing-out);
+}
+
+.connection-wire.animating {
+  stroke-dasharray: 1000;
+  animation: wire-draw var(--duration-slow) var(--easing-default);
+}
+
+.connection-port-circle.active {
+  animation: pulse 2s var(--easing-default) infinite;
+}
+
+/* ============================================
+   ACCESSIBILITY - HIGH CONTRAST MODE
+   ============================================ */
+
+@media (prefers-contrast: high) {
+  :root {
+    --node-border-width: 2px;
+    --control-border-bottom: 2px solid #52525B;
+    --focus-outline-width: 3px;
+  }
+  
+  .connection-wire {
+    stroke-width: 3px;
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY - REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   UTILITY - SCROLL CONTAINER
+   ============================================ */
+
+.scrollable {
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-bg-hover) var(--color-bg-control);
+}
+
+.scrollable::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollable::-webkit-scrollbar-track {
+  background: var(--color-bg-control);
+}
+
+.scrollable::-webkit-scrollbar-thumb {
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-full);
+}
+
+.scrollable::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border);
+}
+
+/* ============================================
+   END OF DESIGN SYSTEM CSS
+   ============================================ */

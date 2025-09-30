@@ -287,26 +287,11 @@ function CreativeNodeFlow() {
         
         {/* Theme selector and controls */}
         <Panel position="top-right">
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            padding: '8px',
-            backgroundColor: colorMode === 'dark' ? '#374151' : 'white',
-            borderRadius: '8px',
-            border: '1px solid #ccc'
-          }}>
+          <div className="panel-container">
             <select
-              className="nodrag"
+              className="nodrag panel-select"
               onChange={onChange}
               value={colorMode}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '6px',
-                border: '1px solid #ccc',
-                backgroundColor: colorMode === 'dark' ? '#374151' : 'white',
-                color: colorMode === 'dark' ? 'white' : 'black'
-              }}
             >
               <option value="dark">Dark</option>
               <option value="light">Light</option>
@@ -314,34 +299,16 @@ function CreativeNodeFlow() {
             </select>
             
             <button
-              className="nodrag"
+              className="nodrag panel-button"
               onClick={cleanupDuplicates}
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-                borderRadius: '4px',
-                border: '1px solid #f59e0b',
-                backgroundColor: '#f59e0b',
-                color: 'white',
-                cursor: 'pointer'
-              }}
               title="Remove duplicate nodes and edges"
             >
               🧹 Cleanup
             </button>
             
             <button
-              className="nodrag"
+              className="nodrag panel-button"
               onClick={resetCanvas}
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-                borderRadius: '4px',
-                border: '1px solid #dc2626',
-                backgroundColor: '#dc2626',
-                color: 'white',
-                cursor: 'pointer'
-              }}
               title="Reset to initial state"
             >
               🔄 Reset
@@ -351,75 +318,31 @@ function CreativeNodeFlow() {
 
         {/* Node creation panel */}
         <Panel position="top-left">
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: '8px',
-            padding: '8px',
-            backgroundColor: colorMode === 'dark' ? '#374151' : 'white',
-            borderRadius: '8px',
-            border: '1px solid #ccc'
-          }}>
-            <div style={{ 
-              fontWeight: 'bold', 
-              fontSize: '12px',
-              color: colorMode === 'dark' ? 'white' : 'black'
-            }}>
+          <div className="panel-container">
+            <div className="panel-title">
               Add Nodes
             </div>
             <button
+              className="panel-button"
               onClick={() => addNode('startingPrompt')}
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-                borderRadius: '4px',
-                border: '1px solid #3b82f6',
-                backgroundColor: '#3b82f6',
-                color: 'white',
-                cursor: 'pointer'
-              }}
             >
               🚀 Starting Prompt
             </button>
             <button
+              className="panel-button"
               onClick={() => addNode('agentPrompt')}
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-                borderRadius: '4px',
-                border: '1px solid #ec4899',
-                backgroundColor: '#ec4899',
-                color: 'white',
-                cursor: 'pointer'
-              }}
             >
               🤖 Agent Prompt
             </button>
             <button
+              className="panel-button"
               onClick={() => addNode('imagePrompt')}
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-                borderRadius: '4px',
-                border: '1px solid #6366f1',
-                backgroundColor: '#6366f1',
-                color: 'white',
-                cursor: 'pointer'
-              }}
             >
               🎨 Image Prompt
             </button>
             <button
+              className="panel-button"
               onClick={() => addNode('output')}
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-                borderRadius: '4px',
-                border: '1px solid #10b981',
-                backgroundColor: '#10b981',
-                color: 'white',
-                cursor: 'pointer'
-              }}
             >
               📄 Output
             </button>
