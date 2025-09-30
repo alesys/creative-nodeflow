@@ -38,12 +38,19 @@ A visual, node-based interface for building and executing AI prompt chains using
 
 3. **Configure your API keys** (see setup instructions below)
 
-4. **Start the development server**:
+4. **Validate your environment**:
+   ```bash
+   npm run validate-env
+   ```
+
+5. **Start the development server**:
    ```bash
    npm start
    ```
 
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+⚠️ **Important**: If you see "API key not configured" errors, restart the server after setting up your `.env` file.
+
+Open [http://localhost:3001](http://localhost:3001) to view it in your browser.
 
 ## 🔑 API Key Setup
 
@@ -190,17 +197,54 @@ This project is licensed under the MIT License.
 
 ### Common Issues
 
-- **"API key not configured"**: Ensure your `.env` file has the correct API keys
+#### "OpenAI API key not configured" Error
+1. **Check .env file location**: Must be in `creative-nodeflow/.env` (not parent directory)
+2. **Verify .env format**: No spaces around `=` sign
+   ```bash
+   REACT_APP_OPENAI_API_KEY=sk-proj-your-key-here
+   ```
+3. **Restart server**: **CRITICAL** - Must restart `npm start` after .env changes
+4. **Validate environment**: Run `npm run validate-env` to check setup
+5. **Check browser console**: Look for initialization logs and errors
+
+#### Other Issues
 - **"Failed to generate response"**: Check your OpenAI billing and API key validity
 - **"Failed to generate image"**: Verify your Google API key has access to Gemini models
 - **Nodes not connecting**: Make sure to drag from output (right) to input (left) handles
+- **Blank/broken UI**: Check browser console for JavaScript errors
+
+### Environment Debugging
+
+Enable the diagnostic panel by uncommenting this line in `src/App.js`:
+```javascript
+// <EnvDiagnostic />  // Remove // to enable
+```
+
+The diagnostic panel shows:
+- ✅/❌ API key detection status
+- Service initialization status
+- Environment variable details
+
+### Validation Commands
+
+```bash
+# Check environment setup
+npm run validate-env
+
+# Start with environment check
+npm run dev:debug
+
+# View available scripts
+npm run
+```
 
 ### Getting Help
 
-- Check the browser console for detailed error messages
-- Verify API keys are correctly set in `.env`
-- Ensure you have billing set up for OpenAI if required
-- Test API keys independently to verify they work
+1. **Check browser console** (F12) for detailed error messages
+2. **Run validation script**: `npm run validate-env`
+3. **Verify API keys** are correctly set and server restarted
+4. **Check TROUBLESHOOTING.md** for detailed debugging steps
+5. **Ensure billing** is set up for OpenAI if required
 
 ### Analyzing the Bundle Size
 
