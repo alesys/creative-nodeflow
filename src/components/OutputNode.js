@@ -1,5 +1,6 @@
 // Output Node - Displays results from prompt nodes
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import CustomNodeBase from './CustomNodeBase';
@@ -80,26 +81,6 @@ const OutputNode = ({ data, id }) => {
               }}
               style={{ cursor: 'pointer' }}
             />
-            {lightboxOpen && (
-              <div 
-                className="lightbox-overlay"
-                onClick={() => setLightboxOpen(false)}
-              >
-                <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
-                  <img 
-                    src={content} 
-                    alt="Generated content - Full size" 
-                    className="lightbox-image"
-                  />
-                  <button 
-                    className="lightbox-close"
-                    onClick={() => setLightboxOpen(false)}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         );
       
@@ -121,41 +102,66 @@ const OutputNode = ({ data, id }) => {
   };
 
   return (
-    <CustomNodeBase 
-      hasInput={true}
-      hasOutput={true}
-      nodeType="output"
-      className={content ? 'has-content' : 'empty'}
-    >
-      <div className="node-header">
-        <span>{getStatusIcon()} Output</span>
-        {lastUpdated && (
-          <span className="helper-text helper-text-tiny">
-            {lastUpdated.toLocaleTimeString()}
-          </span>
+    <>
+      <CustomNodeBase 
+        hasInput={true}
+        hasOutput={true}
+        nodeType="output"
+        className={content ? 'has-content' : 'empty'}
+      >
+        <div className="node-header">
+          <span>{getStatusIcon()} Output</span>
+          {lastUpdated && (
+            <span className="helper-text helper-text-tiny">
+              {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+
+        <div className="output-content-container">
+          {renderContent()}
+        </div>
+
+        {context && context.messages && (
+          <details className="details-section-large">
+            <summary className="helper-text summary-clickable">
+              Context ({context.messages.length} messages)
+            </summary>
+            <div className="context-details">
+              {context.messages.slice(-3).map((msg, idx) => (
+                <div key={idx} className="output-item">
+                  <strong>{msg.role}:</strong> {msg.content.substring(0, 100)}
+                  {msg.content.length > 100 && '...'}
+                </div>
+              ))}
+            </div>
+          </details>
         )}
-      </div>
-
-      <div className="output-content-container">
-        {renderContent()}
-      </div>
-
-      {context && context.messages && (
-        <details className="details-section-large">
-          <summary className="helper-text summary-clickable">
-            Context ({context.messages.length} messages)
-          </summary>
-          <div className="context-details">
-            {context.messages.slice(-3).map((msg, idx) => (
-              <div key={idx} className="output-item">
-                <strong>{msg.role}:</strong> {msg.content.substring(0, 100)}
-                {msg.content.length > 100 && '...'}
-              </div>
-            ))}
+      </CustomNodeBase>
+      
+      {/* Render lightbox using portal to escape node positioning constraints */}
+      {lightboxOpen && contentType === 'image' && ReactDOM.createPortal(
+        <div 
+          className="lightbox-overlay"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+            <img 
+              src={content} 
+              alt="Generated content - Full size" 
+              className="lightbox-image"
+            />
+            <button 
+              className="lightbox-close"
+              onClick={() => setLightboxOpen(false)}
+            >
+              ✕
+            </button>
           </div>
-        </details>
+        </div>,
+        document.body
       )}
-    </CustomNodeBase>
+    </>
   );
 };
 
