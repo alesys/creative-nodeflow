@@ -10,24 +10,21 @@ class GoogleAIService {
   initializeClient() {
     const apiKey = process.env.REACT_APP_GOOGLE_API_KEY;
     
-    // Enhanced debugging
-    console.log('Google AI Service Initialization:');
-    console.log('- NODE_ENV:', process.env.NODE_ENV);
-    console.log('- API Key present:', !!apiKey);
-    console.log('- API Key length:', apiKey ? apiKey.length : 0);
-    console.log('- API Key prefix:', apiKey ? apiKey.substring(0, 10) : 'none');
+    // Only log in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Google AI Service: Initializing...');
+    }
     
     if (!apiKey || apiKey.trim() === '') {
-      console.warn('Google API key not found in environment variables');
-      console.warn('Make sure REACT_APP_GOOGLE_API_KEY is set in .env file');
-      console.warn('Available REACT_APP variables:', 
-        Object.keys(process.env).filter(key => key.startsWith('REACT_APP_')));
+      console.warn('Google API key not configured. Check .env file.');
       return;
     }
     
     try {
       this.client = new GoogleGenerativeAI(apiKey.trim());
-      console.log('Google AI client initialized successfully');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Google AI client initialized successfully');
+      }
     } catch (error) {
       console.error('Failed to initialize Google AI client:', error);
       this.client = null;
@@ -40,8 +37,8 @@ class GoogleAIService {
     }
 
     try {
-      // Use Gemini 2.5 Flash Image (Nano Banana) for image generation
-      const model = this.client.getGenerativeModel({ model: 'gemini-2.5-flash-image' });
+      // Use Gemini 2.5 Flash Image Preview (Nano Banana) for image generation
+      const model = this.client.getGenerativeModel({ model: 'gemini-2.5-flash-image-preview' });
 
       let fullPrompt = prompt;
       
@@ -60,9 +57,15 @@ class GoogleAIService {
       const result = await model.generateContent([fullPrompt]);
       const response = await result.response;
       
-      // Note: The actual response format may vary - this is a placeholder
-      // You may need to adjust based on the actual Gemini image generation API response
-      const imageData = response.text(); // This might need adjustment
+      // Handle Gemini image generation response format
+      let imageData = null;
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inline_data) {
+          // Convert base64 data to data URL for display
+          imageData = `data:${part.inline_data.mime_type};base64,${part.inline_data.data}`;
+          break;
+        }
+      }
       
       return {
         content: imageData,

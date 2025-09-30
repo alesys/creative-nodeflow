@@ -58,6 +58,44 @@ function CreativeNodeFlow() {
   // Removed unused nodeOutputHandlers
   const [nodeInputHandlers] = useState(new Map());
 
+  // Reset function to clear all nodes and start fresh
+  const resetCanvas = useCallback(() => {
+    nodeInputHandlers.clear();
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+  }, [setNodes, setEdges, nodeInputHandlers]);
+
+  // Clean duplicate nodes function
+  const cleanupDuplicates = useCallback(() => {
+    setNodes(currentNodes => {
+      const uniqueNodes = [];
+      const seenIds = new Set();
+      
+      currentNodes.forEach(node => {
+        if (!seenIds.has(node.id)) {
+          seenIds.add(node.id);
+          uniqueNodes.push(node);
+        }
+      });
+      
+      return uniqueNodes;
+    });
+    
+    setEdges(currentEdges => {
+      const uniqueEdges = [];
+      const seenIds = new Set();
+      
+      currentEdges.forEach(edge => {
+        if (!seenIds.has(edge.id)) {
+          seenIds.add(edge.id);
+          uniqueEdges.push(edge);
+        }
+      });
+      
+      return uniqueEdges;
+    });
+  }, [setNodes, setEdges]);
+
   // Define custom node types
   const nodeTypes = useMemo(() => ({
     startingPrompt: StartingPromptNode,
@@ -81,46 +119,55 @@ function CreativeNodeFlow() {
       }
     });
 
-    // Auto-create output node if none exists
+    // Auto-create output node if none exists and it's not already an output node
     if (outgoingEdges.length === 0) {
-      const newOutputId = `auto-output-${Date.now()}`;
       const sourceNode = nodes.find(n => n.id === nodeId);
       
-      if (sourceNode) {
-        const newOutputNode = {
-          id: newOutputId,
-          position: { 
-            x: sourceNode.position.x + 350, 
-            y: sourceNode.position.y 
-          },
-          type: 'output',
-          data: { 
-            content,
-            context,
-            type,
-            onReceiveInput: (handler) => nodeInputHandlers.set(newOutputId, handler),
-            onOutput: handleNodeOutput
-          },
-        };
+      // Don't auto-create if the source is already an output node or if we're already creating one
+      if (sourceNode && sourceNode.type !== 'output') {
+        // Check if there's already an auto-output for this node
+        const existingAutoOutput = nodes.find(n => 
+          n.id.startsWith(`auto-output-${nodeId}`) || 
+          edges.some(edge => edge.source === nodeId && edge.target === n.id && n.type === 'output')
+        );
+        
+        if (!existingAutoOutput) {
+          const newOutputId = `auto-output-${nodeId}-${Date.now()}`;
+          const newOutputNode = {
+            id: newOutputId,
+            position: { 
+              x: sourceNode.position.x + 350, 
+              y: sourceNode.position.y 
+            },
+            type: 'output',
+            data: { 
+              content,
+              context,
+              type,
+              onReceiveInput: (handler) => nodeInputHandlers.set(newOutputId, handler),
+              onOutput: handleNodeOutput
+            },
+          };
 
-        const newEdge = {
-          id: `${nodeId}-${newOutputId}`,
-          source: nodeId,
-          target: newOutputId,
-          animated: true,
-          style: { stroke: '#10b981', strokeWidth: 2 }
-        };
+          const newEdge = {
+            id: `${nodeId}-${newOutputId}`,
+            source: nodeId,
+            target: newOutputId,
+            animated: true,
+            style: { stroke: '#10b981', strokeWidth: 2 }
+          };
 
-        setNodes(nodes => [...nodes, newOutputNode]);
-        setEdges(edges => [...edges, newEdge]);
+          setNodes(nodes => [...nodes, newOutputNode]);
+          setEdges(edges => [...edges, newEdge]);
 
-        // Immediately send data to the new output node
-        setTimeout(() => {
-          const inputHandler = nodeInputHandlers.get(newOutputId);
-          if (inputHandler) {
-            inputHandler({ content, context, type });
-          }
-        }, 100);
+          // Immediately send data to the new output node
+          setTimeout(() => {
+            const inputHandler = nodeInputHandlers.get(newOutputId);
+            if (inputHandler) {
+              inputHandler({ content, context, type });
+            }
+          }, 100);
+        }
       }
     }
   }, [edges, nodes, setNodes, setEdges, nodeInputHandlers]);
@@ -222,30 +269,84 @@ function CreativeNodeFlow() {
         nodeTypes={nodeTypes}
         colorMode={colorMode}
         fitView
+        fitViewOptions={{
+          padding: 0.1,
+          includeHiddenNodes: false
+        }}
+        onError={(error) => {
+          // Suppress ResizeObserver errors
+          if (error.message && error.message.includes('ResizeObserver')) {
+            return;
+          }
+          console.error('ReactFlow error:', error);
+        }}
       >
         <Controls />
         <MiniMap />
         <Background variant="dots" gap={12} size={1} />
         
-        {/* Theme selector */}
+        {/* Theme selector and controls */}
         <Panel position="top-right">
-          <select
-            className="nodrag"
-            onChange={onChange}
-            value={colorMode}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '6px',
-              border: '1px solid #ccc',
-              backgroundColor: colorMode === 'dark' ? '#374151' : 'white',
-              color: colorMode === 'dark' ? 'white' : 'black',
-              marginBottom: '8px'
-            }}
-          >
-            <option value="dark">Dark</option>
-            <option value="light">Light</option>
-            <option value="system">System</option>
-          </select>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            padding: '8px',
+            backgroundColor: colorMode === 'dark' ? '#374151' : 'white',
+            borderRadius: '8px',
+            border: '1px solid #ccc'
+          }}>
+            <select
+              className="nodrag"
+              onChange={onChange}
+              value={colorMode}
+              style={{
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid #ccc',
+                backgroundColor: colorMode === 'dark' ? '#374151' : 'white',
+                color: colorMode === 'dark' ? 'white' : 'black'
+              }}
+            >
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+              <option value="system">System</option>
+            </select>
+            
+            <button
+              className="nodrag"
+              onClick={cleanupDuplicates}
+              style={{
+                padding: '6px 12px',
+                fontSize: '12px',
+                borderRadius: '4px',
+                border: '1px solid #f59e0b',
+                backgroundColor: '#f59e0b',
+                color: 'white',
+                cursor: 'pointer'
+              }}
+              title="Remove duplicate nodes and edges"
+            >
+              🧹 Cleanup
+            </button>
+            
+            <button
+              className="nodrag"
+              onClick={resetCanvas}
+              style={{
+                padding: '6px 12px',
+                fontSize: '12px',
+                borderRadius: '4px',
+                border: '1px solid #dc2626',
+                backgroundColor: '#dc2626',
+                color: 'white',
+                cursor: 'pointer'
+              }}
+              title="Reset to initial state"
+            >
+              🔄 Reset
+            </button>
+          </div>
         </Panel>
 
         {/* Node creation panel */}
@@ -329,4 +430,4 @@ function CreativeNodeFlow() {
   );
 }
 
-export default CreativeNodeFlow;
+export default React.memo(CreativeNodeFlow);

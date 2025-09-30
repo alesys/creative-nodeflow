@@ -1,15 +1,19 @@
-/* Custom Node Base Styles - ReactFlow Native Only */
+/* Custom Node Base Styles - ReactFlow Dark Theme */
 
 .custom-node {
   text-align: left;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-optical-sizing: auto;
+  font-feature-settings: "liga" 1, "calt" 1;
+  background: #1a192b;
+  border: 1px solid #555;
+  border-radius: 3px;
+  color: #fff;
+  padding: 10px;
+  box-shadow: 0 1px 4px 1px rgba(0, 0, 0, 0.08);
 }
 
-/* Node content styling */
-.node-content {
-  padding: 8px;
-}
-
-/* Textarea styling */
+/* Textarea styling - ReactFlow Dark theme */
 .custom-node textarea {
   width: 100%;
   min-height: 80px;
@@ -17,10 +21,20 @@
   resize: vertical;
   font-family: inherit;
   box-sizing: border-box;
+  background: #2d2d2d;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #fff;
 }
 
 .custom-node textarea.nodrag {
   cursor: text;
+}
+
+.custom-node textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
 }
 
 /* Preview content */
@@ -58,4 +72,110 @@
 /* Content display */
 .content-display {
   line-height: 1.4;
+}
+
+/* Layout and spacing classes */
+.node-padding {
+  padding: 4px;
+}
+
+.node-text-area {
+  padding: 12px;
+  margin: 4px 0;
+  border-radius: 6px;
+}
+
+.helper-text-spaced {
+  padding: 0 4px;
+  margin-top: 8px;
+}
+
+.helper-text-margined {
+  margin-top: 4px;
+}
+
+.helper-text-italic {
+  font-style: italic;
+}
+
+.helper-text-small {
+  font-size: 10px;
+}
+
+.helper-text-tiny {
+  font-size: 10px;
+  font-weight: normal;
+}
+
+.preview-content-clickable {
+  padding: 16px;
+  margin: 4px;
+  min-height: 80px;
+}
+
+.preview-content-padded {
+  padding: 12px;
+  margin: 4px;
+}
+
+/* Status and processing indicators */
+.status-indicator.processing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Details and summary styling */
+.details-section {
+  margin-top: 8px;
+}
+
+.details-section-large {
+  margin-top: 12px;
+}
+
+.summary-clickable {
+  cursor: pointer;
+}
+
+.output-item {
+  margin-bottom: 4px;
+}
+
+/* Image node specific */
+.image-helper-text {
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* Output node specific */
+.waiting-content {
+  font-style: italic;
+  text-align: left;
+  padding: 40px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  opacity: 0.7;
+}
+
+.output-image {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 4px;
+  object-fit: contain;
+}
+
+.image-error {
+  display: none;
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.text-content {
+  max-height: 400px;
+  overflow-y: auto;
+  line-height: 1.5;
 }

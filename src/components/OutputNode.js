@@ -35,16 +35,7 @@ const OutputNode = ({ data, id }) => {
   const renderContent = () => {
     if (!content) {
       return (
-        <div className="helper-text" style={{ 
-          fontStyle: 'italic', 
-          textAlign: 'left', 
-          padding: '40px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '80px',
-          opacity: 0.7
-        }}>
+        <div className="helper-text waiting-content">
           Waiting for input...
         </div>
       );
@@ -57,23 +48,13 @@ const OutputNode = ({ data, id }) => {
             <img 
               src={content}
               alt="Generated content"
-              style={{ 
-                maxWidth: '100%', 
-                maxHeight: '300px',
-                borderRadius: '4px',
-                objectFit: 'contain'
-              }}
+              className="output-image"
               onError={(e) => {
                 e.target.style.display = 'none';
                 e.target.nextSibling.style.display = 'block';
               }}
             />
-            <div style={{ 
-              display: 'none',
-              color: '#ef4444',
-              fontSize: '12px',
-              marginTop: '8px'
-            }}>
+            <div className="image-error">
               ⚠️ Failed to load image
             </div>
           </div>
@@ -82,11 +63,7 @@ const OutputNode = ({ data, id }) => {
       case 'text':
       default:
         return (
-          <div style={{ 
-            maxHeight: '400px', 
-            overflowY: 'auto',
-            lineHeight: '1.5'
-          }}>
+          <div className="text-content">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {content}
             </ReactMarkdown>
@@ -110,7 +87,7 @@ const OutputNode = ({ data, id }) => {
       <div className="node-header">
         <span>{getStatusIcon()} Output</span>
         {lastUpdated && (
-          <span className="helper-text" style={{ fontSize: '10px', fontWeight: 'normal' }}>
+          <span className="helper-text helper-text-tiny">
             {lastUpdated.toLocaleTimeString()}
           </span>
         )}
@@ -121,13 +98,13 @@ const OutputNode = ({ data, id }) => {
       </div>
 
       {context && context.messages && (
-        <details style={{ marginTop: '12px' }}>
-          <summary className="helper-text" style={{ cursor: 'pointer' }}>
+        <details className="details-section-large">
+          <summary className="helper-text summary-clickable">
             Context ({context.messages.length} messages)
           </summary>
           <div className="context-details">
             {context.messages.slice(-3).map((msg, idx) => (
-              <div key={idx} style={{ marginBottom: '4px' }}>
+              <div key={idx} className="output-item">
                 <strong>{msg.role}:</strong> {msg.content.substring(0, 100)}
                 {msg.content.length > 100 && '...'}
               </div>

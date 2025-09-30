@@ -13,7 +13,7 @@ const CustomNodeBase = ({
 }) => {
   return (
     <div 
-      className={`react-flow__node-default custom-node ${nodeType}-node ${className}`}
+      className={`custom-node ${nodeType}-node ${className}`}
       {...props}
     >
       {/* Input handle on the left side */}

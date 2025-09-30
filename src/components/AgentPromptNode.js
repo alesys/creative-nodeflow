@@ -113,7 +113,7 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
     >
       <div className="node-header">
         <span>🤖 Agent Prompt</span>
-        <span className="helper-text" style={{ fontSize: '10px' }}>
+        <span className="helper-text helper-text-small">
           {connectionStatus.icon} {connectionStatus.text}
         </span>
       </div>
@@ -128,11 +128,7 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
             placeholder="Enter your follow-up prompt here... Press Ctrl+Enter to execute"
 
           />
-          <div style={{ 
-            fontSize: '12px', 
-            color: '#6b7280', 
-            marginTop: '4px' 
-          }}>
+          <div className="helper-text helper-text-margined">
             Press Ctrl+Enter to execute • Click outside to preview
           </div>
         </div>
@@ -146,7 +142,7 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
               {prompt}
             </ReactMarkdown>
           ) : (
-            <span className="helper-text" style={{ fontStyle: 'italic' }}>
+            <span className="helper-text helper-text-italic">
               Click to add follow-up prompt...
             </span>
           )}
@@ -154,13 +150,13 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
       )}
 
       {inputContext && (
-        <details style={{ marginTop: '8px' }}>
-          <summary className="helper-text" style={{ cursor: 'pointer' }}>
+        <details className="details-section">
+          <summary className="helper-text summary-clickable">
             Input Context ({inputContext.messages?.length || 0} messages)
           </summary>
           <div className="context-details">
             {inputContext.messages?.slice(-2).map((msg, idx) => (
-              <div key={idx} style={{ marginBottom: '4px' }}>
+              <div key={idx} className="output-item">
                 <strong>{msg.role}:</strong> {msg.content.substring(0, 80)}
                 {msg.content.length > 80 && '...'}
               </div>
@@ -170,7 +166,7 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
       )}
 
       {isProcessing && (
-        <div className="status-indicator processing" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div className="status-indicator processing">
           <span>🔄</span> Processing with context...
         </div>
       )}

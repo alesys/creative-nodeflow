@@ -81,7 +81,7 @@ const StartingPromptNode = ({ data, id, isConnectable }) => {
       </div>
 
       {isEditing ? (
-        <div style={{ padding: '4px' }}>
+        <div className="node-padding">
           <textarea
             ref={textareaRef}
             value={prompt}
@@ -89,34 +89,24 @@ const StartingPromptNode = ({ data, id, isConnectable }) => {
             onKeyDown={handleKeyDown}
             onMouseDown={(e) => e.stopPropagation()}
             onMouseMove={(e) => e.stopPropagation()}
-            className="nodrag"
+            className="nodrag node-text-area"
             placeholder="Enter your prompt here... Press Ctrl+Enter to execute"
-            style={{
-              padding: '12px',
-              margin: '4px 0',
-              borderRadius: '6px'
-            }}
           />
-          <div className="helper-text" style={{ padding: '0 4px', marginTop: '8px' }}>
+          <div className="helper-text helper-text-spaced">
             Press Ctrl+Enter to execute • Click outside to preview
           </div>
         </div>
       ) : (
         <div 
           onClick={handleEditClick}
-          className="preview-content"
-          style={{
-            padding: '16px',
-            margin: '4px',
-            minHeight: '80px'
-          }}
+          className="preview-content preview-content-clickable"
         >
           {prompt ? (
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {prompt}
             </ReactMarkdown>
           ) : (
-            <span className="helper-text" style={{ fontStyle: 'italic' }}>
+            <span className="helper-text helper-text-italic">
               Click to add prompt...
             </span>
           )}
@@ -124,7 +114,7 @@ const StartingPromptNode = ({ data, id, isConnectable }) => {
       )}
 
       {isProcessing && (
-        <div className="status-indicator processing" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div className="status-indicator processing">
           <span>🔄</span> Processing with OpenAI...
         </div>
       )}

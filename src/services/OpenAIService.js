@@ -10,18 +10,13 @@ class OpenAIService {
   initializeClient() {
     const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
     
-    // Enhanced debugging
-    console.log('OpenAI Service Initialization:');
-    console.log('- NODE_ENV:', process.env.NODE_ENV);
-    console.log('- API Key present:', !!apiKey);
-    console.log('- API Key length:', apiKey ? apiKey.length : 0);
-    console.log('- API Key prefix:', apiKey ? apiKey.substring(0, 7) : 'none');
+    // Only log in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log('OpenAI Service: Initializing...');
+    }
     
     if (!apiKey || apiKey.trim() === '') {
-      console.warn('OpenAI API key not found in environment variables');
-      console.warn('Make sure REACT_APP_OPENAI_API_KEY is set in .env file');
-      console.warn('Available REACT_APP variables:', 
-        Object.keys(process.env).filter(key => key.startsWith('REACT_APP_')));
+      console.warn('OpenAI API key not configured. Check .env file.');
       return;
     }
     
@@ -30,7 +25,9 @@ class OpenAIService {
         apiKey: apiKey.trim(),
         dangerouslyAllowBrowser: true // Note: In production, use a backend proxy
       });
-      console.log('OpenAI client initialized successfully');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('OpenAI client initialized successfully');
+      }
     } catch (error) {
       console.error('Failed to initialize OpenAI client:', error);
       this.client = null;
