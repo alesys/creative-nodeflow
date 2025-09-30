@@ -9,12 +9,29 @@ class GoogleAIService {
 
   initializeClient() {
     const apiKey = process.env.REACT_APP_GOOGLE_API_KEY;
-    if (!apiKey) {
+    
+    // Enhanced debugging
+    console.log('Google AI Service Initialization:');
+    console.log('- NODE_ENV:', process.env.NODE_ENV);
+    console.log('- API Key present:', !!apiKey);
+    console.log('- API Key length:', apiKey ? apiKey.length : 0);
+    console.log('- API Key prefix:', apiKey ? apiKey.substring(0, 10) : 'none');
+    
+    if (!apiKey || apiKey.trim() === '') {
       console.warn('Google API key not found in environment variables');
+      console.warn('Make sure REACT_APP_GOOGLE_API_KEY is set in .env file');
+      console.warn('Available REACT_APP variables:', 
+        Object.keys(process.env).filter(key => key.startsWith('REACT_APP_')));
       return;
     }
     
-    this.client = new GoogleGenerativeAI(apiKey);
+    try {
+      this.client = new GoogleGenerativeAI(apiKey.trim());
+      console.log('Google AI client initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize Google AI client:', error);
+      this.client = null;
+    }
   }
 
   async generateImage(prompt, context = null) {
