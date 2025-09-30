@@ -59,12 +59,23 @@ class GoogleAIService {
       
       // Handle Gemini image generation response format
       let imageData = null;
+      console.log('Gemini response candidates:', response.candidates?.length);
+      console.log('First candidate parts:', response.candidates?.[0]?.content?.parts?.length);
+      
       for (const part of response.candidates[0].content.parts) {
+        console.log('Processing part:', part);
         if (part.inline_data) {
           // Convert base64 data to data URL for display
           imageData = `data:${part.inline_data.mime_type};base64,${part.inline_data.data}`;
+          console.log('Generated image data URL (first 100 chars):', imageData.substring(0, 100));
           break;
         }
+      }
+      
+      if (!imageData) {
+        console.warn('No inline_data found in response parts');
+        console.log('Response structure:', JSON.stringify(response, null, 2));
+        throw new Error('No image data received from Gemini. The model may not have generated an image.');
       }
       
       return {

@@ -9,6 +9,8 @@ const OutputNode = ({ data, id }) => {
   const [context, setContext] = useState(data.context || null);
   const [contentType, setContentType] = useState(data.type || 'text');
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   // Listen for incoming data from connected nodes
   useEffect(() => {
@@ -43,20 +45,61 @@ const OutputNode = ({ data, id }) => {
 
     switch (contentType) {
       case 'image':
+        if (!content) {
+          return (
+            <div className="helper-text waiting-content">
+              No image data received...
+            </div>
+          );
+        }
+        
+        if (imageError) {
+          return (
+            <div className="image-error" style={{display: 'block'}}>
+              ⚠️ Failed to load image
+              <br/>
+              <small>Data: {content ? content.substring(0, 50) + '...' : 'No data'}</small>
+            </div>
+          );
+        }
+
         return (
           <div>
             <img 
               src={content}
               alt="Generated content"
-              className="output-image"
+              className="output-image clickable"
+              onClick={() => setLightboxOpen(true)}
               onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'block';
+                console.error('Image load error:', e.target.src);
+                setImageError(true);
               }}
+              onLoad={() => {
+                console.log('Image loaded successfully:', content.substring(0, 50));
+                setImageError(false);
+              }}
+              style={{ cursor: 'pointer' }}
             />
-            <div className="image-error">
-              ⚠️ Failed to load image
-            </div>
+            {lightboxOpen && (
+              <div 
+                className="lightbox-overlay"
+                onClick={() => setLightboxOpen(false)}
+              >
+                <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+                  <img 
+                    src={content} 
+                    alt="Generated content - Full size" 
+                    className="lightbox-image"
+                  />
+                  <button 
+                    className="lightbox-close"
+                    onClick={() => setLightboxOpen(false)}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         );
       
