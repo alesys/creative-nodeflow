@@ -35,7 +35,16 @@ const OutputNode = ({ data, id }) => {
   const renderContent = () => {
     if (!content) {
       return (
-        <div className="helper-text" style={{ fontStyle: 'italic', textAlign: 'center', padding: '20px' }}>
+        <div className="helper-text" style={{ 
+          fontStyle: 'italic', 
+          textAlign: 'left', 
+          padding: '40px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '80px',
+          opacity: 0.7
+        }}>
           Waiting for input...
         </div>
       );
@@ -107,7 +116,7 @@ const OutputNode = ({ data, id }) => {
         )}
       </div>
 
-      <div className="content-display">
+      <div className="output-content-container">
         {renderContent()}
       </div>
 

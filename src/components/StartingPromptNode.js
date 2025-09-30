@@ -81,16 +81,23 @@ const StartingPromptNode = ({ data, id, isConnectable }) => {
       </div>
 
       {isEditing ? (
-        <div>
+        <div style={{ padding: '4px' }}>
           <textarea
             ref={textareaRef}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
+            onMouseDown={(e) => e.stopPropagation()}
+            onMouseMove={(e) => e.stopPropagation()}
+            className="nodrag"
             placeholder="Enter your prompt here... Press Ctrl+Enter to execute"
-
+            style={{
+              padding: '12px',
+              margin: '4px 0',
+              borderRadius: '6px'
+            }}
           />
-          <div className="helper-text">
+          <div className="helper-text" style={{ padding: '0 4px', marginTop: '8px' }}>
             Press Ctrl+Enter to execute • Click outside to preview
           </div>
         </div>
@@ -98,6 +105,11 @@ const StartingPromptNode = ({ data, id, isConnectable }) => {
         <div 
           onClick={handleEditClick}
           className="preview-content"
+          style={{
+            padding: '16px',
+            margin: '4px',
+            minHeight: '80px'
+          }}
         >
           {prompt ? (
             <ReactMarkdown remarkPlugins={[remarkGfm]}>

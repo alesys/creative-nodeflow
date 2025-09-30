@@ -1,330 +1,61 @@
-/* Custom Node Base Styles - Respects ReactFlow Dark/Light Themes */
+/* Custom Node Base Styles - ReactFlow Native Only */
 
 .custom-node {
-  border-radius: 8px;
-  min-width: 300px;
-  min-height: 150px;
-  position: relative;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 2px solid;
-  font-family: inherit;
-  transition: all 0.2s ease;
-}
-
-/* Light theme (default) */
-.react-flow.light .custom-node {
-  background: #ffffff;
-  border-color: #e5e7eb;
-  color: #1f2937;
-}
-
-/* Dark theme */
-.react-flow.dark .custom-node {
-  background: #374151;
-  border-color: #4b5563;
-  color: #f9fafb;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  text-align: left;
 }
 
 /* Node content styling */
 .node-content {
-  padding: 12px;
+  padding: 8px;
 }
 
-/* Handle styling */
-.custom-handle {
-  width: 12px;
-  height: 12px;
-  border: 2px solid;
-  border-radius: 50%;
-}
-
-.react-flow.light .input-handle {
-  background: #4f46e5;
-  border-color: #ffffff;
-}
-
-.react-flow.light .output-handle {
-  background: #10b981;
-  border-color: #ffffff;
-}
-
-.react-flow.dark .input-handle {
-  background: #6366f1;
-  border-color: #374151;
-}
-
-.react-flow.dark .output-handle {
-  background: #34d399;
-  border-color: #374151;
-}
-
-/* Node type specific styling */
-.starting-node {
-  border-color: #3b82f6;
-}
-
-.react-flow.light .starting-node {
-  background: #f0f9ff;
-}
-
-.react-flow.dark .starting-node {
-  background: #1e3a8a;
-}
-
-.agent-node {
-  border-color: #ec4899;
-}
-
-.react-flow.light .agent-node {
-  background: #fdf2f8;
-}
-
-.react-flow.dark .agent-node {
-  background: #831843;
-}
-
-.image-node {
-  border-color: #6366f1;
-}
-
-.react-flow.light .image-node {
-  background: #f0f4ff;
-}
-
-.react-flow.dark .image-node {
-  background: #312e81;
-}
-
-.output-node {
-  border-color: #10b981;
-}
-
-.react-flow.light .output-node {
-  background: #f0fdf4;
-}
-
-.react-flow.dark .output-node {
-  background: #064e3b;
-}
-
-/* Processing states */
-.custom-node.processing {
-  border-color: #d97706;
-  animation: pulse 2s infinite;
-}
-
-.react-flow.light .custom-node.processing {
-  background: #fef3c7;
-}
-
-.react-flow.dark .custom-node.processing {
-  background: #78350f;
-}
-
-/* Error states */
-.custom-node.error {
-  border-color: #ef4444;
-}
-
-.react-flow.light .custom-node.error {
-  background: #fef2f2;
-}
-
-.react-flow.dark .custom-node.error {
-  background: #7f1d1d;
-}
-
-/* Pulse animation for processing */
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.8;
-  }
-}
-
-/* Text areas and inputs */
+/* Textarea styling */
 .custom-node textarea {
   width: 100%;
-  min-height: 100px;
-  padding: 8px;
-  border: 1px solid;
-  border-radius: 4px;
+  min-height: 80px;
+  padding: 4px;
   resize: vertical;
   font-family: inherit;
-  font-size: 14px;
+  box-sizing: border-box;
 }
 
-.react-flow.light .custom-node textarea {
-  background: #ffffff;
-  border-color: #d1d5db;
-  color: #1f2937;
+.custom-node textarea.nodrag {
+  cursor: text;
 }
 
-.react-flow.dark .custom-node textarea {
-  background: #1f2937;
-  border-color: #4b5563;
-  color: #f9fafb;
-}
-
-.custom-node textarea:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-
-/* Preview mode styling */
+/* Preview content */
 .custom-node .preview-content {
-  min-height: 100px;
-  padding: 8px;
-  border: 1px solid;
-  border-radius: 4px;
+  min-height: 80px;
+  padding: 4px;
   cursor: pointer;
-  line-height: 1.5;
-}
-
-.react-flow.light .custom-node .preview-content {
-  background: #f9fafb;
-  border-color: #e5e7eb;
-}
-
-.react-flow.dark .custom-node .preview-content {
-  background: #111827;
-  border-color: #374151;
 }
 
 /* Node headers */
 .node-header {
-  margin-bottom: 8px;
   font-weight: bold;
-  font-size: 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* Status indicators */
-.status-indicator {
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  margin-top: 8px;
-}
-
-.react-flow.light .status-indicator.processing {
-  background: #fef3c7;
-  color: #d97706;
-  border: 1px solid #fcd34d;
-}
-
-.react-flow.dark .status-indicator.processing {
-  background: #78350f;
-  color: #fbbf24;
-  border: 1px solid #92400e;
-}
-
-.react-flow.light .status-indicator.error {
-  background: #fef2f2;
-  color: #ef4444;
-  border: 1px solid #fecaca;
-}
-
-.react-flow.dark .status-indicator.error {
-  background: #7f1d1d;
-  color: #f87171;
-  border: 1px solid #991b1b;
-}
-
-/* Context details */
-.context-details {
-  font-size: 11px;
-  margin-top: 4px;
-  max-height: 80px;
-  overflow-y: auto;
-  padding: 6px;
-  border-radius: 4px;
-}
-
-.react-flow.light .context-details {
-  background: #f3f4f6;
-  color: #4b5563;
-}
-
-.react-flow.dark .context-details {
-  background: #111827;
-  color: #9ca3af;
+  margin-bottom: 4px;
 }
 
 /* Helper text */
 .helper-text {
   font-size: 12px;
+  opacity: 0.7;
+}
+
+/* Status indicators */
+.status-indicator {
+  font-size: 12px;
+  padding: 4px;
   margin-top: 4px;
 }
 
-.react-flow.light .helper-text {
-  color: #6b7280;
-}
-
-.react-flow.dark .helper-text {
-  color: #9ca3af;
-}
-
-/* Content states for Output node */
-.custom-node.empty {
-  opacity: 0.8;
-}
-
-/* Image display in output nodes */
+/* Image display */
 .custom-node img {
   max-width: 100%;
-  max-height: 300px;
-  border-radius: 4px;
-  object-fit: contain;
+  max-height: 200px;
 }
 
-/* Markdown content in output */
-.custom-node .content-display {
-  max-height: 400px;
-  overflow-y: auto;
-  line-height: 1.5;
-}
-
-/* Details/summary styling */
-.custom-node details {
-  margin-top: 12px;
-}
-
-.custom-node details summary {
-  cursor: pointer;
-  user-select: none;
-}
-
-.custom-node details summary:hover {
-  opacity: 0.8;
-}
-
-/* Connection status indicators */
-.connection-status {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-}
-
-.react-flow.light .connection-status.connected {
-  color: #059669;
-}
-
-.react-flow.dark .connection-status.connected {
-  color: #34d399;
-}
-
-.react-flow.light .connection-status.waiting {
-  color: #d97706;
-}
-
-.react-flow.dark .connection-status.waiting {
-  color: #fbbf24;
+/* Content display */
+.content-display {
+  line-height: 1.4;
 }
