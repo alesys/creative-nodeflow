@@ -489,6 +489,7 @@
   border-radius: 50% !important;
   position: absolute !important;
   z-index: 10 !important;
+  transition: all var(--duration-normal) var(--easing-default) !important;
 }
 
 .react-flow__handle.react-flow__handle-left {
@@ -507,6 +508,55 @@
   border-color: var(--color-accent-primary) !important;
   background: var(--color-accent-primary) !important;
   transform: translateY(-50%) scale(1.1) !important;
+}
+
+/* Connected state colors using design system */
+.react-flow__handle.react-flow__handle-left.connected {
+  background: var(--color-accent-success) !important;
+  border-color: var(--color-accent-success) !important;
+}
+
+.react-flow__handle.react-flow__handle-right.connected {
+  background: var(--color-accent-warning) !important;
+  border-color: var(--color-accent-warning) !important;
+}
+
+/* ReactFlow's built-in connected class support */
+.react-flow__handle-left.react-flow__handle-connectionindicator {
+  background: var(--color-accent-success) !important;
+  border-color: var(--color-accent-success) !important;
+}
+
+.react-flow__handle-right.react-flow__handle-connectionindicator {
+  background: var(--color-accent-warning) !important;
+  border-color: var(--color-accent-warning) !important;
+}
+
+/* Additional ReactFlow connection states */
+.react-flow__handle[data-handleid].react-flow__handle-valid {
+  background: var(--color-accent-success) !important;
+  border-color: var(--color-accent-success) !important;
+}
+
+.react-flow__handle-target.react-flow__handle-valid {
+  background: var(--color-accent-success) !important;
+  border-color: var(--color-accent-success) !important;
+}
+
+.react-flow__handle-source.react-flow__handle-valid {
+  background: var(--color-accent-warning) !important;
+  border-color: var(--color-accent-warning) !important;
+}
+
+/* When handles have connections */
+.react-flow__handle[data-connected="true"] {
+  background: var(--color-accent-success) !important;
+  border-color: var(--color-accent-success) !important;
+}
+
+.react-flow__handle[data-connected="true"].react-flow__handle-source {
+  background: var(--color-accent-warning) !important;
+  border-color: var(--color-accent-warning) !important;
 }
 
 /* Enhanced connection lines */
