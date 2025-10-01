@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import CustomNodeBase from './CustomNodeBase';
+import { Handle, Position } from '@xyflow/react';
 import GoogleAIService from '../services/GoogleAIService';
 
 const ImagePromptNode = ({ data, id, isConnectable }) => {
@@ -97,82 +97,125 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
   const connectionStatus = getConnectionStatus();
 
   return (
-    <CustomNodeBase 
-      hasInput={true}
-      hasOutput={true}
-      nodeType="image"
-      className={`${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}
-    >
-      <div className="node-header">
-        <span>🎨 Image Generator (Nano Banana)</span>
-        <span className="helper-text helper-text-small">
-          {connectionStatus.icon} {connectionStatus.text}
-        </span>
+    <div className={`node-panel ${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}>
+      {/* Node Header with Design System Gradient */}
+      <div className="node-header model-loader">
+        Image Generator
       </div>
 
-      {isEditing ? (
-        <div>
-          <textarea
-            ref={textareaRef}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Describe the image you want to generate... Press Ctrl+Enter to create"
+      {/* Node Body */}
+      <div className="node-body">
+        
 
-          />
-          <div className="helper-text helper-text-margined">
-            Press Ctrl+Enter to generate image • Click outside to preview
-          </div>
+
+        {/* Connection Status Control */}
+        <div className="parameter-control" style={{ borderBottom: 'none' }}>
+          <span className="control-label">Status</span>
+          <span 
+            className="control-value" 
+            style={{ color: connectionStatus.color }}
+          >
+            {connectionStatus.icon} {connectionStatus.text}
+          </span>
         </div>
-      ) : (
-        <div 
-          onClick={handleEditClick}
-          className="preview-content"
-        >
-          {prompt ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {prompt}
-            </ReactMarkdown>
-          ) : (
-            <span className="helper-text helper-text-italic">
-              Click to add image prompt...
+
+        {/* Text Area Control */}
+        {isEditing ? (
+          <div style={{ marginTop: 'var(--spacing-sm)' }}>
+            <textarea
+              ref={textareaRef}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onMouseDown={(e) => e.stopPropagation()}
+              onMouseMove={(e) => e.stopPropagation()}
+              className="nodrag textarea-control"
+              placeholder="Describe the image you want to generate... Press Ctrl+Enter to create"
+            />
+            <div className="helper-text helper-text-margined">
+              Press Ctrl+Enter to generate image • Click outside to preview
+            </div>
+          </div>
+        ) : (
+          <div 
+            onClick={handleEditClick}
+            className="textarea-control"
+            style={{ 
+              cursor: 'pointer', 
+              minHeight: 'var(--textarea-min-height)',
+              marginTop: 'var(--spacing-sm)'
+            }}
+          >
+            {prompt ? (
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {prompt}
+              </ReactMarkdown>
+            ) : (
+              <span className="helper-text helper-text-italic">
+                Click to add image prompt...
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Context Display */}
+        {inputContext && (
+          <details className="details-section" style={{ marginTop: 'var(--spacing-sm)' }}>
+            <summary className="helper-text summary-clickable">
+              Input Context (will influence generation)
+            </summary>
+            <div style={{ marginTop: 'var(--spacing-xs)' }}>
+              {inputContext.messages?.slice(-2).map((msg, idx) => (
+                <div key={idx} className="helper-text helper-text-small" style={{ marginBottom: 'var(--spacing-xs)' }}>
+                  <strong>{msg.role}:</strong> {msg.content.substring(0, 80)}
+                  {msg.content.length > 80 && '...'}
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+
+        {/* Model Info */}
+        <div className="parameter-control" style={{ borderBottom: 'none', marginTop: 'var(--spacing-sm)' }}>
+          <span className="control-label">Model</span>
+          <span className="control-value control-value monospace">
+            Gemini 2.5 Flash
+          </span>
+        </div>
+
+        {/* Status Indicators */}
+        {isProcessing && (
+          <div className="parameter-control" style={{ borderBottom: 'none', marginTop: 'var(--spacing-sm)' }}>
+            <span className="control-label" style={{ color: 'var(--color-accent-primary)' }}>
+              🔄 Generating image with Nano Banana...
             </span>
-          )}
-        </div>
-      )}
-
-      {inputContext && (
-        <details className="details-section">
-          <summary className="helper-text summary-clickable">
-            Input Context (will influence generation)
-          </summary>
-          <div className="context-details">
-            {inputContext.messages?.slice(-2).map((msg, idx) => (
-              <div key={idx} className="output-item">
-                <strong>{msg.role}:</strong> {msg.content.substring(0, 80)}
-                {msg.content.length > 80 && '...'}
-              </div>
-            ))}
           </div>
-        </details>
-      )}
+        )}
 
-      {isProcessing && (
-        <div className="status-indicator processing">
-          <span>🔄</span> Generating image with Nano Banana...
-        </div>
-      )}
+        {error && (
+          <div className="parameter-control" style={{ borderBottom: 'none', marginTop: 'var(--spacing-sm)' }}>
+            <span className="control-label" style={{ color: 'var(--color-accent-error)' }}>
+              ⚠️ {error}
+            </span>
+          </div>
+        )}
 
-      {error && (
-        <div className="status-indicator error">
-          ⚠️ {error}
-        </div>
-      )}
-
-      <div className="helper-text image-helper-text">
-        Powered by Google Gemini 2.5 Flash Image
       </div>
-    </CustomNodeBase>
+
+      {/* ReactFlow Input Handle */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="react-flow__handle"
+      />
+      
+      {/* ReactFlow Output Handle */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="react-flow__handle"
+      />
+    </div>
   );
 };
 

@@ -1,51 +1,280 @@
-/* Theme Variables - ReactFlow Dark Theme */
+/**
+ * Node Editor Design System - CSS Variables
+ * Version: 1.0.0
+ * 
+ * Based on the comprehensive design system specification
+ */
 
 :root {
-  /* Primary Colors */
-  --color-bg-primary: #1a192b;
-  --color-bg-secondary: #2d2d2d;
-  --color-border: #555;
-  --color-text-primary: #fff;
-  --color-text-secondary: rgba(255, 255, 255, 0.7);
+  /* ============================================
+     COLORS - Background
+     ============================================ */
+  --color-bg-canvas: #0A0A0A;
+  --color-bg-node-body: #18181B;
+  --color-bg-control: #27272A;
+  --color-bg-hover: #3F3F46;
+  --color-border: #52525B;
+
+  /* Legacy compatibility */
+  --color-bg-primary: var(--color-bg-node-body);
+  --color-bg-secondary: var(--color-bg-control);
+
+  /* ============================================
+     COLORS - Text
+     ============================================ */
+  --color-text-primary: #F3F4F6;
+  --color-text-secondary: #9CA3AF;
+  --color-text-tertiary: #6B7280;
+  --color-text-disabled: #4B5563;
+
+  /* ============================================
+     COLORS - Accent
+     ============================================ */
+  --color-accent-primary: #3B82F6;
+  --color-accent-success: #10B981;
+  --color-accent-warning: #F59E0B;
+  --color-accent-error: #EF4444;
+
+  /* Legacy compatibility */
+  --color-border-hover: var(--color-bg-hover);
+  --color-border-focus: var(--color-accent-primary);
+
+  /* ============================================
+     COLORS - Node Headers (Gradients)
+     ============================================ */
+  --color-header-model-loader-from: #9333EA;
+  --color-header-model-loader-to: #6B21A8;
   
-  /* Interactive States */
-  --color-border-hover: #666;
-  --color-border-focus: #fff;
-  --color-shadow: rgba(0, 0, 0, 0.08);
+  --color-header-text-positive-from: #15803D;
+  --color-header-text-positive-to: #14532D;
   
-  /* Spacing */
+  --color-header-text-negative-from: #B91C1C;
+  --color-header-text-negative-to: #7F1D1D;
+  
+  --color-header-utility-from: #3F3F46;
+  --color-header-utility-to: #27272A;
+  
+  --color-header-output-from: #B45309;
+  --color-header-output-to: #78350F;
+
+  /* ============================================
+     COLORS - Connection Wires
+     ============================================ */
+  --color-wire-model: #FACC15;
+  --color-wire-clip: #FACC15;
+  --color-wire-latent: #C084FC;
+  --color-wire-conditioning: #4ADE80;
+  --color-wire-image: #F87171;
+  --color-wire-vae: #F87171;
+
+  /* ============================================
+     COLORS - Port Badges
+     ============================================ */
+  --color-badge-model-bg: rgba(250, 204, 21, 0.2);
+  --color-badge-model-text: #FACC15;
+  
+  --color-badge-clip-bg: rgba(250, 204, 21, 0.2);
+  --color-badge-clip-text: #FACC15;
+  
+  --color-badge-latent-bg: rgba(192, 132, 252, 0.2);
+  --color-badge-latent-text: #C084FC;
+  
+  --color-badge-conditioning-bg: rgba(74, 222, 128, 0.2);
+  --color-badge-conditioning-text: #4ADE80;
+  
+  --color-badge-image-bg: rgba(248, 113, 113, 0.2);
+  --color-badge-image-text: #F87171;
+  
+  --color-badge-vae-bg: rgba(248, 113, 113, 0.2);
+  --color-badge-vae-text: #F87171;
+
+  /* ============================================
+     COLORS - Control States
+     ============================================ */
+  --color-control-toggle-enabled: #4ADE80;
+  --color-control-toggle-disabled: #F87171;
+  --color-control-slider-fill: #3B82F6;
+  --color-control-slider-track: #3F3F46;
+
+  /* ============================================
+     COLORS - Text Area Controls
+     ============================================ */
+  --color-textarea-positive-bg: rgba(20, 83, 45, 0.3);
+  --color-textarea-positive-border: rgba(21, 128, 61, 0.5);
+  --color-textarea-negative-bg: rgba(127, 29, 29, 0.3);
+  --color-textarea-negative-border: rgba(185, 28, 28, 0.5);
+
+  /* ============================================
+     SPACING
+     ============================================ */
+  --spacing-xxs: 2px;
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 12px;
   --spacing-lg: 16px;
-  --spacing-xl: 20px;
-  
-  /* Typography */
-  --font-family-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  --font-family-code: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
-  
-  --font-size-xs: 10px;
-  --font-size-sm: 12px;
-  --font-size-base: 14px;
-  --font-size-lg: 16px;
-  --font-size-xl: 18px;
-  
-  --line-height-tight: 1.2;
-  --line-height-base: 1.4;
-  --line-height-relaxed: 1.5;
-  
-  /* Border Radius */
-  --radius-sm: 3px;
-  --radius-base: 4px;
-  --radius-lg: 6px;
-  --radius-xl: 8px;
-  --radius-round: 50%;
-  
-  /* Shadows */
-  --shadow-sm: 0 1px 4px 1px var(--color-shadow);
-  --shadow-focus: 0 0 0 1px var(--color-border-focus);
-  
-  /* Z-indexes */
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 48px;
+
+  /* ============================================
+     BORDER RADIUS
+     ============================================ */
+  --radius-none: 0px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Legacy compatibility */
+  --radius-base: var(--radius-sm);
+  --radius-xl: var(--radius-md);
+  --radius-round: var(--radius-full);
+
+  /* ============================================
+     TYPOGRAPHY - Font Family
+     ============================================ */
+  --font-primary: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-monospace: 'SF Mono', Monaco, Consolas, monospace;
+
+  /* Legacy compatibility */
+  --font-family-primary: var(--font-primary);
+  --font-family-code: var(--font-monospace);
+
+  /* ============================================
+     TYPOGRAPHY - Font Size
+     ============================================ */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+
+  /* ============================================
+     TYPOGRAPHY - Font Weight
+     ============================================ */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* ============================================
+     TYPOGRAPHY - Line Height
+     ============================================ */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+
+  /* Legacy compatibility */
+  --line-height-base: var(--line-height-normal);
+
+  /* ============================================
+     SHADOWS
+     ============================================ */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+  /* Legacy compatibility */
+  --color-shadow: rgba(0, 0, 0, 0.08);
+  --shadow-focus: 0 0 0 2px var(--color-accent-primary);
+
+  /* ============================================
+     COMPONENT - Node
+     ============================================ */
+  --node-min-width: 280px;
+  --node-max-width: 400px;
+  --node-border-width: 1px;
+  --node-border-radius: var(--radius-md);
+  --node-border-color: var(--color-bg-control);
+  --node-shadow: var(--shadow-lg);
+
+  --node-header-padding: 10px 16px;
+  --node-header-font-size: var(--font-size-sm);
+  --node-header-font-weight: var(--font-weight-semibold);
+  --node-header-border-radius: var(--radius-md) var(--radius-md) 0 0;
+
+  --node-body-padding: 12px;
+  --node-body-background: var(--color-bg-node-body);
+
+  /* Node States */
+  --node-state-default-border: var(--color-bg-control);
+  --node-state-default-opacity: 1;
+  --node-state-hover-border: var(--color-bg-hover);
+  --node-state-selected-border: var(--color-accent-primary);
+  --node-state-selected-border-width: 2px;
+  --node-state-selected-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  --node-state-disabled-opacity: 0.5;
+
+  /* ============================================
+     COMPONENT - Connection Port
+     ============================================ */
+  --port-size: 10px;
+  --port-border-radius: var(--radius-full);
+  --port-gap: var(--spacing-sm);
+
+  --port-badge-padding: 2px 6px;
+  --port-badge-font-size: var(--font-size-xs);
+  --port-badge-font-weight: var(--font-weight-medium);
+  --port-badge-border-radius: var(--radius-sm);
+
+  /* ============================================
+     COMPONENT - Controls
+     ============================================ */
+  --control-spacing: var(--spacing-sm);
+  --control-padding: var(--spacing-xs) 0;
+  --control-font-size: var(--font-size-xs);
+  --control-border-bottom: 1px solid var(--color-bg-control);
+
+  --control-arrow-color: var(--color-text-tertiary);
+  --control-label-color: var(--color-text-secondary);
+  --control-value-color: var(--color-text-primary);
+
+  /* Slider Specific */
+  --slider-track-height: 4px;
+  --slider-track-background: var(--color-bg-hover);
+  --slider-fill-background: var(--color-accent-primary);
+  --slider-border-radius: var(--radius-full);
+  --slider-margin: var(--spacing-xs) var(--spacing-lg);
+
+  /* Text Area Specific */
+  --textarea-padding: var(--spacing-sm);
+  --textarea-font-size: var(--font-size-xs);
+  --textarea-line-height: var(--line-height-relaxed);
+  --textarea-text-color: #D1D5DB;
+  --textarea-border-radius: var(--radius-sm);
+  --textarea-min-height: 80px;
+
+  /* ============================================
+     ANIMATION
+     ============================================ */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+
+  --easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-in: cubic-bezier(0.4, 0, 1, 1);
+  --easing-out: cubic-bezier(0, 0, 0.2, 1);
+
+  /* ============================================
+     ACCESSIBILITY
+     ============================================ */
+  --min-contrast-ratio: 4.5;
+  --min-touch-target: 44px;
+  --focus-outline-width: 2px;
+  --focus-outline-color: var(--color-accent-primary);
+
+  /* ============================================
+     CANVAS
+     ============================================ */
+  --canvas-bg: var(--color-bg-canvas);
+  --canvas-grid-size: 20px;
+  --canvas-grid-color: rgba(255, 255, 255, 0.05);
+
+  /* ============================================
+     Z-INDEXES
+     ============================================ */
   --z-dropdown: 100;
   --z-modal: 1000;
   --z-tooltip: 1001;

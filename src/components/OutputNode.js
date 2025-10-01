@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import CustomNodeBase from './CustomNodeBase';
+import { Handle, Position } from '@xyflow/react';
 
 const OutputNode = ({ data, id }) => {
   const [content, setContent] = useState(data.content || '');
@@ -103,41 +103,72 @@ const OutputNode = ({ data, id }) => {
 
   return (
     <>
-      <CustomNodeBase 
-        hasInput={true}
-        hasOutput={true}
-        nodeType="output"
-        className={content ? 'has-content' : 'empty'}
-      >
-        <div className="node-header">
-          <span>{getStatusIcon()} Output</span>
-          {lastUpdated && (
-            <span className="helper-text helper-text-tiny">
-              {lastUpdated.toLocaleTimeString()}
+      <div className={`node-panel ${content ? 'has-content' : 'empty'}`}>
+        {/* Node Header with Design System Gradient */}
+        <div className="node-header output">
+          Output Display
+        </div>
+
+        {/* Node Body */}
+        <div className="node-body">
+          
+
+
+          {/* Status Display */}
+          <div className="parameter-control" style={{ borderBottom: 'none' }}>
+            <span className="control-label">Status</span>
+            <span className="control-value">
+              {getStatusIcon()} {content ? 'Content received' : 'Waiting for input...'}
             </span>
-          )}
-        </div>
+          </div>
 
-        <div className="output-content-container">
-          {renderContent()}
-        </div>
-
-        {context && context.messages && (
-          <details className="details-section-large">
-            <summary className="helper-text summary-clickable">
-              Context ({context.messages.length} messages)
-            </summary>
-            <div className="context-details">
-              {context.messages.slice(-3).map((msg, idx) => (
-                <div key={idx} className="output-item">
-                  <strong>{msg.role}:</strong> {msg.content.substring(0, 100)}
-                  {msg.content.length > 100 && '...'}
-                </div>
-              ))}
+          {lastUpdated && (
+            <div className="parameter-control" style={{ borderBottom: 'none' }}>
+              <span className="control-label">Last Updated</span>
+              <span className="control-value control-value monospace">
+                {lastUpdated.toLocaleTimeString()}
+              </span>
             </div>
-          </details>
-        )}
-      </CustomNodeBase>
+          )}
+
+          {/* Content Display Area */}
+          <div style={{ marginTop: 'var(--spacing-sm)' }}>
+            {renderContent()}
+          </div>
+
+          {/* Context Display */}
+          {context && context.messages && (
+            <details className="details-section" style={{ marginTop: 'var(--spacing-sm)' }}>
+              <summary className="helper-text summary-clickable">
+                Context ({context.messages.length} messages)
+              </summary>
+              <div style={{ marginTop: 'var(--spacing-xs)' }}>
+                {context.messages.slice(-3).map((msg, idx) => (
+                  <div key={idx} className="helper-text helper-text-small" style={{ marginBottom: 'var(--spacing-xs)' }}>
+                    <strong>{msg.role}:</strong> {msg.content.substring(0, 100)}
+                    {msg.content.length > 100 && '...'}
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+
+        </div>
+
+        {/* ReactFlow Input Handle */}
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="react-flow__handle"
+        />
+        
+        {/* ReactFlow Output Handle */}
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="react-flow__handle"
+        />
+      </div>
       
       {/* Render lightbox using portal to escape node positioning constraints */}
       {lightboxOpen && contentType === 'image' && ReactDOM.createPortal(

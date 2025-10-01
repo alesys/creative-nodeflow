@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import CustomNodeBase from './CustomNodeBase';
+import { Handle, Position } from '@xyflow/react';
 import OpenAIService from '../services/OpenAIService';
 
 const AgentPromptNode = ({ data, id, isConnectable }) => {
@@ -105,78 +105,117 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
   const connectionStatus = getConnectionStatus();
 
   return (
-    <CustomNodeBase 
-      hasInput={true}
-      hasOutput={true}
-      nodeType="agent"
-      className={`${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}
-    >
-      <div className="node-header">
-        <span>🤖 Agent Prompt</span>
-        <span className="helper-text helper-text-small">
-          {connectionStatus.icon} {connectionStatus.text}
-        </span>
+    <div className={`node-panel ${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}>
+      {/* Node Header with Design System Gradient */}
+      <div className="node-header utility">
+        Agent Prompt
       </div>
 
-      {isEditing ? (
-        <div>
-          <textarea
-            ref={textareaRef}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Enter your follow-up prompt here... Press Ctrl+Enter to execute"
+      {/* Node Body */}
+      <div className="node-body">
+        
 
-          />
-          <div className="helper-text helper-text-margined">
-            Press Ctrl+Enter to execute • Click outside to preview
-          </div>
+
+        {/* Connection Status Control */}
+        <div className="parameter-control" style={{ borderBottom: 'none' }}>
+          <span className="control-label">Status</span>
+          <span 
+            className="control-value" 
+            style={{ color: connectionStatus.color }}
+          >
+            {connectionStatus.icon} {connectionStatus.text}
+          </span>
         </div>
-      ) : (
-        <div 
-          onClick={handleEditClick}
-          className="preview-content"
-        >
-          {prompt ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {prompt}
-            </ReactMarkdown>
-          ) : (
-            <span className="helper-text helper-text-italic">
-              Click to add follow-up prompt...
+
+        {/* Text Area Control */}
+        {isEditing ? (
+          <div style={{ marginTop: 'var(--spacing-sm)' }}>
+            <textarea
+              ref={textareaRef}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onMouseDown={(e) => e.stopPropagation()}
+              onMouseMove={(e) => e.stopPropagation()}
+              className="nodrag textarea-control"
+              placeholder="Enter your follow-up prompt here... Press Ctrl+Enter to execute"
+            />
+            <div className="helper-text helper-text-margined">
+              Press Ctrl+Enter to execute • Click outside to preview
+            </div>
+          </div>
+        ) : (
+          <div 
+            onClick={handleEditClick}
+            className="textarea-control"
+            style={{ 
+              cursor: 'pointer', 
+              minHeight: 'var(--textarea-min-height)',
+              marginTop: 'var(--spacing-sm)'
+            }}
+          >
+            {prompt ? (
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {prompt}
+              </ReactMarkdown>
+            ) : (
+              <span className="helper-text helper-text-italic">
+                Click to add follow-up prompt...
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Context Display */}
+        {inputContext && (
+          <details className="details-section" style={{ marginTop: 'var(--spacing-sm)' }}>
+            <summary className="helper-text summary-clickable">
+              Input Context ({inputContext.messages?.length || 0} messages)
+            </summary>
+            <div style={{ marginTop: 'var(--spacing-xs)' }}>
+              {inputContext.messages?.slice(-2).map((msg, idx) => (
+                <div key={idx} className="helper-text helper-text-small" style={{ marginBottom: 'var(--spacing-xs)' }}>
+                  <strong>{msg.role}:</strong> {msg.content.substring(0, 80)}
+                  {msg.content.length > 80 && '...'}
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+
+        {/* Status Indicators */}
+        {isProcessing && (
+          <div className="parameter-control" style={{ borderBottom: 'none', marginTop: 'var(--spacing-sm)' }}>
+            <span className="control-label" style={{ color: 'var(--color-accent-primary)' }}>
+              🔄 Processing with context...
             </span>
-          )}
-        </div>
-      )}
-
-      {inputContext && (
-        <details className="details-section">
-          <summary className="helper-text summary-clickable">
-            Input Context ({inputContext.messages?.length || 0} messages)
-          </summary>
-          <div className="context-details">
-            {inputContext.messages?.slice(-2).map((msg, idx) => (
-              <div key={idx} className="output-item">
-                <strong>{msg.role}:</strong> {msg.content.substring(0, 80)}
-                {msg.content.length > 80 && '...'}
-              </div>
-            ))}
           </div>
-        </details>
-      )}
+        )}
 
-      {isProcessing && (
-        <div className="status-indicator processing">
-          <span>🔄</span> Processing with context...
-        </div>
-      )}
+        {error && (
+          <div className="parameter-control" style={{ borderBottom: 'none', marginTop: 'var(--spacing-sm)' }}>
+            <span className="control-label" style={{ color: 'var(--color-accent-error)' }}>
+              ⚠️ {error}
+            </span>
+          </div>
+        )}
 
-      {error && (
-        <div className="status-indicator error">
-          ⚠️ {error}
-        </div>
-      )}
-    </CustomNodeBase>
+      </div>
+
+      {/* ReactFlow Input Handle */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="react-flow__handle"
+      />
+      
+      {/* ReactFlow Output Handle */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="react-flow__handle"
+      />
+    </div>
   );
 };
 

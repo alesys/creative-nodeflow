@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import CustomNodeBase from './CustomNodeBase';
+import { Handle, Position } from '@xyflow/react';
 import OpenAIService from '../services/OpenAIService';
 
 const StartingPromptNode = ({ data, id, isConnectable }) => {
@@ -70,61 +70,76 @@ const StartingPromptNode = ({ data, id, isConnectable }) => {
   };
 
   return (
-    <CustomNodeBase 
-      hasOutput={true}
-      hasInput={false}
-      nodeType="starting"
-      className={`${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}
-    >
-      <div className="node-header">
-        🚀 Starting Prompt
+    <div className={`node-panel ${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}>
+      {/* Node Header with Design System Gradient */}
+      <div className="node-header text-positive">
+        Starting Prompt
       </div>
 
-      {isEditing ? (
-        <div className="node-padding">
-          <textarea
-            ref={textareaRef}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onMouseDown={(e) => e.stopPropagation()}
-            onMouseMove={(e) => e.stopPropagation()}
-            className="nodrag node-text-area"
-            placeholder="Enter your prompt here... Press Ctrl+Enter to execute"
-          />
-          <div className="helper-text helper-text-spaced">
-            Press Ctrl+Enter to execute • Click outside to preview
+      {/* Node Body */}
+      <div className="node-body">
+        
+        {/* Text Area Control */}
+        {isEditing ? (
+          <div>
+            <textarea
+              ref={textareaRef}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onMouseDown={(e) => e.stopPropagation()}
+              onMouseMove={(e) => e.stopPropagation()}
+              className="nodrag textarea-control positive"
+              placeholder="Enter your prompt here... Press Ctrl+Enter to execute"
+            />
+            <div className="helper-text helper-text-margined">
+              Press Ctrl+Enter to execute • Click outside to preview
+            </div>
           </div>
-        </div>
-      ) : (
-        <div 
-          onClick={handleEditClick}
-          className="preview-content preview-content-clickable"
-        >
-          {prompt ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {prompt}
-            </ReactMarkdown>
-          ) : (
-            <span className="helper-text helper-text-italic">
-              Click to add prompt...
+        ) : (
+          <div 
+            onClick={handleEditClick}
+            className="textarea-control positive"
+            style={{ cursor: 'pointer', minHeight: 'var(--textarea-min-height)' }}
+          >
+            {prompt ? (
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {prompt}
+              </ReactMarkdown>
+            ) : (
+              <span className="helper-text helper-text-italic">
+                Click to add prompt...
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Status Indicators */}
+        {isProcessing && (
+          <div className="parameter-control" style={{ borderBottom: 'none', marginTop: 'var(--spacing-sm)' }}>
+            <span className="control-label" style={{ color: 'var(--color-accent-primary)' }}>
+              🔄 Processing with OpenAI...
             </span>
-          )}
-        </div>
-      )}
+          </div>
+        )}
 
-      {isProcessing && (
-        <div className="status-indicator processing">
-          <span>🔄</span> Processing with OpenAI...
-        </div>
-      )}
+        {error && (
+          <div className="parameter-control" style={{ borderBottom: 'none', marginTop: 'var(--spacing-sm)' }}>
+            <span className="control-label" style={{ color: 'var(--color-accent-error)' }}>
+              ⚠️ {error}
+            </span>
+          </div>
+        )}
 
-      {error && (
-        <div className="status-indicator error">
-          ⚠️ {error}
-        </div>
-      )}
-    </CustomNodeBase>
+      </div>
+
+      {/* ReactFlow Output Handle */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="react-flow__handle"
+      />
+    </div>
   );
 };
 
