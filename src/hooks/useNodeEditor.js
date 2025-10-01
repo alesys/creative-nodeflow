@@ -1,5 +1,5 @@
 // Custom hooks for node components to reduce code duplication
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { TIMING } from '../constants/app.js';
 
 /**
@@ -87,9 +87,11 @@ export const useNodeInput = (data) => {
   // Destructure onReceiveInput to prevent dependency on entire data object
   const { onReceiveInput } = data;
 
-  const setupInputListener = useCallback(() => {
+  // Set up input listener whenever onReceiveInput changes
+  useEffect(() => {
     if (onReceiveInput) {
       onReceiveInput((inputData) => {
+        console.log(`[useNodeInput] Received input:`, inputData);
         setInputContext(inputData.context);
         setHasReceivedInput(true);
       });
@@ -99,7 +101,6 @@ export const useNodeInput = (data) => {
   return {
     inputContext,
     hasReceivedInput,
-    setupInputListener,
     setInputContext,
     setHasReceivedInput
   };

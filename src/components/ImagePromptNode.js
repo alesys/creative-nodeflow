@@ -1,5 +1,5 @@
 // Image Prompt Node - Uses Google Gemini for image generation
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Handle, Position } from '@xyflow/react';
@@ -18,15 +18,11 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
     error,
     inputContext,
     hasReceivedInput,
-    setupInputListener,
     handleProcess,
     setError
   } = usePromptNode(data.prompt || '', data, id);
 
-  // Listen for incoming context from connected nodes (optional for image generation)
-  useEffect(() => {
-    setupInputListener();
-  }, [setupInputListener]);
+  // Input listener is now set up automatically by useNodeInput hook
 
   // Destructure onOutput from data to optimize dependency array
   const { onOutput } = data;

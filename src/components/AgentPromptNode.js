@@ -1,5 +1,5 @@
 // Agent Prompt Node - Continuation prompt with context input
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Handle, Position } from '@xyflow/react';
@@ -17,14 +17,10 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
     error,
     inputContext,
     hasReceivedInput,
-    setupInputListener,
     handleKeyDown: baseHandleKeyDown
   } = usePromptNode(data.prompt || '', data, id);
 
-  // Listen for incoming context from connected nodes
-  useEffect(() => {
-    setupInputListener();
-  }, [setupInputListener]);
+  // Input listener is now set up automatically by useNodeInput hook
 
   const handleKeyDown = useCallback(async (e) => {
     await baseHandleKeyDown(e, OpenAIService);
