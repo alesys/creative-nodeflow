@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, NodeResizer } from '@xyflow/react';
 
 const OutputNode = ({ data, id }) => {
   const [content, setContent] = useState(data.content || '');
@@ -104,33 +104,32 @@ const OutputNode = ({ data, id }) => {
   return (
     <>
       <div className={`node-panel ${content ? 'has-content' : 'empty'}`}>
+        {/* ReactFlow Native Resize Control */}
+        <NodeResizer 
+          minWidth={480}
+          minHeight={320}
+        />
+        
         {/* Node Header with Design System Gradient */}
         <div className="node-header output">
           Output
         </div>
 
-        {/* Node Body */}
-        <div className="node-body">
-          
-
-
-          {/* Status Display */}
-          <div className="parameter-control" style={{ borderBottom: 'none' }}>
-            <span className="control-label">Status</span>
-            <span className="control-value">
-              {getStatusIcon()} {content ? 'Content received' : 'Waiting for input...'}
-            </span>
+        {/* Compact Status Bar */}
+        <div className="output-status-bar">
+          <div className="status-item">
+            <span className="status-icon">{getStatusIcon()}</span>
+            <span className="status-text">{content ? 'Content received' : 'Waiting for input...'}</span>
           </div>
-
           {lastUpdated && (
-            <div className="parameter-control" style={{ borderBottom: 'none' }}>
-              <span className="control-label">Last Updated</span>
-              <span className="control-value control-value monospace">
-                {lastUpdated.toLocaleTimeString()}
-              </span>
+            <div className="status-item">
+              <span className="status-text">{lastUpdated.toLocaleTimeString()}</span>
             </div>
           )}
+        </div>
 
+        {/* Node Body */}
+        <div className="node-body">
           {/* Content Display Area */}
           <div style={{ marginTop: 'var(--spacing-sm)' }}>
             {renderContent()}

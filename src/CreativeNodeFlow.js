@@ -22,6 +22,9 @@ const initialNodes = [
     id: 'starting-1',
     position: { x: 100, y: 100 },
     type: 'startingPrompt',
+    width: 320,
+    height: 240,
+    zIndex: 1,
     data: { 
       prompt: '',
       systemPrompt: 'You are a creative writing assistant.',
@@ -32,6 +35,9 @@ const initialNodes = [
     id: 'output-1', 
     position: { x: 500, y: 100 },
     type: 'customOutput',
+    width: 480,
+    height: 320,
+    zIndex: 2,
     data: { 
       content: '',
       onReceiveInput: null, // Will be set in component
@@ -54,6 +60,7 @@ function CreativeNodeFlow() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [contextMenu, setContextMenu] = useState(null);
+  const [handleContext, setHandleContext] = useState(null); // Store handle info for auto-connection
   // Using useRef for nodeInputHandlers to prevent state mutation
   const nodeInputHandlers = useRef(new Map());
 
@@ -99,6 +106,18 @@ function CreativeNodeFlow() {
     customOutput: OutputNode,
   }), []);
 
+  // Helper function to get the highest z-index from existing nodes
+  const getHighestZIndex = useCallback(() => {
+    const currentNodes = nodesRef.current;
+    let maxZ = 0;
+    currentNodes.forEach(node => {
+      if (node.zIndex && node.zIndex > maxZ) {
+        maxZ = node.zIndex;
+      }
+    });
+    return maxZ + 1;
+  }, []);
+
   // Handle node output events - optimized to reduce re-renders
   const handleNodeOutput = useCallback((outputData) => {
     const { nodeId, content, context, type } = outputData;
@@ -137,6 +156,9 @@ function CreativeNodeFlow() {
               y: sourceNode.position.y 
             },
             type: 'customOutput',
+            width: 480,
+            height: 320,
+            zIndex: getHighestZIndex(),
             data: { 
               content,
               context,
@@ -167,7 +189,7 @@ function CreativeNodeFlow() {
         }
       }
     }
-  }, [setNodes, setEdges]);
+  }, [setNodes, setEdges, getHighestZIndex]);
 
   // Register output and input handlers for nodes
   const registerNodeHandlers = useCallback((nodeId) => {
@@ -243,22 +265,109 @@ function CreativeNodeFlow() {
   const handlePaneContextMenu = useCallback((event) => {
     event.preventDefault();
     setContextMenu({
-      x: event.clientX,
+      x: event.clientX, // Screen coordinates for menu positioning
       y: event.clientY,
+      flowX: event.clientX, // Will be converted to flow coordinates in createNodeFromMenu
+      flowY: event.clientY,
     });
   }, []);
 
   const closeContextMenu = useCallback(() => {
     setContextMenu(null);
+    setHandleContext(null);
   }, []);
+
+  // Find non-overlapping position for new node
+  const findNonOverlappingPosition = useCallback((baseX, baseY, direction = 'right') => {
+    const nodeWidth = 250;
+    const nodeHeight = 200;
+    const spacing = 50;
+    
+    let offsetX = direction === 'right' ? nodeWidth + spacing : -(nodeWidth + spacing);
+    let offsetY = 0;
+    
+    let attempts = 0;
+    const maxAttempts = 20;
+    
+    while (attempts < maxAttempts) {
+      const testX = baseX + offsetX;
+      const testY = baseY + offsetY;
+      
+      // Check for overlap with existing nodes
+      const hasOverlap = nodes.some(node => {
+        const nodeX = node.position.x;
+        const nodeY = node.position.y;
+        
+        return (
+          testX < nodeX + nodeWidth + spacing &&
+          testX + nodeWidth + spacing > nodeX &&
+          testY < nodeY + nodeHeight + spacing &&
+          testY + nodeHeight + spacing > nodeY
+        );
+      });
+      
+      if (!hasOverlap) {
+        return { x: testX, y: testY };
+      }
+      
+      // Try different positions
+      if (attempts < 5) {
+        offsetY += 100; // Try below
+      } else if (attempts < 10) {
+        offsetY -= 200; // Try above
+      } else {
+        offsetX += direction === 'right' ? 100 : -100; // Try further away
+        offsetY = 0;
+      }
+      
+      attempts++;
+    }
+    
+    // Fallback position if no good spot found
+    return { x: baseX + offsetX, y: baseY + offsetY };
+  }, [nodes]);
 
   // Context menu node creation handlers
   const createNodeFromMenu = useCallback((nodeType, x, y) => {
     const newId = `${nodeType}-${Date.now()}`;
-    const position = {
-      x: x - 100, // Offset from click position
-      y: y - 50
-    };
+    
+    let position;
+    let autoConnect = false;
+    let sourceNodeId = null;
+    let isSourceHandle = false;
+    
+    // Check if this was triggered from a handle double-click
+    if (handleContext) {
+      const sourceNode = nodes.find(n => n.id === handleContext.nodeId);
+      if (sourceNode) {
+        sourceNodeId = handleContext.nodeId;
+        isSourceHandle = handleContext.isSource;
+        
+        // Position new node relative to source node (next to the triggering node)
+        const direction = isSourceHandle ? 'right' : 'left';
+        position = findNonOverlappingPosition(
+          sourceNode.position.x, 
+          sourceNode.position.y, 
+          direction
+        );
+        autoConnect = true;
+      } else {
+        // Fallback to menu position
+        position = { x: x - 100, y: y - 50 };
+      }
+    } else {
+      // Right-click context menu positioning - use exact click location
+      // Use simple coordinate conversion for right-click positioning
+      const reactFlowBounds = document.querySelector('.react-flow__viewport')?.getBoundingClientRect();
+      if (reactFlowBounds) {
+        const flowX = x - reactFlowBounds.left;
+        const flowY = y - reactFlowBounds.top;
+        position = { x: flowX - 100, y: flowY - 50 };
+      } else {
+        // Fallback positioning
+        position = { x: x - 100, y: y - 50 };
+      }
+    }
 
     let nodeData = { 
       ...registerNodeHandlers(newId)
@@ -300,12 +409,43 @@ function CreativeNodeFlow() {
       id: newId,
       position,
       type: nodeType,
+      width: nodeType === 'customOutput' ? 480 : 320,
+      height: nodeType === 'customOutput' ? 320 : 240,
+      zIndex: getHighestZIndex(),
       data: nodeData
     };
 
     setNodes(nodes => [...nodes, newNode]);
+    
+    // Auto-connect if created from handle double-click
+    if (autoConnect && sourceNodeId) {
+      const newEdgeId = `${sourceNodeId}-${newId}`;
+      let sourceId, targetId;
+      
+      if (isSourceHandle) {
+        // Source handle was double-clicked, connect source -> new node
+        sourceId = sourceNodeId;
+        targetId = newId;
+      } else {
+        // Target handle was double-clicked, connect new node -> target
+        sourceId = newId;
+        targetId = sourceNodeId;
+      }
+      
+      const newEdge = {
+        id: newEdgeId,
+        source: sourceId,
+        target: targetId,
+        animated: true,
+        style: { stroke: '#10b981', strokeWidth: 2 }
+      };
+      
+      setEdges(edges => [...edges, newEdge]);
+    }
+    
     closeContextMenu();
-  }, [setNodes, registerNodeHandlers, closeContextMenu]);
+    setHandleContext(null); // Clear handle context
+  }, [setNodes, setEdges, registerNodeHandlers, closeContextMenu, handleContext, nodes, findNonOverlappingPosition, getHighestZIndex]);
 
   // Reset function to clear all nodes and start fresh
   const resetToInitialState = useCallback(() => {
@@ -333,31 +473,46 @@ function CreativeNodeFlow() {
     };
   }, [handleKeyDown, closeContextMenu]);
 
-  // Add double-click listeners to unconnected handles
+  // Add double-click listeners to handles
   useEffect(() => {
     const handleDoubleClick = (event) => {
       const handle = event.target.closest('.react-flow__handle');
       if (handle) {
         event.stopPropagation();
         
-        // Check if this handle is unconnected
+        // Get handle information
         const nodeId = handle.closest('[data-id]')?.getAttribute('data-id');
         const isSource = handle.classList.contains('react-flow__handle-source');
         const isTarget = handle.classList.contains('react-flow__handle-target');
+        const handleId = handle.getAttribute('data-handleid');
         
-        let isConnected = false;
-        if (isSource) {
-          isConnected = edges.some(edge => edge.source === nodeId);
-        } else if (isTarget) {
-          isConnected = edges.some(edge => edge.target === nodeId);
-        }
+        // Check if handle is already connected
+        const isConnected = edges.some(edge => {
+          if (isSource) {
+            return edge.source === nodeId;
+          } else {
+            return edge.target === nodeId;
+          }
+        });
         
-        // Show context menu at handle position if not connected
+        // Only show menu for unconnected handles
         if (!isConnected) {
+          // Store handle context for auto-connection
+          setHandleContext({
+            nodeId,
+            handleType: isSource ? 'source' : 'target',
+            handleId,
+            isSource
+          });
+          
+          // Show context menu at handle position
           const rect = handle.getBoundingClientRect();
           setContextMenu({
             x: rect.right + 10,
-            y: rect.top
+            y: rect.top,
+            nodeId,
+            handleType: isSource ? 'source' : 'target',
+            handleId
           });
         }
       }
@@ -386,7 +541,7 @@ function CreativeNodeFlow() {
       clearTimeout(timeoutId);
       removeHandleListeners();
     };
-  }, [edges, setContextMenu]);
+  }, [edges, setContextMenu, setHandleContext]);
 
   return (
     <div style={{ width: '100vw', height: '100vh' }}>

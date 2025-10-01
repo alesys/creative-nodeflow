@@ -2,7 +2,7 @@
 import React, { useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, NodeResizer } from '@xyflow/react';
 import GoogleAIService from '../services/GoogleAIService';
 import { usePromptNode } from '../hooks/useNodeEditor.js';
 
@@ -84,27 +84,25 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
 
   return (
     <div className={`node-panel ${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}>
-      {/* Node Header with Design System Gradient */}
+        {/* ReactFlow Native Resize Control */}
+        <NodeResizer 
+          minWidth={320}
+          minHeight={240}
+        />      {/* Node Header with Design System Gradient */}
       <div className="node-header model-loader">
         Image Generator
       </div>
 
+      {/* Compact Status Bar */}
+      <div className="image-status-bar">
+        <div className="status-item">
+          <span className="status-icon" style={{ color: connectionStatus.color }}>{connectionStatus.icon}</span>
+          <span className="status-text">{connectionStatus.text}</span>
+        </div>
+      </div>
+
       {/* Node Body */}
       <div className="node-body">
-        
-
-
-        {/* Connection Status Control */}
-        <div className="parameter-control" style={{ borderBottom: 'none' }}>
-          <span className="control-label">Status</span>
-          <span 
-            className="control-value" 
-            style={{ color: connectionStatus.color }}
-          >
-            {connectionStatus.icon} {connectionStatus.text}
-          </span>
-        </div>
-
         {/* Text Area Control */}
         {isEditing ? (
           <div style={{ marginTop: 'var(--spacing-sm)' }}>
@@ -119,7 +117,7 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
               placeholder="Describe the image you want to generate... Press Ctrl+Enter to create"
             />
             <div className="helper-text helper-text-margined">
-              Press Ctrl+Enter to generate image • Click outside to preview
+              Press Ctrl+Enter to execute
             </div>
           </div>
         ) : (
@@ -169,13 +167,15 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
           </div>
         </details>
 
-        {/* Model Info */}
+        {/* Model Info - Hidden */}
+        {/* 
         <div className="parameter-control" style={{ borderBottom: 'none', marginTop: 'var(--spacing-sm)' }}>
           <span className="control-label">Model</span>
           <span className="control-value control-value monospace">
             Gemini 2.5 Flash
           </span>
         </div>
+        */}
 
         {/* Status Indicators */}
         {isProcessing && (

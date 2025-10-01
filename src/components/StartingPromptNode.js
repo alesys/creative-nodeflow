@@ -2,7 +2,7 @@
 import React, { useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, NodeResizer } from '@xyflow/react';
 import OpenAIService from '../services/OpenAIService';
 import { usePromptNode } from '../hooks/useNodeEditor.js';
 
@@ -24,6 +24,12 @@ const StartingPromptNode = ({ data, id, isConnectable }) => {
 
   return (
     <div className={`node-panel ${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}>
+      {/* ReactFlow Native Resize Control */}
+      <NodeResizer 
+        minWidth={320}
+        minHeight={240}
+      />
+      
       {/* Node Header with Design System Gradient */}
       <div className="node-header text-positive">
         Starting Prompt
@@ -46,7 +52,7 @@ const StartingPromptNode = ({ data, id, isConnectable }) => {
               placeholder="Enter your prompt here... Press Ctrl+Enter to execute"
             />
             <div className="helper-text helper-text-margined">
-              Press Ctrl+Enter to execute • Click outside to preview
+              Press Ctrl+Enter to execute
             </div>
           </div>
         ) : (

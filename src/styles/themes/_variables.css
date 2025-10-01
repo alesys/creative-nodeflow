@@ -183,7 +183,7 @@
   /* ============================================
      COMPONENT - Node
      ============================================ */
-  --node-min-width: 280px;
+  --node-min-width: 320px;
   --node-max-width: 400px;
   --node-border-width: 1px;
   --node-border-radius: var(--radius-md);

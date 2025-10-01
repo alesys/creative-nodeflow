@@ -2,7 +2,7 @@
 import React, { useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, NodeResizer } from '@xyflow/react';
 import OpenAIService from '../services/OpenAIService';
 import { usePromptNode } from '../hooks/useNodeEditor.js';
 
@@ -45,27 +45,27 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
 
   return (
     <div className={`node-panel ${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}>
+      {/* ReactFlow Native Resize Control */}
+      <NodeResizer 
+        minWidth={320}
+        minHeight={240}
+      />
+      
       {/* Node Header with Design System Gradient */}
       <div className="node-header text-positive">
         Agent Prompt
       </div>
 
+      {/* Compact Status Bar */}
+      <div className="agent-status-bar">
+        <div className="status-item">
+          <span className="status-icon" style={{ color: connectionStatus.color }}>{connectionStatus.icon}</span>
+          <span className="status-text">{connectionStatus.text}</span>
+        </div>
+      </div>
+
       {/* Node Body */}
       <div className="node-body">
-        
-
-
-        {/* Connection Status Control */}
-        <div className="parameter-control" style={{ borderBottom: 'none' }}>
-          <span className="control-label">Status</span>
-          <span 
-            className="control-value" 
-            style={{ color: connectionStatus.color }}
-          >
-            {connectionStatus.icon} {connectionStatus.text}
-          </span>
-        </div>
-
         {/* Text Area Control */}
         {isEditing ? (
           <div style={{ marginTop: 'var(--spacing-sm)' }}>
@@ -80,7 +80,7 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
               placeholder="Enter your follow-up prompt here... Press Ctrl+Enter to execute"
             />
             <div className="helper-text helper-text-margined">
-              Press Ctrl+Enter to execute • Click outside to preview
+              Press Ctrl+Enter to execute
             </div>
           </div>
         ) : (

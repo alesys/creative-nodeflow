@@ -4,48 +4,63 @@
    NODE PANEL BASE STRUCTURE
    ============================================ */
 
-/* Node Panel Base - Design System Pattern */
-.node-panel,
+/* ReactFlow Node Container - Let ReactFlow handle the sizing */
 .react-flow__node-startingPrompt,
 .react-flow__node-agentPrompt,
 .react-flow__node-imagePrompt,
 .react-flow__node-customOutput {
   min-width: var(--node-min-width);
-  max-width: var(--node-max-width);
+  min-height: 240px;
+  max-width: none;
+  padding: 0; /* Remove default padding, let .node-panel handle it */
+  width: 100%;
+  height: 100%;
+}
+
+/* Node Panel - Fill the ReactFlow node container completely */
+.node-panel {
+  width: 100%;
+  height: 100%;
   background: var(--node-body-background);
   border: var(--node-border-width) solid var(--node-border-color);
   border-radius: var(--node-border-radius);
   box-shadow: var(--node-shadow);
-  overflow: visible; /* Changed from hidden to visible for handles */
+  overflow: visible; /* Allow handles to be visible outside panel */
   font-family: var(--font-primary);
   color: var(--color-text-primary);
   transition: border-color var(--duration-normal) var(--easing-default);
   position: relative; /* Ensure proper positioning context */
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
-.node-panel:hover,
-.react-flow__node-startingPrompt:hover,
-.react-flow__node-agentPrompt:hover,
-.react-flow__node-imagePrompt:hover,
-.react-flow__node-customOutput:hover {
+/* Hover states */
+.react-flow__node-startingPrompt:hover .node-panel,
+.react-flow__node-agentPrompt:hover .node-panel,
+.react-flow__node-imagePrompt:hover .node-panel,
+.react-flow__node-customOutput:hover .node-panel,
+.node-panel:hover {
   border-color: var(--node-state-hover-border);
 }
 
-.node-panel.selected,
-.react-flow__node-startingPrompt.selected,
-.react-flow__node-agentPrompt.selected,
-.react-flow__node-imagePrompt.selected,
-.react-flow__node-customOutput.selected {
+/* Selected states */
+.react-flow__node-startingPrompt.selected .node-panel,
+.react-flow__node-agentPrompt.selected .node-panel,
+.react-flow__node-imagePrompt.selected .node-panel,
+.react-flow__node-customOutput.selected .node-panel,
+.node-panel.selected {
   border-width: var(--node-state-selected-border-width);
   border-color: var(--node-state-selected-border);
   box-shadow: var(--node-state-selected-shadow);
 }
 
-.node-panel.disabled,
-.react-flow__node-startingPrompt.disabled,
-.react-flow__node-agentPrompt.disabled,
-.react-flow__node-imagePrompt.disabled,
-.react-flow__node-customOutput.disabled {
+/* Disabled states */
+.react-flow__node-startingPrompt.disabled .node-panel,
+.react-flow__node-agentPrompt.disabled .node-panel,
+.react-flow__node-imagePrompt.disabled .node-panel,
+.react-flow__node-customOutput.disabled .node-panel,
+.node-panel.disabled {
   opacity: var(--node-state-disabled-opacity);
   pointer-events: none;
 }
@@ -115,6 +130,15 @@
 /* Node Body */
 .node-body {
   padding: var(--node-body-padding);
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* Allow body to take available space */
+  overflow: hidden; /* Prevent content overflow within body */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  border-radius: 0 0 var(--node-border-radius) var(--node-border-radius); /* Match panel corners */
 }
 
 /* ============================================
@@ -282,6 +306,8 @@
 
 /* Text Area Control */
 .textarea-control {
+  width: 100%;
+  box-sizing: border-box;
   padding: var(--textarea-padding);
   font-size: var(--textarea-font-size);
   line-height: var(--textarea-line-height);
@@ -289,6 +315,111 @@
   border-radius: var(--textarea-border-radius);
   min-height: var(--textarea-min-height);
   margin-top: var(--spacing-xs);
+  resize: none; /* Disable textarea resizing */
+}
+
+/* Textarea wrapper should also expand */
+.node-body > div {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0; /* Important: allows flex child to shrink below content size */
+}
+
+/* Ensure textarea takes all available space except helper text */
+.node-body > div > .textarea-control {
+  flex: 1;
+  min-height: var(--textarea-min-height);
+  height: auto; /* Let flex handle the height */
+}
+
+/* Helper text and status indicators should not flex, just take needed space */
+.helper-text,
+.parameter-control {
+  flex-shrink: 0;
+}
+
+/* Status Bar - Base styles for all node types */
+.output-status-bar,
+.agent-status-bar,
+.image-status-bar {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: var(--spacing-xs) var(--node-body-padding);
+  background: rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: var(--font-size-sm);
+  flex-shrink: 0;
+  min-height: 24px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Output Status Bar - Horizontal compact layout with space-between */
+.output-status-bar {
+  justify-content: space-between;
+}
+
+/* Agent Status Bar - Green theme */
+.agent-status-bar {
+  background: rgba(21, 128, 61, 0.1);
+  border-bottom: 1px solid rgba(21, 128, 61, 0.2);
+}
+
+/* Image Status Bar - Purple theme */
+.image-status-bar {
+  background: rgba(147, 51, 234, 0.1);
+  border-bottom: 1px solid rgba(147, 51, 234, 0.2);
+}
+
+.output-status-bar .status-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  overflow: hidden;
+}
+
+.output-status-bar .status-icon {
+  flex-shrink: 0;
+}
+
+.output-status-bar .status-text {
+  color: var(--control-value-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Status Display - Compact version for output panels */
+.status-display {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) 0;
+  font-size: var(--control-font-size);
+  margin-bottom: var(--spacing-xs);
+  flex-shrink: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.status-display .control-label {
+  color: var(--control-label-color);
+  font-size: var(--font-size-sm);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.status-display .control-value {
+  color: var(--control-value-color);
+  font-size: var(--font-size-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
 .textarea-control.positive {
@@ -301,13 +432,29 @@
   border: 1px solid var(--color-textarea-negative-border);
 }
 
+.textarea-control.purple {
+  background: rgba(147, 51, 234, 0.15);
+  border: 1px solid rgba(147, 51, 234, 0.4);
+}
+
+/* Node-specific textarea styling */
+.react-flow__node-agentPrompt .textarea-control {
+  background: var(--color-textarea-positive-bg);
+  border: 1px solid var(--color-textarea-positive-border);
+}
+
+.react-flow__node-imagePrompt .textarea-control {
+  background: rgba(147, 51, 234, 0.15);
+  border: 1px solid rgba(147, 51, 234, 0.4);
+}
+
 /* Textarea styling - Legacy */
 .custom-node textarea,
 .node-text-area {
   width: 100%;
   min-height: var(--textarea-min-height);
   padding: var(--textarea-padding);
-  resize: vertical;
+  resize: none; /* Disable individual textarea resizing */
   font-family: inherit;
   font-size: var(--textarea-font-size);
   line-height: var(--textarea-line-height);
@@ -425,9 +572,14 @@
 }
 
 .text-content {
-  max-height: 400px;
   overflow-y: auto;
+  overflow-x: hidden;
   line-height: var(--line-height-relaxed);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .waiting-content {
@@ -441,13 +593,50 @@
   opacity: 0.7;
 }
 
+/* ReactMarkdown content containment */
+.text-content p,
+.text-content div,
+.text-content h1,
+.text-content h2,
+.text-content h3,
+.text-content h4,
+.text-content h5,
+.text-content h6,
+.text-content ul,
+.text-content ol,
+.text-content blockquote,
+.text-content pre,
+.text-content code {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.text-content pre {
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+.text-content code {
+  white-space: pre-wrap;
+}
+
 /* Details and summary */
 .details-section {
   margin-top: var(--spacing-sm);
+  max-width: 100%;
+  overflow: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .details-section-large {
   margin-top: var(--spacing-md);
+  max-width: 100%;
+  overflow: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .summary-clickable {
@@ -462,6 +651,65 @@
 .image-helper-text {
   margin-top: var(--spacing-sm);
   font-style: italic;
+}
+
+/* Content overflow fixes for all node types */
+.react-flow__node-startingPrompt .node-body,
+.react-flow__node-agentPrompt .node-body,
+.react-flow__node-imagePrompt .node-body {
+  overflow: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Output node body specific styling to prevent extra space */
+.react-flow__node-customOutput .node-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Output content area should fill available space */
+.react-flow__node-customOutput .node-body > div:first-child {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Text content should expand to fill available space */
+.react-flow__node-customOutput .text-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Waiting content should fill available height */
+.react-flow__node-customOutput .waiting-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+}
+
+.react-flow__node-startingPrompt .textarea-control,
+.react-flow__node-agentPrompt .textarea-control,
+.react-flow__node-imagePrompt .textarea-control {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+/* Helper text containment */
+.react-flow__node-startingPrompt .helper-text,
+.react-flow__node-agentPrompt .helper-text,
+.react-flow__node-imagePrompt .helper-text {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 /* ============================================
@@ -647,6 +895,41 @@ textarea:focus-visible {
 .transition-slow {
   transition-duration: var(--duration-slow);
   transition-timing-function: var(--easing-default);
+}
+
+/* ============================================
+   PANEL RESIZING FUNCTIONALITY
+   ============================================ */
+
+/* Removed conflicting overflow rule - overflow: visible is set at the top of the file to show full handle circles */
+
+/* ============================================
+   NODE RESIZER STYLING
+   ============================================ */
+
+/* Hide NodeResizer corners by default, show only when dragging */
+.react-flow__resize-control {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: auto; /* Ensure resize controls are interactive */
+}
+
+/* Show resize controls when node is selected or being resized */
+.react-flow__node.selected .react-flow__resize-control,
+.react-flow__resize-control.dragging,
+.react-flow__resize-control:hover {
+  opacity: 1;
+}
+
+/* Ensure resize controls are positioned relative to the ReactFlow node container */
+.react-flow__node {
+  position: relative;
+}
+
+.react-flow__resize-control {
+  position: absolute;
+  pointer-events: auto;
+  z-index: 10;
 }
 
 /* ============================================
