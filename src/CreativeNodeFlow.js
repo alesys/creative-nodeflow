@@ -119,6 +119,15 @@ function CreativeNodeFlow() {
     });
   }, [setNodes, setEdges]);
 
+  // Use refs to access current values without causing re-renders
+  const edgesRef = useRef(edges);
+  const nodesRef = useRef(nodes);
+  
+  useEffect(() => {
+    edgesRef.current = edges;
+    nodesRef.current = nodes;
+  }, [edges, nodes]);
+
   // Define custom node types
   const nodeTypes = useMemo(() => ({
     startingPrompt: StartingPromptNode,
@@ -127,12 +136,14 @@ function CreativeNodeFlow() {
     customOutput: OutputNode,
   }), []);
 
-  // Handle node output events
+  // Handle node output events - optimized to reduce re-renders
   const handleNodeOutput = useCallback((outputData) => {
     const { nodeId, content, context, type } = outputData;
     
     // Find edges that originate from this node
-    const outgoingEdges = edges.filter(edge => edge.source === nodeId);
+    const currentEdges = edgesRef.current;
+    const currentNodes = nodesRef.current;
+    const outgoingEdges = currentEdges.filter(edge => edge.source === nodeId);
     
     // Send data to connected target nodes
     outgoingEdges.forEach(edge => {
@@ -144,14 +155,14 @@ function CreativeNodeFlow() {
 
     // Auto-create output node if none exists and it's not already an output node
     if (outgoingEdges.length === 0) {
-      const sourceNode = nodes.find(n => n.id === nodeId);
+      const sourceNode = currentNodes.find(n => n.id === nodeId);
       
       // Don't auto-create if the source is already an output node or if we're already creating one
       if (sourceNode && sourceNode.type !== 'customOutput') {
         // Check if there's already an auto-output for this node
-        const existingAutoOutput = nodes.find(n => 
+        const existingAutoOutput = currentNodes.find(n => 
           n.id.startsWith(`auto-output-${nodeId}`) || 
-          edges.some(edge => edge.source === nodeId && edge.target === n.id && n.type === 'customOutput')
+          currentEdges.some(edge => edge.source === nodeId && edge.target === n.id && n.type === 'customOutput')
         );
         
         if (!existingAutoOutput) {
@@ -193,7 +204,7 @@ function CreativeNodeFlow() {
         }
       }
     }
-  }, [edges, nodes, setNodes, setEdges]);
+  }, [setNodes, setEdges]);
 
   // Register output and input handlers for nodes
   const registerNodeHandlers = useCallback((nodeId) => {

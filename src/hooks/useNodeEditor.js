@@ -84,14 +84,17 @@ export const useNodeInput = (data) => {
   const [inputContext, setInputContext] = useState(null);
   const [hasReceivedInput, setHasReceivedInput] = useState(false);
 
+  // Destructure onReceiveInput to prevent dependency on entire data object
+  const { onReceiveInput } = data;
+
   const setupInputListener = useCallback(() => {
-    if (data.onReceiveInput) {
-      data.onReceiveInput((inputData) => {
+    if (onReceiveInput) {
+      onReceiveInput((inputData) => {
         setInputContext(inputData.context);
         setHasReceivedInput(true);
       });
     }
-  }, [data]);
+  }, [onReceiveInput]);
 
   return {
     inputContext,

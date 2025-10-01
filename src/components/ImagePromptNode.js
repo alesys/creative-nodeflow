@@ -72,7 +72,7 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
         setProcessing(false);
       }
     }
-  }, [prompt, id, onOutput, inputContext, setIsEditing, setError, setProcessing]);
+  }, [prompt, id, onOutput, inputContext, setIsEditing]);
 
   const getConnectionStatus = () => {
     if (hasReceivedInput) {
