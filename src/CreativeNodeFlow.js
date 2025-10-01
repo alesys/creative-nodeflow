@@ -319,69 +319,9 @@ function CreativeNodeFlow() {
         <MiniMap />
         <Background variant="dots" gap={12} size={1} />
         
-        {/* Theme selector and controls */}
-        <Panel position="top-right">
-          <div className="panel-container">
-            <select
-              className="nodrag panel-select"
-              onChange={onChange}
-              value={colorMode}
-            >
-              <option value="dark">Dark</option>
-              <option value="light">Light</option>
-              <option value="system">System</option>
-            </select>
-            
-            <button
-              className="nodrag panel-button"
-              onClick={cleanupDuplicates}
-              title="Remove duplicate nodes and edges"
-            >
-              🧹 Cleanup
-            </button>
-            
-            <button
-              className="nodrag panel-button"
-              onClick={resetCanvas}
-              title="Reset to initial state"
-            >
-              🔄 Reset
-            </button>
-          </div>
-        </Panel>
 
-        {/* Node creation panel */}
-        <Panel position="top-left">
-          <div className="panel-container">
-            <div className="panel-title">
-              Add Nodes
-            </div>
-            <button
-              className="panel-button"
-              onClick={() => addNode('startingPrompt')}
-            >
-              🚀 Starting Prompt
-            </button>
-            <button
-              className="panel-button"
-              onClick={() => addNode('agentPrompt')}
-            >
-              🤖 Agent Prompt
-            </button>
-            <button
-              className="panel-button"
-              onClick={() => addNode('imagePrompt')}
-            >
-              🎨 Image Prompt
-            </button>
-            <button
-              className="panel-button"
-              onClick={() => addNode('customOutput')}
-            >
-              📄 Custom Output
-            </button>
-          </div>
-        </Panel>
+
+        {/* Node creation panel - hidden, will be replaced with right-click context menu */}
       </ReactFlow>
     </div>
   );

@@ -46,7 +46,7 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
   return (
     <div className={`node-panel ${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}>
       {/* Node Header with Design System Gradient */}
-      <div className="node-header utility">
+      <div className="node-header text-positive">
         Agent Prompt
       </div>
 

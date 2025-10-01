@@ -106,7 +106,7 @@ const OutputNode = ({ data, id }) => {
       <div className={`node-panel ${content ? 'has-content' : 'empty'}`}>
         {/* Node Header with Design System Gradient */}
         <div className="node-header output">
-          Output Display
+          Output
         </div>
 
         {/* Node Body */}

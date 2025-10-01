@@ -65,40 +65,51 @@
 
 /* Header Gradient Types */
 .node-header.model-loader {
-  background: linear-gradient(to right, var(--color-header-model-loader-from), var(--color-header-model-loader-to));
+  background: linear-gradient(to bottom, var(--color-header-model-loader-from), var(--color-header-model-loader-to));
 }
 
 .node-header.text-positive {
-  background: linear-gradient(to right, var(--color-header-text-positive-from), var(--color-header-text-positive-to));
+  background: linear-gradient(to bottom, var(--color-header-text-positive-from), var(--color-header-text-positive-to));
 }
 
 .node-header.text-negative {
-  background: linear-gradient(to right, var(--color-header-text-negative-from), var(--color-header-text-negative-to));
+  background: linear-gradient(to bottom, var(--color-header-text-negative-from), var(--color-header-text-negative-to));
 }
 
 .node-header.utility {
-  background: linear-gradient(to right, var(--color-header-utility-from), var(--color-header-utility-to));
+  background: linear-gradient(to bottom, var(--color-header-utility-from), var(--color-header-utility-to));
 }
 
 .node-header.output {
-  background: linear-gradient(to right, var(--color-header-output-from), var(--color-header-output-to));
+  background: linear-gradient(to bottom, var(--color-header-output-from), var(--color-header-output-to));
 }
 
 /* Map our node types to header styles */
 .react-flow__node-startingPrompt .node-header {
-  background: linear-gradient(to right, var(--color-header-text-positive-from), var(--color-header-text-positive-to));
+  background: linear-gradient(to bottom, var(--color-header-text-positive-from), var(--color-header-text-positive-to));
 }
 
 .react-flow__node-agentPrompt .node-header {
-  background: linear-gradient(to right, var(--color-header-utility-from), var(--color-header-utility-to));
+  background: linear-gradient(to bottom, var(--color-header-text-positive-from), var(--color-header-text-positive-to));
 }
 
 .react-flow__node-imagePrompt .node-header {
-  background: linear-gradient(to right, var(--color-header-model-loader-from), var(--color-header-model-loader-to));
+  background: linear-gradient(to bottom, var(--color-header-model-loader-from), var(--color-header-model-loader-to));
 }
 
 .react-flow__node-customOutput .node-header {
-  background: linear-gradient(to right, var(--color-header-output-from), var(--color-header-output-to));
+  background: linear-gradient(to bottom, var(--color-header-output-from), var(--color-header-output-to));
+}
+
+/* Output Node State-based Colors */
+.react-flow__node-customOutput.empty .node-header,
+.node-panel.empty .node-header.output {
+  background: linear-gradient(to bottom, var(--color-header-utility-from), var(--color-header-utility-to));
+}
+
+.react-flow__node-customOutput.has-content .node-header,
+.node-panel.has-content .node-header.output {
+  background: linear-gradient(to bottom, var(--color-header-output-from), var(--color-header-output-to));
 }
 
 /* Node Body */
