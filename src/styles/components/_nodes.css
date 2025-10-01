@@ -1,22 +1,10 @@
 /* ReactFlow Node Components */
 
-/* ReactFlow auto-generated node classes for consistent styling */
-/* Apply the same base styles that ReactFlow provides to default nodes */
+/* Custom Node Styling - No ReactFlow inheritance */
 .react-flow__node-startingPrompt,
 .react-flow__node-agentPrompt,
 .react-flow__node-imagePrompt,
-.react-flow__node-output {
-  /* ReactFlow default node base styles */
-  padding: 10px;
-  border-radius: var(--xy-node-border-radius, var(--xy-node-border-radius-default));
-  width: 150px;
-  font-size: 12px;
-  color: var(--xy-node-color, var(--xy-node-color-default));
-  text-align: center;
-  border: var(--xy-node-border, var(--xy-node-border-default));
-  background-color: var(--xy-node-background-color, var(--xy-node-background-color-default));
-  
-  /* Our custom overrides for dark theme */
+.react-flow__node-customOutput {
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);

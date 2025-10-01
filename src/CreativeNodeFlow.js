@@ -32,7 +32,7 @@ const initialNodes = [
   {
     id: 'output-1', 
     position: { x: 500, y: 100 },
-    type: 'output',
+    type: 'customOutput',
     data: { 
       content: '',
       onReceiveInput: null, // Will be set in component
@@ -101,7 +101,7 @@ function CreativeNodeFlow() {
     startingPrompt: StartingPromptNode,
     agentPrompt: AgentPromptNode,
     imagePrompt: ImagePromptNode,
-    output: OutputNode,
+    customOutput: OutputNode,
   }), []);
 
   // Handle node output events
@@ -124,11 +124,11 @@ function CreativeNodeFlow() {
       const sourceNode = nodes.find(n => n.id === nodeId);
       
       // Don't auto-create if the source is already an output node or if we're already creating one
-      if (sourceNode && sourceNode.type !== 'output') {
+      if (sourceNode && sourceNode.type !== 'customOutput') {
         // Check if there's already an auto-output for this node
         const existingAutoOutput = nodes.find(n => 
           n.id.startsWith(`auto-output-${nodeId}`) || 
-          edges.some(edge => edge.source === nodeId && edge.target === n.id && n.type === 'output')
+          edges.some(edge => edge.source === nodeId && edge.target === n.id && n.type === 'customOutput')
         );
         
         if (!existingAutoOutput) {
@@ -139,7 +139,7 @@ function CreativeNodeFlow() {
               x: sourceNode.position.x + 350, 
               y: sourceNode.position.y 
             },
-            type: 'output',
+            type: 'customOutput',
             data: { 
               content,
               context,
@@ -237,7 +237,7 @@ function CreativeNodeFlow() {
           prompt: ''
         };
         break;
-      case 'output':
+      case 'customOutput':
         nodeData = {
           ...nodeData,
           content: '',
@@ -342,9 +342,9 @@ function CreativeNodeFlow() {
             </button>
             <button
               className="panel-button"
-              onClick={() => addNode('output')}
+              onClick={() => addNode('customOutput')}
             >
-              📄 Output
+              📄 Custom Output
             </button>
           </div>
         </Panel>
