@@ -1,0 +1,99 @@
+// Creative NodeFlow - Application Constants
+// Contains all magic numbers, strings, and configuration values
+
+// Timing constants
+export const TIMING = {
+  HANDLER_REGISTRATION_DELAY: 100, // ms - delay for registering node handlers
+  FOCUS_DELAY: 0, // ms - delay before focusing textarea
+  DEBOUNCE_DELAY: 300, // ms - general debounce delay
+};
+
+// Limits and constraints
+export const LIMITS = {
+  MAX_CONTEXT_MESSAGES: 20, // Maximum messages to keep in conversation context
+  PREVIEW_TEXT_LENGTH: 80, // Characters to show in preview
+  PREVIEW_TEXT_LENGTH_LONG: 100, // Characters for longer previews
+  MAX_PROMPT_LENGTH: 10000, // Maximum allowed prompt length
+  MAX_TOKENS: 2000, // Maximum tokens for API requests
+};
+
+// API Models
+export const MODELS = {
+  OPENAI: 'gpt-4o-mini',
+  GOOGLE_IMAGE: 'gemini-2.5-flash-image-preview', // "Nano Banana"
+  GOOGLE_TEXT: 'gemini-2.5-flash',
+};
+
+// API Error Messages
+export const API_ERRORS = {
+  OPENAI_NOT_CONFIGURED: 'OpenAI API key not configured. Please check your .env file and ensure REACT_APP_OPENAI_API_KEY is set.',
+  GOOGLE_NOT_CONFIGURED: 'Google API key not configured. Please check your .env file and ensure REACT_APP_GOOGLE_API_KEY is set.',
+  CLIENT_NOT_INITIALIZED: 'AI client not initialized. Please check your API key configuration.',
+  BILLING_REQUIRED: 'Image generation requires billing to be enabled on your Google Cloud account.',
+  RATE_LIMIT: 'Rate limit exceeded. Please wait before making another request.',
+  INVALID_REQUEST: 'Invalid request. Please check your input and try again.',
+};
+
+// Node Types
+export const NODE_TYPES = {
+  STARTING_PROMPT: 'startingPrompt',
+  AGENT_PROMPT: 'agentPrompt', 
+  IMAGE_PROMPT: 'imagePrompt',
+  CUSTOM_OUTPUT: 'customOutput',
+};
+
+// Default positions for new nodes
+export const DEFAULT_POSITIONS = {
+  STARTING_PROMPT: { x: 250, y: 100 },
+  AGENT_PROMPT: { x: 250, y: 250 },
+  IMAGE_PROMPT: { x: 250, y: 400 },
+  OUTPUT: { x: 500, y: 200 },
+};
+
+// CSS Classes
+export const CSS_CLASSES = {
+  CONNECTED_INPUT: 'connected-input',
+  CONNECTED_OUTPUT: 'connected-output',
+  PROCESSING: 'processing',
+  ERROR: 'error',
+};
+
+// Default system prompts
+export const SYSTEM_PROMPTS = {
+  DEFAULT: 'You are a helpful AI assistant.',
+  CREATIVE: 'You are a creative AI assistant specializing in imaginative and innovative responses.',
+  TECHNICAL: 'You are a technical AI assistant with expertise in programming and technology.',
+};
+
+// Validation patterns
+export const VALIDATION = {
+  API_KEY_PATTERNS: {
+    OPENAI: /^sk-[a-zA-Z0-9]{32,}$/,
+    GOOGLE: /^[a-zA-Z0-9_-]{39}$/,
+  },
+  MIN_PROMPT_LENGTH: 1,
+  MAX_NODE_NAME_LENGTH: 50,
+};
+
+// Default values
+export const DEFAULTS = {
+  TEMPERATURE: 0.7,
+  NODE_WIDTH: 300,
+  NODE_HEIGHT: 'auto',
+  ZOOM_LEVEL: 1,
+};
+
+const constants = {
+  TIMING,
+  LIMITS,
+  MODELS,
+  API_ERRORS,
+  NODE_TYPES,
+  DEFAULT_POSITIONS,
+  CSS_CLASSES,
+  SYSTEM_PROMPTS,
+  VALIDATION,
+  DEFAULTS,
+};
+
+export default constants;

@@ -510,53 +510,84 @@
   transform: translateY(-50%) scale(1.1) !important;
 }
 
-/* Connected state colors using design system */
-.react-flow__handle.react-flow__handle-left.connected {
+/* ReactFlow connection states - using the actual classes ReactFlow applies */
+.react-flow__handle.connecting {
+  background: var(--color-accent-primary) !important;
+  border-color: var(--color-accent-primary) !important;
+}
+
+.react-flow__handle.valid {
   background: var(--color-accent-success) !important;
   border-color: var(--color-accent-success) !important;
 }
 
-.react-flow__handle.react-flow__handle-right.connected {
+.react-flow__handle-target.valid {
+  background: var(--color-accent-success) !important;
+  border-color: var(--color-accent-success) !important;
+}
+
+.react-flow__handle-source.valid {
   background: var(--color-accent-warning) !important;
   border-color: var(--color-accent-warning) !important;
 }
 
-/* ReactFlow's built-in connected class support */
-.react-flow__handle-left.react-flow__handle-connectionindicator {
+/* Connected state - ReactFlow adds these classes */
+.react-flow__handle.react-flow__handle-target.connected,
+.react-flow__handle[data-nodeid][data-handleid].react-flow__handle-target {
   background: var(--color-accent-success) !important;
   border-color: var(--color-accent-success) !important;
 }
 
-.react-flow__handle-right.react-flow__handle-connectionindicator {
+.react-flow__handle.react-flow__handle-source.connected,
+.react-flow__handle[data-nodeid][data-handleid].react-flow__handle-source {
   background: var(--color-accent-warning) !important;
   border-color: var(--color-accent-warning) !important;
 }
 
-/* Additional ReactFlow connection states */
-.react-flow__handle[data-handleid].react-flow__handle-valid {
+/* Force connection colors on nodes that have edges */
+.react-flow__node.selected .react-flow__handle-target {
   background: var(--color-accent-success) !important;
   border-color: var(--color-accent-success) !important;
 }
 
-.react-flow__handle-target.react-flow__handle-valid {
-  background: var(--color-accent-success) !important;
-  border-color: var(--color-accent-success) !important;
-}
-
-.react-flow__handle-source.react-flow__handle-valid {
+.react-flow__node.selected .react-flow__handle-source {
   background: var(--color-accent-warning) !important;
   border-color: var(--color-accent-warning) !important;
 }
 
-/* When handles have connections */
-.react-flow__handle[data-connected="true"] {
+/* Programmatic connection state classes */
+.react-flow__handle.connected-input {
   background: var(--color-accent-success) !important;
   border-color: var(--color-accent-success) !important;
 }
 
-.react-flow__handle[data-connected="true"].react-flow__handle-source {
+.react-flow__handle.connected-output {
   background: var(--color-accent-warning) !important;
   border-color: var(--color-accent-warning) !important;
+}
+
+/* Alternative approach - show connection state on hover to test colors */
+.react-flow__handle-target:hover {
+  background: var(--color-accent-success) !important;
+  border-color: var(--color-accent-success) !important;
+}
+
+.react-flow__handle-source:hover {
+  background: var(--color-accent-warning) !important;
+  border-color: var(--color-accent-warning) !important;
+}
+
+/* Override the general hover rule for specific handle types */
+.react-flow__handle-target:hover {
+  background: var(--color-accent-success) !important;
+  border-color: var(--color-accent-success) !important;
+  transform: translateY(-50%) scale(1.1) !important;
+}
+
+.react-flow__handle-source:hover {
+  background: var(--color-accent-warning) !important;
+  border-color: var(--color-accent-warning) !important;
+  transform: translateY(-50%) scale(1.1) !important;
 }
 
 /* Enhanced connection lines */

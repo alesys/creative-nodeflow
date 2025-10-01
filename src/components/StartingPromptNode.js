@@ -1,73 +1,28 @@
 // Starting Prompt Node - Entry point for prompt chains
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Handle, Position } from '@xyflow/react';
 import OpenAIService from '../services/OpenAIService';
+import { usePromptNode } from '../hooks/useNodeEditor.js';
 
 const StartingPromptNode = ({ data, id, isConnectable }) => {
-  const [isEditing, setIsEditing] = useState(true);
-  const [prompt, setPrompt] = useState(data.prompt || '');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState(null);
-  const textareaRef = useRef(null);
-
-  const systemPrompt = data.systemPrompt || 
-    process.env.REACT_APP_DEFAULT_SYSTEM_PROMPT || 
-    'You are a helpful AI assistant.';
+  const {
+    isEditing,
+    setIsEditing,
+    prompt,
+    setPrompt,
+    textareaRef,
+    handleEditClick,
+    isProcessing,
+    error,
+    handleKeyDown: baseHandleKeyDown,
+    systemPrompt
+  } = usePromptNode(data.prompt || '', data, id);
 
   const handleKeyDown = useCallback(async (e) => {
-    if (e.ctrlKey && e.key === 'Enter') {
-      e.preventDefault();
-      
-      // Switch from editing to render mode
-      setIsEditing(false);
-      setError(null);
-      
-      if (!prompt.trim()) {
-        setError('Please enter a prompt first');
-        return;
-      }
-
-      // Trigger main function - send to OpenAI
-      try {
-        setIsProcessing(true);
-        
-        if (!OpenAIService.isConfigured()) {
-          throw new Error('OpenAI API key not configured. Please check your .env file.');
-        }
-
-        const response = await OpenAIService.generateResponse(prompt, systemPrompt);
-        
-        // Emit the response through the output
-        if (data.onOutput) {
-          data.onOutput({
-            nodeId: id,
-            content: response.content,
-            context: response.context,
-            type: 'text'
-          });
-        }
-        
-      } catch (err) {
-        console.error('Error processing prompt:', err);
-        setError(err.message);
-      } finally {
-        setIsProcessing(false);
-      }
-    }
-  }, [prompt, systemPrompt, id, data]);
-
-  const handleEditClick = () => {
-    setIsEditing(true);
-    setError(null);
-    // Focus the textarea after state update
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-      }
-    }, 0);
-  };
+    await baseHandleKeyDown(e, OpenAIService);
+  }, [baseHandleKeyDown]);
 
   return (
     <div className={`node-panel ${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}>

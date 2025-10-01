@@ -1,46 +1,52 @@
 // Image Prompt Node - Uses Google Gemini for image generation
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Handle, Position } from '@xyflow/react';
 import GoogleAIService from '../services/GoogleAIService';
+import { usePromptNode } from '../hooks/useNodeEditor.js';
 
 const ImagePromptNode = ({ data, id, isConnectable }) => {
-  const [isEditing, setIsEditing] = useState(true);
-  const [prompt, setPrompt] = useState(data.prompt || '');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState(null);
-  const [inputContext, setInputContext] = useState(null);
-  const [hasReceivedInput, setHasReceivedInput] = useState(false);
-  const textareaRef = useRef(null);
+  const {
+    isEditing,
+    setIsEditing,
+    prompt,
+    setPrompt,
+    textareaRef,
+    handleEditClick,
+    isProcessing,
+    error,
+    inputContext,
+    hasReceivedInput,
+    setupInputListener,
+    handleKeyDown: _baseHandleKeyDown,
+    setError,
+    setProcessing
+  } = usePromptNode(data.prompt || '', data, id);
 
   // Listen for incoming context from connected nodes (optional for image generation)
   useEffect(() => {
-    if (data.onReceiveInput) {
-      data.onReceiveInput((inputData) => {
-        setInputContext(inputData.context);
-        setHasReceivedInput(true);
-        setError(null);
-      });
-    }
-  }, [data]);
+    setupInputListener();
+  }, [setupInputListener]);
 
+  // Destructure onOutput from data to optimize dependency array
+  const { onOutput } = data;
+  
   const handleKeyDown = useCallback(async (e) => {
     if (e.ctrlKey && e.key === 'Enter') {
       e.preventDefault();
       
       // Switch from editing to render mode
       setIsEditing(false);
-      setError(null);
       
       if (!prompt.trim()) {
         setError('Please enter an image prompt first');
         return;
       }
 
-      // Trigger main function - send to Google Gemini (Nano Banana)
       try {
-        setIsProcessing(true);
+        setProcessing(true);
+        setError(null);
         
         if (!GoogleAIService.isConfigured()) {
           throw new Error('Google API key not configured. Please check your .env file.');
@@ -50,8 +56,8 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
         const response = await GoogleAIService.generateImage(prompt, inputContext);
         
         // Emit the response through the output
-        if (data.onOutput) {
-          data.onOutput({
+        if (onOutput) {
+          onOutput({
             nodeId: id,
             content: response.content,
             context: response.context,
@@ -63,21 +69,10 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
         console.error('Error generating image:', err);
         setError(err.message);
       } finally {
-        setIsProcessing(false);
+        setProcessing(false);
       }
     }
-  }, [prompt, id, data, inputContext]);
-
-  const handleEditClick = () => {
-    setIsEditing(true);
-    setError(null);
-    // Focus the textarea after state update
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-      }
-    }, 0);
-  };
+  }, [prompt, id, onOutput, inputContext, setIsEditing, setError, setProcessing]);
 
   const getConnectionStatus = () => {
     if (hasReceivedInput) {

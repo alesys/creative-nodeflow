@@ -4,6 +4,7 @@
 // Documentation: https://ai.google.dev/gemini-api/docs/image-generation
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { LIMITS, MODELS, API_ERRORS } from '../constants/app.js';
 
 class GoogleAIService {
   constructor() {
@@ -20,7 +21,7 @@ class GoogleAIService {
     }
     
     if (!apiKey || apiKey.trim() === '') {
-      console.warn('Google API key not configured. Check .env file.');
+      console.warn(API_ERRORS.GOOGLE_NOT_CONFIGURED);
       return;
     }
     
@@ -44,7 +45,7 @@ class GoogleAIService {
       // Use Gemini 2.5 Flash Image Preview (Nano Banana) for image generation
       // Note: Image generation may require billing to be enabled
       const model = this.client.getGenerativeModel({ 
-        model: 'gemini-2.5-flash-image-preview'
+        model: MODELS.GOOGLE_IMAGE
       });
 
       let fullPrompt = prompt;
@@ -142,7 +143,7 @@ class GoogleAIService {
         type: 'image',
         context: {
           messages: [
-            ...(context?.messages || []),
+            ...(context?.messages || []).slice(-LIMITS.MAX_CONTEXT_MESSAGES),
             {
               role: 'user',
               content: `Image generation request: ${prompt}`
@@ -152,7 +153,7 @@ class GoogleAIService {
               content: `Generated image based on: ${prompt}`,
               imageData: imageData
             }
-          ]
+          ].slice(-LIMITS.MAX_CONTEXT_MESSAGES)
         }
       };
     } catch (error) {
@@ -186,7 +187,7 @@ class GoogleAIService {
     }
 
     try {
-      const model = this.client.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const model = this.client.getGenerativeModel({ model: MODELS.GOOGLE_TEXT });
 
       let fullPrompt = prompt;
       
@@ -210,7 +211,7 @@ class GoogleAIService {
         type: 'text',
         context: {
           messages: [
-            ...(context?.messages || []),
+            ...(context?.messages || []).slice(-LIMITS.MAX_CONTEXT_MESSAGES),
             {
               role: 'user',
               content: prompt
@@ -219,7 +220,7 @@ class GoogleAIService {
               role: 'assistant',
               content: responseContent
             }
-          ]
+          ].slice(-LIMITS.MAX_CONTEXT_MESSAGES)
         }
       };
     } catch (error) {

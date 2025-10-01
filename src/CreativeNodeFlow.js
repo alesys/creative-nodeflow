@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -55,15 +55,38 @@ function CreativeNodeFlow() {
   const [colorMode, setColorMode] = useState('dark');
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  // Removed unused nodeOutputHandlers
-  const [nodeInputHandlers] = useState(new Map());
+  // Using useRef for nodeInputHandlers to prevent state mutation
+  const nodeInputHandlers = useRef(new Map());
+
+  // Update connection state colors based on edges
+  useEffect(() => {
+    // Remove all existing connection state classes
+    document.querySelectorAll('.react-flow__handle').forEach(handle => {
+      handle.classList.remove('connected-input', 'connected-output');
+    });
+
+    // Apply connection state classes based on current edges
+    edges.forEach(edge => {
+      // Find target (input) handle and mark as connected
+      const targetHandle = document.querySelector(`[data-nodeid="${edge.target}"] .react-flow__handle-target`);
+      if (targetHandle) {
+        targetHandle.classList.add('connected-input');
+      }
+
+      // Find source (output) handle and mark as connected
+      const sourceHandle = document.querySelector(`[data-nodeid="${edge.source}"] .react-flow__handle-source`);
+      if (sourceHandle) {
+        sourceHandle.classList.add('connected-output');
+      }
+    });
+  }, [edges]);
 
   // Reset function to clear all nodes and start fresh
   const resetCanvas = useCallback(() => {
-    nodeInputHandlers.clear();
+    nodeInputHandlers.current.clear();
     setNodes(initialNodes);
     setEdges(initialEdges);
-  }, [setNodes, setEdges, nodeInputHandlers]);
+  }, [setNodes, setEdges]);
 
   // Clean duplicate nodes function
   const cleanupDuplicates = useCallback(() => {
@@ -113,7 +136,7 @@ function CreativeNodeFlow() {
     
     // Send data to connected target nodes
     outgoingEdges.forEach(edge => {
-      const inputHandler = nodeInputHandlers.get(edge.target);
+      const inputHandler = nodeInputHandlers.current.get(edge.target);
       if (inputHandler) {
         inputHandler({ content, context, type });
       }
@@ -144,7 +167,7 @@ function CreativeNodeFlow() {
               content,
               context,
               type,
-              onReceiveInput: (handler) => nodeInputHandlers.set(newOutputId, handler),
+              onReceiveInput: (handler) => nodeInputHandlers.current.set(newOutputId, handler),
               onOutput: handleNodeOutput
             },
           };
@@ -162,7 +185,7 @@ function CreativeNodeFlow() {
 
           // Immediately send data to the new output node
           setTimeout(() => {
-            const inputHandler = nodeInputHandlers.get(newOutputId);
+            const inputHandler = nodeInputHandlers.current.get(newOutputId);
             if (inputHandler) {
               inputHandler({ content, context, type });
             }
@@ -170,15 +193,15 @@ function CreativeNodeFlow() {
         }
       }
     }
-  }, [edges, nodes, setNodes, setEdges, nodeInputHandlers]);
+  }, [edges, nodes, setNodes, setEdges]);
 
   // Register output and input handlers for nodes
   const registerNodeHandlers = useCallback((nodeId) => {
     return {
       onOutput: handleNodeOutput,
-      onReceiveInput: (handler) => nodeInputHandlers.set(nodeId, handler)
+      onReceiveInput: (handler) => nodeInputHandlers.current.set(nodeId, handler)
     };
-  }, [handleNodeOutput, nodeInputHandlers]);
+  }, [handleNodeOutput]);
 
   // Update node data with handlers
   const enhancedNodes = useMemo(() => {

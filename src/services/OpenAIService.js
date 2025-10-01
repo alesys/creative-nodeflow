@@ -1,5 +1,6 @@
 // API service for OpenAI integration
 import OpenAI from 'openai';
+import { LIMITS, MODELS, API_ERRORS } from '../constants/app.js';
 
 class OpenAIService {
   constructor() {
@@ -16,7 +17,7 @@ class OpenAIService {
     }
     
     if (!apiKey || apiKey.trim() === '') {
-      console.warn('OpenAI API key not configured. Check .env file.');
+      console.warn(API_ERRORS.OPENAI_NOT_CONFIGURED);
       return;
     }
     
@@ -36,7 +37,7 @@ class OpenAIService {
 
   async generateResponse(prompt, systemPrompt = null, context = null) {
     if (!this.client) {
-      throw new Error('OpenAI client not initialized. Please check your API key.');
+      throw new Error(API_ERRORS.CLIENT_NOT_INITIALIZED);
     }
 
     const messages = [];
@@ -49,9 +50,10 @@ class OpenAIService {
       });
     }
 
-    // Add context if provided (from previous nodes)
+    // Add context if provided (with windowing to prevent memory leak)
     if (context && context.messages) {
-      messages.push(...context.messages);
+      const recentMessages = context.messages.slice(-LIMITS.MAX_CONTEXT_MESSAGES);
+      messages.push(...recentMessages);
     }
 
     // Add current user prompt
@@ -62,25 +64,27 @@ class OpenAIService {
 
     try {
       const response = await this.client.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: MODELS.OPENAI,
         messages: messages,
-        max_tokens: 2000,
+        max_tokens: LIMITS.MAX_TOKENS,
         temperature: 0.7
       });
 
       const responseContent = response.choices[0].message.content;
       
-      // Return response with updated context
+      // Return response with updated context (windowed to prevent memory leak)
+      const updatedMessages = [
+        ...messages,
+        {
+          role: 'assistant', 
+          content: responseContent
+        }
+      ];
+      
       return {
         content: responseContent,
         context: {
-          messages: [
-            ...messages,
-            {
-              role: 'assistant', 
-              content: responseContent
-            }
-          ]
+          messages: updatedMessages.slice(-LIMITS.MAX_CONTEXT_MESSAGES)
         }
       };
     } catch (error) {
