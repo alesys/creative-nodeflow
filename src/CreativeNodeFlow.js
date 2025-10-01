@@ -7,7 +7,6 @@ import {
   useNodesState,
   useEdgesState,
   addEdge,
-  Panel,
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
@@ -52,9 +51,9 @@ const initialEdges = [
 ];
 
 function CreativeNodeFlow() {
-  const [colorMode, setColorMode] = useState('dark');
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [contextMenu, setContextMenu] = useState(null);
   // Using useRef for nodeInputHandlers to prevent state mutation
   const nodeInputHandlers = useRef(new Map());
 
@@ -81,43 +80,7 @@ function CreativeNodeFlow() {
     });
   }, [edges]);
 
-  // Reset function to clear all nodes and start fresh
-  const resetCanvas = useCallback(() => {
-    nodeInputHandlers.current.clear();
-    setNodes(initialNodes);
-    setEdges(initialEdges);
-  }, [setNodes, setEdges]);
-
-  // Clean duplicate nodes function
-  const cleanupDuplicates = useCallback(() => {
-    setNodes(currentNodes => {
-      const uniqueNodes = [];
-      const seenIds = new Set();
-      
-      currentNodes.forEach(node => {
-        if (!seenIds.has(node.id)) {
-          seenIds.add(node.id);
-          uniqueNodes.push(node);
-        }
-      });
-      
-      return uniqueNodes;
-    });
-    
-    setEdges(currentEdges => {
-      const uniqueEdges = [];
-      const seenIds = new Set();
-      
-      currentEdges.forEach(edge => {
-        if (!seenIds.has(edge.id)) {
-          seenIds.add(edge.id);
-          uniqueEdges.push(edge);
-        }
-      });
-      
-      return uniqueEdges;
-    });
-  }, [setNodes, setEdges]);
+  // Reset and cleanup functions removed - replaced by resetToInitialState in context menu
 
   // Use refs to access current values without causing re-renders
   const edgesRef = useRef(edges);
@@ -234,23 +197,74 @@ function CreativeNodeFlow() {
     [setEdges],
   );
 
-  const onChange = (evt) => {
-    setColorMode(evt.target.value);
-  };
+  // onChange function removed since theme switcher is removed
 
-  // Add new node functions
-  const addNode = useCallback((type) => {
-    const newId = `${type}-${Date.now()}`;
+  // addNode function removed - replaced by createNodeFromMenu in context menu
+
+  // Handle keyboard events for deletion
+  const handleKeyDown = useCallback((event) => {
+    if (event.key === 'Delete' || event.key === 'Backspace') {
+      // Get selected nodes and edges
+      const selectedNodes = nodes.filter(node => node.selected);
+      const selectedEdges = edges.filter(edge => edge.selected);
+      
+      if (selectedNodes.length > 0) {
+        // Delete selected nodes and their connections
+        const nodeIdsToDelete = selectedNodes.map(node => node.id);
+        
+        setNodes(currentNodes => 
+          currentNodes.filter(node => !nodeIdsToDelete.includes(node.id))
+        );
+        
+        setEdges(currentEdges => 
+          currentEdges.filter(edge => 
+            !nodeIdsToDelete.includes(edge.source) && 
+            !nodeIdsToDelete.includes(edge.target)
+          )
+        );
+        
+        // Clear input handlers for deleted nodes
+        nodeIdsToDelete.forEach(id => {
+          nodeInputHandlers.current.delete(id);
+        });
+      }
+      
+      if (selectedEdges.length > 0) {
+        // Delete selected edges
+        const edgeIdsToDelete = selectedEdges.map(edge => edge.id);
+        setEdges(currentEdges => 
+          currentEdges.filter(edge => !edgeIdsToDelete.includes(edge.id))
+        );
+      }
+    }
+  }, [nodes, edges, setNodes, setEdges]);
+
+  // Right-click context menu handler
+  const handlePaneContextMenu = useCallback((event) => {
+    event.preventDefault();
+    setContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+    });
+  }, []);
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
+  // Context menu node creation handlers
+  const createNodeFromMenu = useCallback((nodeType, x, y) => {
+    const newId = `${nodeType}-${Date.now()}`;
     const position = {
-      x: Math.random() * 300 + 100,
-      y: Math.random() * 300 + 100
+      x: x - 100, // Offset from click position
+      y: y - 50
     };
 
     let nodeData = { 
       ...registerNodeHandlers(newId)
     };
 
-    switch (type) {
+    switch (nodeType) {
       case 'startingPrompt':
         nodeData = {
           ...nodeData,
@@ -285,12 +299,94 @@ function CreativeNodeFlow() {
     const newNode = {
       id: newId,
       position,
-      type,
+      type: nodeType,
       data: nodeData
     };
 
     setNodes(nodes => [...nodes, newNode]);
-  }, [setNodes, registerNodeHandlers]);
+    closeContextMenu();
+  }, [setNodes, registerNodeHandlers, closeContextMenu]);
+
+  // Reset function to clear all nodes and start fresh
+  const resetToInitialState = useCallback(() => {
+    nodeInputHandlers.current.clear();
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+    closeContextMenu();
+  }, [setNodes, setEdges, closeContextMenu]);
+
+  // Add keyboard event listener
+  useEffect(() => {
+    const handleGlobalKeyDown = (event) => {
+      // Only handle if no input is focused
+      if (!event.target.closest('input, textarea, select')) {
+        handleKeyDown(event);
+      }
+    };
+    
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    document.addEventListener('click', closeContextMenu);
+    
+    return () => {
+      document.removeEventListener('keydown', handleGlobalKeyDown);
+      document.removeEventListener('click', closeContextMenu);
+    };
+  }, [handleKeyDown, closeContextMenu]);
+
+  // Add double-click listeners to unconnected handles
+  useEffect(() => {
+    const handleDoubleClick = (event) => {
+      const handle = event.target.closest('.react-flow__handle');
+      if (handle) {
+        event.stopPropagation();
+        
+        // Check if this handle is unconnected
+        const nodeId = handle.closest('[data-id]')?.getAttribute('data-id');
+        const isSource = handle.classList.contains('react-flow__handle-source');
+        const isTarget = handle.classList.contains('react-flow__handle-target');
+        
+        let isConnected = false;
+        if (isSource) {
+          isConnected = edges.some(edge => edge.source === nodeId);
+        } else if (isTarget) {
+          isConnected = edges.some(edge => edge.target === nodeId);
+        }
+        
+        // Show context menu at handle position if not connected
+        if (!isConnected) {
+          const rect = handle.getBoundingClientRect();
+          setContextMenu({
+            x: rect.right + 10,
+            y: rect.top
+          });
+        }
+      }
+    };
+
+    // Add double-click listeners to all handles
+    const addHandleListeners = () => {
+      const handles = document.querySelectorAll('.react-flow__handle');
+      handles.forEach(handle => {
+        handle.addEventListener('dblclick', handleDoubleClick);
+      });
+    };
+
+    // Remove listeners
+    const removeHandleListeners = () => {
+      const handles = document.querySelectorAll('.react-flow__handle');
+      handles.forEach(handle => {
+        handle.removeEventListener('dblclick', handleDoubleClick);
+      });
+    };
+
+    // Add listeners after a small delay to ensure handles are rendered
+    const timeoutId = setTimeout(addHandleListeners, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      removeHandleListeners();
+    };
+  }, [edges, setContextMenu]);
 
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
@@ -300,8 +396,9 @@ function CreativeNodeFlow() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onPaneContextMenu={handlePaneContextMenu}
         nodeTypes={nodeTypes}
-        colorMode={colorMode}
+        colorMode="dark"
         fitView
         fitViewOptions={{
           padding: 0.1,
@@ -323,6 +420,120 @@ function CreativeNodeFlow() {
 
         {/* Node creation panel - hidden, will be replaced with right-click context menu */}
       </ReactFlow>
+      
+      {/* Right-click Context Menu */}
+      {contextMenu && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: contextMenu.y,
+            left: contextMenu.x,
+            background: 'var(--node-body-background)',
+            border: '1px solid var(--node-border-color)',
+            borderRadius: '4px',
+            padding: '8px 0',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+            zIndex: 1000,
+            minWidth: '180px'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div style={{ padding: '8px 16px', fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 'bold', borderBottom: '1px solid var(--node-border-color)' }}>
+            Add Nodes
+          </div>
+          <button
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '8px 16px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--color-text-primary)',
+              textAlign: 'left',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+            onClick={() => createNodeFromMenu('startingPrompt', contextMenu.x, contextMenu.y)}
+            onMouseEnter={(e) => e.target.style.background = 'var(--color-accent-primary-alpha)'}
+            onMouseLeave={(e) => e.target.style.background = 'transparent'}
+          >
+            Starting Prompt
+          </button>
+          <button
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '8px 16px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--color-text-primary)',
+              textAlign: 'left',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+            onClick={() => createNodeFromMenu('agentPrompt', contextMenu.x, contextMenu.y)}
+            onMouseEnter={(e) => e.target.style.background = 'var(--color-accent-primary-alpha)'}
+            onMouseLeave={(e) => e.target.style.background = 'transparent'}
+          >
+            Agent Prompt
+          </button>
+          <button
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '8px 16px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--color-text-primary)',
+              textAlign: 'left',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+            onClick={() => createNodeFromMenu('imagePrompt', contextMenu.x, contextMenu.y)}
+            onMouseEnter={(e) => e.target.style.background = 'var(--color-accent-primary-alpha)'}
+            onMouseLeave={(e) => e.target.style.background = 'transparent'}
+          >
+            Image Prompt
+          </button>
+          <button
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '8px 16px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--color-text-primary)',
+              textAlign: 'left',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+            onClick={() => createNodeFromMenu('customOutput', contextMenu.x, contextMenu.y)}
+            onMouseEnter={(e) => e.target.style.background = 'var(--color-accent-primary-alpha)'}
+            onMouseLeave={(e) => e.target.style.background = 'transparent'}
+          >
+            Output
+          </button>
+          <div style={{ height: '1px', background: 'var(--node-border-color)', margin: '4px 0' }}></div>
+          <button
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '8px 16px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--color-accent-error)',
+              textAlign: 'left',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+            onClick={resetToInitialState}
+            onMouseEnter={(e) => e.target.style.background = 'rgba(239, 68, 68, 0.1)'}
+            onMouseLeave={(e) => e.target.style.background = 'transparent'}
+          >
+            Reset
+          </button>
+        </div>
+      )}
     </div>
   );
 }
