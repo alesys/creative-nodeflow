@@ -19,9 +19,8 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
     inputContext,
     hasReceivedInput,
     setupInputListener,
-    handleKeyDown: _baseHandleKeyDown,
-    setError,
-    setProcessing
+    handleProcess,
+    setError
   } = usePromptNode(data.prompt || '', data, id);
 
   // Listen for incoming context from connected nodes (optional for image generation)
@@ -31,7 +30,28 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
 
   // Destructure onOutput from data to optimize dependency array
   const { onOutput } = data;
-  
+
+  // Custom image generation using optimized hook patterns
+  const generateImage = useCallback(async () => {
+    if (!GoogleAIService.isConfigured()) {
+      throw new Error('Google API key not configured. Please check your .env file.');
+    }
+
+    const response = await GoogleAIService.generateImage(prompt, inputContext);
+    
+    // Emit the response through the output
+    if (onOutput) {
+      onOutput({
+        nodeId: id,
+        content: response.content,
+        context: response.context,
+        type: 'image'
+      });
+    }
+
+    return response;
+  }, [prompt, inputContext, onOutput, id]);
+
   const handleKeyDown = useCallback(async (e) => {
     if (e.ctrlKey && e.key === 'Enter') {
       e.preventDefault();
@@ -44,35 +64,10 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
         return;
       }
 
-      try {
-        setProcessing(true);
-        setError(null);
-        
-        if (!GoogleAIService.isConfigured()) {
-          throw new Error('Google API key not configured. Please check your .env file.');
-        }
-
-        // Generate image using Nano Banana with optional context
-        const response = await GoogleAIService.generateImage(prompt, inputContext);
-        
-        // Emit the response through the output
-        if (onOutput) {
-          onOutput({
-            nodeId: id,
-            content: response.content,
-            context: response.context,
-            type: 'image'
-          });
-        }
-        
-      } catch (err) {
-        console.error('Error generating image:', err);
-        setError(err.message);
-      } finally {
-        setProcessing(false);
-      }
+      // Use the optimized handleProcess from the hook
+      await handleProcess(generateImage);
     }
-  }, [prompt, id, onOutput, inputContext, setIsEditing]);
+  }, [prompt, setIsEditing, setError, handleProcess, generateImage]);
 
   const getConnectionStatus = () => {
     if (hasReceivedInput) {
