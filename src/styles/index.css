@@ -1,0 +1,27 @@
+/* 
+ * Main Styles Entry Point
+ * 
+ * Import order matters:
+ * 1. Theme variables (CSS custom properties)
+ * 2. Base reset and global styles
+ * 3. Utility classes
+ * 4. Layout components
+ * 5. UI components
+ */
+
+/* Theme & Variables */
+@import './themes/_variables.css';
+
+/* Base & Reset */
+@import './base/_reset.css';
+
+/* Utilities */
+@import './utils/_utilities.css';
+
+/* Layout */
+@import './layout/_app.css';
+
+/* Components */
+@import './components/_panels.css';
+@import './components/_nodes.css';
+@import './components/_lightbox.css';

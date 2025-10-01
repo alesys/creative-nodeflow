@@ -1,5 +1,17 @@
 /* Custom Node Base Styles - ReactFlow Dark Theme */
 
+/* ReactFlow auto-generated node classes for consistent styling */
+.react-flow__node-startingPrompt,
+.react-flow__node-agentPrompt,
+.react-flow__node-imagePrompt,
+.react-flow__node-output {
+  background: #1a192b;
+  border: 1px solid #555;
+  border-radius: 3px;
+  color: #fff;
+  box-shadow: 0 1px 4px 1px rgba(0, 0, 0, 0.08);
+}
+
 .custom-node {
   text-align: left;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;

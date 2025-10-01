@@ -1,7 +1,6 @@
 // Base custom node component with standardized input/output positioning
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
-import './CustomNodeBase.css';
 
 const CustomNodeBase = ({ 
   children, 

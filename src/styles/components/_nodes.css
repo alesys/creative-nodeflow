@@ -1,0 +1,212 @@
+/* ReactFlow Node Components */
+
+/* ReactFlow auto-generated node classes for consistent styling */
+/* Apply the same base styles that ReactFlow provides to default nodes */
+.react-flow__node-startingPrompt,
+.react-flow__node-agentPrompt,
+.react-flow__node-imagePrompt,
+.react-flow__node-output {
+  /* ReactFlow default node base styles */
+  padding: 10px;
+  border-radius: var(--xy-node-border-radius, var(--xy-node-border-radius-default));
+  width: 150px;
+  font-size: 12px;
+  color: var(--xy-node-color, var(--xy-node-color-default));
+  text-align: center;
+  border: var(--xy-node-border, var(--xy-node-border-default));
+  background-color: var(--xy-node-background-color, var(--xy-node-background-color-default));
+  
+  /* Our custom overrides for dark theme */
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.custom-node {
+  text-align: left;
+  font-family: var(--font-family-primary);
+  font-optical-sizing: auto;
+  font-feature-settings: "liga" 1, "calt" 1;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Node content areas */
+.node-header {
+  font-weight: bold;
+  margin-bottom: var(--spacing-xs);
+}
+
+.node-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.node-padding {
+  padding: var(--spacing-xs);
+}
+
+/* Textarea styling */
+.custom-node textarea,
+.node-text-area {
+  width: 100%;
+  min-height: 80px;
+  padding: var(--spacing-xs);
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  color: var(--color-text-primary);
+  margin: var(--spacing-xs) 0;
+}
+
+.custom-node textarea.nodrag,
+.node-text-area.nodrag {
+  cursor: text;
+}
+
+.custom-node textarea:focus,
+.node-text-area:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: var(--shadow-focus);
+}
+
+/* Preview content */
+.custom-node .preview-content,
+.preview-content-clickable {
+  min-height: 80px;
+  padding: var(--spacing-xs);
+  cursor: pointer;
+  border-radius: var(--radius-base);
+  transition: background-color 0.2s ease;
+}
+
+.preview-content-padded {
+  padding: var(--spacing-md);
+  margin: var(--spacing-xs);
+}
+
+/* Helper text styles */
+.helper-text {
+  font-size: var(--font-size-sm);
+  opacity: 0.7;
+}
+
+.helper-text-spaced {
+  padding: 0 var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+.helper-text-margined {
+  margin-top: var(--spacing-xs);
+}
+
+.helper-text-italic {
+  font-style: italic;
+}
+
+.helper-text-small {
+  font-size: var(--font-size-xs);
+}
+
+.helper-text-tiny {
+  font-size: var(--font-size-xs);
+  font-weight: normal;
+}
+
+/* Status indicators */
+.status-indicator {
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
+}
+
+.status-indicator.processing {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+/* Image display */
+.custom-node img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: var(--radius-base);
+}
+
+.output-image {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: var(--radius-base);
+  object-fit: contain;
+}
+
+.output-image.clickable {
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.output-image.clickable:hover {
+  transform: scale(1.02);
+}
+
+.image-error {
+  display: none;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-sm);
+}
+
+/* Content display */
+.content-display {
+  line-height: var(--line-height-relaxed);
+}
+
+.text-content {
+  max-height: 400px;
+  overflow-y: auto;
+  line-height: var(--line-height-relaxed);
+}
+
+.waiting-content {
+  font-style: italic;
+  text-align: left;
+  padding: var(--spacing-xl) var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  opacity: 0.7;
+}
+
+/* Details and summary */
+.details-section {
+  margin-top: var(--spacing-sm);
+}
+
+.details-section-large {
+  margin-top: var(--spacing-md);
+}
+
+.summary-clickable {
+  cursor: pointer;
+}
+
+.output-item {
+  margin-bottom: var(--spacing-xs);
+}
+
+/* Node type specific styles */
+.image-helper-text {
+  margin-top: var(--spacing-sm);
+  font-style: italic;
+}
