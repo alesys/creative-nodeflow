@@ -148,22 +148,30 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
           </div>
         )}
 
-        {/* Context Display */}
-        {inputContext && (
-          <details className="details-section" style={{ marginTop: 'var(--spacing-sm)' }}>
-            <summary className="helper-text summary-clickable">
-              Input Context (will influence generation)
-            </summary>
-            <div style={{ marginTop: 'var(--spacing-xs)' }}>
-              {inputContext.messages?.slice(-2).map((msg, idx) => (
+        {/* Context Display - Always show to indicate connection status */}
+        <details className="details-section" style={{ marginTop: 'var(--spacing-sm)' }}>
+          <summary className="helper-text summary-clickable">
+            {hasReceivedInput ? (
+              'Input Context (will influence generation)'
+            ) : (
+              'Input Context (waiting for connection)'
+            )}
+          </summary>
+          <div style={{ marginTop: 'var(--spacing-xs)' }}>
+            {hasReceivedInput && inputContext?.messages ? (
+              inputContext.messages.slice(-2).map((msg, idx) => (
                 <div key={idx} className="helper-text helper-text-small" style={{ marginBottom: 'var(--spacing-xs)' }}>
                   <strong>{msg.role}:</strong> {msg.content.substring(0, 80)}
                   {msg.content.length > 80 && '...'}
                 </div>
-              ))}
-            </div>
-          </details>
-        )}
+              ))
+            ) : (
+              <div className="helper-text helper-text-small">
+                {hasReceivedInput ? 'No context messages available' : 'Connect an input node to see context here'}
+              </div>
+            )}
+          </div>
+        </details>
 
         {/* Model Info */}
         <div className="parameter-control" style={{ borderBottom: 'none', marginTop: 'var(--spacing-sm)' }}>

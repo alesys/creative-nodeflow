@@ -9,7 +9,6 @@ import { usePromptNode } from '../hooks/useNodeEditor.js';
 const AgentPromptNode = ({ data, id, isConnectable }) => {
   const {
     isEditing,
-    setIsEditing,
     prompt,
     setPrompt,
     textareaRef,
@@ -19,8 +18,7 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
     inputContext,
     hasReceivedInput,
     setupInputListener,
-    handleKeyDown: baseHandleKeyDown,
-    systemPrompt
+    handleKeyDown: baseHandleKeyDown
   } = usePromptNode(data.prompt || '', data, id);
 
   // Listen for incoming context from connected nodes
@@ -111,22 +109,30 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
           </div>
         )}
 
-        {/* Context Display */}
-        {inputContext && (
-          <details className="details-section" style={{ marginTop: 'var(--spacing-sm)' }}>
-            <summary className="helper-text summary-clickable">
-              Input Context ({inputContext.messages?.length || 0} messages)
-            </summary>
-            <div style={{ marginTop: 'var(--spacing-xs)' }}>
-              {inputContext.messages?.slice(-2).map((msg, idx) => (
+        {/* Context Display - Always show to indicate connection status */}
+        <details className="details-section" style={{ marginTop: 'var(--spacing-sm)' }}>
+          <summary className="helper-text summary-clickable">
+            {hasReceivedInput ? (
+              `Input Context (${inputContext?.messages?.length || 0} messages)`
+            ) : (
+              'Input Context (waiting for connection)'
+            )}
+          </summary>
+          <div style={{ marginTop: 'var(--spacing-xs)' }}>
+            {hasReceivedInput && inputContext?.messages ? (
+              inputContext.messages.slice(-2).map((msg, idx) => (
                 <div key={idx} className="helper-text helper-text-small" style={{ marginBottom: 'var(--spacing-xs)' }}>
                   <strong>{msg.role}:</strong> {msg.content.substring(0, 80)}
                   {msg.content.length > 80 && '...'}
                 </div>
-              ))}
-            </div>
-          </details>
-        )}
+              ))
+            ) : (
+              <div className="helper-text helper-text-small">
+                {hasReceivedInput ? 'No context messages available' : 'Connect an input node to see context here'}
+              </div>
+            )}
+          </div>
+        </details>
 
         {/* Status Indicators */}
         {isProcessing && (

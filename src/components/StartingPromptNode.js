@@ -9,15 +9,13 @@ import { usePromptNode } from '../hooks/useNodeEditor.js';
 const StartingPromptNode = ({ data, id, isConnectable }) => {
   const {
     isEditing,
-    setIsEditing,
     prompt,
     setPrompt,
     textareaRef,
     handleEditClick,
     isProcessing,
     error,
-    handleKeyDown: baseHandleKeyDown,
-    systemPrompt
+    handleKeyDown: baseHandleKeyDown
   } = usePromptNode(data.prompt || '', data, id);
 
   const handleKeyDown = useCallback(async (e) => {
