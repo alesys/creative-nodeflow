@@ -10,6 +10,8 @@ class OpenAIService {
 
   async initialize() {
     try {
+      console.log('OpenAI Service: Initializing...');
+      
       const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
       if (!apiKey) {
         console.warn('OpenAI API key not found');
@@ -20,6 +22,8 @@ class OpenAIService {
         apiKey: apiKey,
         dangerouslyAllowBrowser: true
       });
+
+      console.log('OpenAI client initialized successfully');
 
     } catch (error) {
       console.error('Failed to initialize OpenAI client:', error);
@@ -87,7 +91,7 @@ class OpenAIService {
       ].slice(-LIMITS.MAX_CONTEXT_MESSAGES);
 
       return {
-        content: responseContent,
+        response: responseContent,
         context: {
           messages: updatedMessages
         }

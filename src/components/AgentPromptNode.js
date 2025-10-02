@@ -64,6 +64,16 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
         </div>
       </div>
 
+      {/* File Context Indicator */}
+      {data.fileContexts && data.fileContexts.length > 0 && (
+        <div className="file-context-indicator">
+          <span className="context-icon">📎</span>
+          <span className="context-text">
+            {data.fileContexts.length} file{data.fileContexts.length > 1 ? 's' : ''} attached
+          </span>
+        </div>
+      )}
+
       {/* Node Body */}
       <div className="node-body">
         {/* Text Area Control */}
@@ -130,22 +140,24 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
           </div>
         </details>
 
-        {/* Status Indicators */}
-        {isProcessing && (
-          <div className="parameter-control" style={{ borderBottom: 'none', marginTop: 'var(--spacing-sm)' }}>
-            <span className="control-label" style={{ color: 'var(--color-accent-primary)' }}>
-              🔄 Processing with context...
-            </span>
-          </div>
-        )}
+        {/* Status Area - Always present to prevent layout shifts */}
+        <div className="status-area" style={{ marginTop: 'var(--spacing-sm)', minHeight: '24px' }}>
+          {isProcessing && (
+            <div className="parameter-control" style={{ borderBottom: 'none', margin: 0 }}>
+              <span className="control-label" style={{ color: 'var(--color-accent-primary)' }}>
+                🔄 Processing with context...
+              </span>
+            </div>
+          )}
 
-        {error && (
-          <div className="parameter-control" style={{ borderBottom: 'none', marginTop: 'var(--spacing-sm)' }}>
-            <span className="control-label" style={{ color: 'var(--color-accent-error)' }}>
-              ⚠️ {error}
-            </span>
-          </div>
-        )}
+          {error && !isProcessing && (
+            <div className="parameter-control" style={{ borderBottom: 'none', margin: 0 }}>
+              <span className="control-label" style={{ color: 'var(--color-accent-error)' }}>
+                ⚠️ {error}
+              </span>
+            </div>
+          )}
+        </div>
 
       </div>
 

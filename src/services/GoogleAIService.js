@@ -15,10 +15,7 @@ class GoogleAIService {
   initializeClient() {
     const apiKey = process.env.REACT_APP_GOOGLE_API_KEY;
     
-    // Only log in development mode
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Google AI Service: Initializing...');
-    }
+
     
     if (!apiKey || apiKey.trim() === '') {
       console.warn(API_ERRORS.GOOGLE_NOT_CONFIGURED);
@@ -27,9 +24,6 @@ class GoogleAIService {
     
     try {
       this.client = new GoogleGenerativeAI(apiKey.trim());
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Google AI client initialized successfully');
-      }
     } catch (error) {
       console.error('Failed to initialize Google AI client:', error);
       this.client = null;

@@ -130,7 +130,21 @@ export const usePromptNode = (initialPrompt, data, id) => {
       throw new Error(`${service.constructor.name} not configured. Please check your .env file.`);
     }
 
-    const response = await service.generateResponse(prompt, systemPrompt, context);
+    // Build enhanced prompt with file contexts if available
+    let enhancedPrompt = prompt;
+    if (data.fileContexts && data.fileContexts.length > 0) {
+      const contextSummary = data.fileContexts
+        .map(ctx => `${ctx.contextPrompt || ctx.summary}`)
+        .join('\n\n');
+      
+      enhancedPrompt = `Context from uploaded files:
+${contextSummary}
+
+User request:
+${prompt}`;
+    }
+
+    const response = await service.generateResponse(enhancedPrompt, systemPrompt, context);
     
     // Emit the response through the output
     if (onOutput) {
@@ -143,7 +157,7 @@ export const usePromptNode = (initialPrompt, data, id) => {
     }
 
     return response;
-  }, [onOutput, id]);
+  }, [onOutput, id, data.fileContexts]);
 
   const handleKeyDown = useCallback(async (e, service) => {
     if (e.ctrlKey && e.key === 'Enter') {

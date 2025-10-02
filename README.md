@@ -6,7 +6,7 @@ A visual, node-based interface for building and executing AI prompt chains using
 
 - **🚀 Starting Prompt Node**: Entry point for prompt chains with OpenAI GPT-4o-mini integration
 - **🤖 Agent Prompt Node**: Continuation prompts that receive context from previous nodes  
-- **🎨 Image Prompt Node**: Generate images using Google's Gemini 2.5 Flash Image (Nano Banana)
+- **🎨 Art Director Node**: Generate images using Google's Gemini 2.5 Flash Image (Nano Banana)
 - **📄 Output Node**: Display text (rendered as Markdown) or images from AI responses
 - **🔗 Context Flow**: Seamless context passing between connected nodes
 - **⚡ Auto-Output**: Automatic output node creation when no output is connected
@@ -112,7 +112,7 @@ REACT_APP_DEFAULT_SYSTEM_PROMPT=You are a helpful AI assistant. Respond clearly 
 
 ### Generating Images
 
-1. **Add Image Prompt**: Click "🎨 Image Prompt" to add image generation
+1. **Add Art Director**: Click "🎨 Art Director" to add image generation
 2. **Describe Image**: Enter a description of the image you want
 3. **Execute**: Press `Ctrl+Enter` to generate with Nano Banana
 4. **View Result**: The image will appear in the connected output node
@@ -122,7 +122,7 @@ REACT_APP_DEFAULT_SYSTEM_PROMPT=You are a helpful AI assistant. Respond clearly 
 - **Edit Mode**: Click on any node content to edit
 - **Preview Mode**: Click outside the text area to see Markdown preview  
 - **Execute**: Press `Ctrl+Enter` in any prompt node to process
-- **Context View**: Expand context details in Agent and Image prompt nodes
+- **Context View**: Expand context details in Agent and Art Director nodes
 
 ## 🏗️ Architecture
 
@@ -130,7 +130,7 @@ REACT_APP_DEFAULT_SYSTEM_PROMPT=You are a helpful AI assistant. Respond clearly 
 
 - **Starting Prompt**: No input, has output. Uses OpenAI GPT-4o-mini
 - **Agent Prompt**: Has input and output. Receives context from previous nodes
-- **Image Prompt**: Has input and output. Uses Google Gemini 2.5 Flash Image
+- **Art Director**: Has input and output. Uses Google Gemini 2.5 Flash Image
 - **Output**: Has input and output. Displays results and passes context through
 
 ### Context Flow

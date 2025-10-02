@@ -1,9 +1,9 @@
 // Output Node - Displays results from prompt nodes
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Handle, Position, NodeResizer } from '@xyflow/react';
+import { Handle, Position, NodeResizer, useReactFlow } from '@xyflow/react';
 
 const OutputNode = ({ data, id }) => {
   const [content, setContent] = useState(data.content || '');
@@ -12,6 +12,8 @@ const OutputNode = ({ data, id }) => {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const { setNodes } = useReactFlow();
+  const imageRef = useRef(null);
 
   // Listen for incoming data from connected nodes
   useEffect(() => {
@@ -67,6 +69,7 @@ const OutputNode = ({ data, id }) => {
         return (
           <div>
             <img 
+              ref={imageRef}
               src={content}
               alt="Generated content"
               className="output-image clickable"
@@ -75,9 +78,26 @@ const OutputNode = ({ data, id }) => {
                 console.error('Image load error:', e.target.src);
                 setImageError(true);
               }}
-              onLoad={() => {
+              onLoad={(e) => {
                 console.log('Image loaded successfully:', content.substring(0, 50));
                 setImageError(false);
+                
+                // Auto-resize node to accommodate image
+                const img = e.target;
+                if (img.naturalWidth && img.naturalHeight) {
+                  const aspectRatio = img.naturalHeight / img.naturalWidth;
+                  const maxWidth = 480; // Current node width
+                  const imageHeight = Math.min(aspectRatio * maxWidth, 600); // Max height of 600px
+                  const nodeHeight = imageHeight + 100; // Add padding for header and status
+                  
+                  setNodes((nodes) => 
+                    nodes.map((node) => 
+                      node.id === id 
+                        ? { ...node, height: Math.max(nodeHeight, 320) } // Min height 320px
+                        : node
+                    )
+                  );
+                }
               }}
               style={{ cursor: 'pointer' }}
             />

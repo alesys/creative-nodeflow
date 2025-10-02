@@ -362,6 +362,12 @@
   justify-content: space-between;
 }
 
+/* Starting Status Bar - Blue theme */
+.starting-status-bar {
+  background: rgba(59, 130, 246, 0.1);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
 /* Agent Status Bar - Green theme */
 .agent-status-bar {
   background: rgba(21, 128, 61, 0.1);
@@ -374,22 +380,26 @@
   border-bottom: 1px solid rgba(147, 51, 234, 0.2);
 }
 
-.output-status-bar .status-item {
+/* Generic status item styles for all status bars */
+.status-item {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
   overflow: hidden;
+  padding: var(--spacing-xs) var(--spacing-sm);
 }
 
-.output-status-bar .status-icon {
+.status-icon {
   flex-shrink: 0;
+  font-size: var(--font-size-sm);
 }
 
-.output-status-bar .status-text {
+.status-text {
   color: var(--control-value-color);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: var(--font-size-sm);
 }
 
 /* Status Display - Compact version for output panels */
@@ -544,8 +554,8 @@
 }
 
 .output-image {
-  max-width: 100%;
-  max-height: 300px;
+  width: 100%;
+  max-height: none;
   border-radius: var(--radius-base);
   object-fit: contain;
 }

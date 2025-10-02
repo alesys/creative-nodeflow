@@ -19,7 +19,8 @@ export const LIMITS = {
 
 // API Models
 export const MODELS = {
-  OPENAI: 'gpt-4o-mini',
+  OPENAI: 'gpt-5-nano',
+  OPENAI_VISION: 'gpt-5-nano', // GPT-5-nano supports both text and vision
   GOOGLE_IMAGE: 'gemini-2.5-flash-image-preview', // "Nano Banana"
   GOOGLE_TEXT: 'gemini-2.5-flash',
 };

@@ -35,6 +35,38 @@ const StartingPromptNode = ({ data, id, isConnectable }) => {
         Starting Prompt
       </div>
 
+      {/* Compact Status Bar */}
+      <div className="starting-status-bar">
+        <div className="status-item">
+          {isProcessing ? (
+            <>
+              <span className="status-icon" style={{ color: 'var(--color-accent-primary)' }}>🔄</span>
+              <span className="status-text">Processing with OpenAI...</span>
+            </>
+          ) : error ? (
+            <>
+              <span className="status-icon" style={{ color: 'var(--color-accent-error)' }}>⚠️</span>
+              <span className="status-text">{error}</span>
+            </>
+          ) : (
+            <>
+              <span className="status-icon" style={{ color: '#059669' }}>🚀</span>
+              <span className="status-text">Entry point (no input required)</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* File Context Indicator */}
+      {data.fileContexts && data.fileContexts.length > 0 && (
+        <div className="file-context-indicator">
+          <span className="context-icon">📎</span>
+          <span className="context-text">
+            {data.fileContexts.length} file{data.fileContexts.length > 1 ? 's' : ''} attached
+          </span>
+        </div>
+      )}
+
       {/* Node Body */}
       <div className="node-body">
         
@@ -73,22 +105,7 @@ const StartingPromptNode = ({ data, id, isConnectable }) => {
           </div>
         )}
 
-        {/* Status Indicators */}
-        {isProcessing && (
-          <div className="parameter-control" style={{ borderBottom: 'none', marginTop: 'var(--spacing-sm)' }}>
-            <span className="control-label" style={{ color: 'var(--color-accent-primary)' }}>
-              🔄 Processing with OpenAI...
-            </span>
-          </div>
-        )}
 
-        {error && (
-          <div className="parameter-control" style={{ borderBottom: 'none', marginTop: 'var(--spacing-sm)' }}>
-            <span className="control-label" style={{ color: 'var(--color-accent-error)' }}>
-              ⚠️ {error}
-            </span>
-          </div>
-        )}
 
       </div>
 

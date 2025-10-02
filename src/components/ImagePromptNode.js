@@ -1,4 +1,4 @@
-// Image Prompt Node - Uses Google Gemini for image generation
+// Art Director Node - Uses Google Gemini for image generation
 import React, { useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -56,7 +56,7 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
       setIsEditing(false);
       
       if (!prompt.trim()) {
-        setError('Please enter an image prompt first');
+        setError('Please enter art direction first');
         return;
       }
 
@@ -90,7 +90,7 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
           minHeight={240}
         />      {/* Node Header with Design System Gradient */}
       <div className="node-header model-loader">
-        Image Generator
+        Art Director
       </div>
 
       {/* Compact Status Bar */}
@@ -136,7 +136,7 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
               </ReactMarkdown>
             ) : (
               <span className="helper-text helper-text-italic">
-                Click to add image prompt...
+                Click to add art direction...
               </span>
             )}
           </div>
@@ -177,22 +177,24 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
         </div>
         */}
 
-        {/* Status Indicators */}
-        {isProcessing && (
-          <div className="parameter-control" style={{ borderBottom: 'none', marginTop: 'var(--spacing-sm)' }}>
-            <span className="control-label" style={{ color: 'var(--color-accent-primary)' }}>
-              🔄 Generating image with Nano Banana...
-            </span>
-          </div>
-        )}
+        {/* Status Area - Always present to prevent layout shifts */}
+        <div className="status-area" style={{ marginTop: 'var(--spacing-sm)', minHeight: '24px' }}>
+          {isProcessing && (
+            <div className="parameter-control" style={{ borderBottom: 'none', margin: 0 }}>
+              <span className="control-label" style={{ color: 'var(--color-accent-primary)' }}>
+                🔄 Generating image with Nano Banana...
+              </span>
+            </div>
+          )}
 
-        {error && (
-          <div className="parameter-control" style={{ borderBottom: 'none', marginTop: 'var(--spacing-sm)' }}>
-            <span className="control-label" style={{ color: 'var(--color-accent-error)' }}>
-              ⚠️ {error}
-            </span>
-          </div>
-        )}
+          {error && !isProcessing && (
+            <div className="parameter-control" style={{ borderBottom: 'none', margin: 0 }}>
+              <span className="control-label" style={{ color: 'var(--color-accent-error)' }}>
+                ⚠️ {error}
+              </span>
+            </div>
+          )}
+        </div>
 
       </div>
 

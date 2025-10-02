@@ -16,6 +16,7 @@ import StartingPromptNode from './components/StartingPromptNode';
 import AgentPromptNode from './components/AgentPromptNode';
 import ImagePromptNode from './components/ImagePromptNode';
 import OutputNode from './components/OutputNode';
+import FilePanel from './components/FilePanel';
 
 const initialNodes = [
   {
@@ -61,6 +62,8 @@ function CreativeNodeFlow() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [contextMenu, setContextMenu] = useState(null);
   const [handleContext, setHandleContext] = useState(null); // Store handle info for auto-connection
+  const [filePanelVisible, setFilePanelVisible] = useState(true); // File panel visibility
+  const [selectedFileContexts, setSelectedFileContexts] = useState([]); // File contexts for prompts // eslint-disable-line no-unused-vars
   // Using useRef for nodeInputHandlers to prevent state mutation
   const nodeInputHandlers = useRef(new Map());
 
@@ -211,12 +214,35 @@ function CreativeNodeFlow() {
   }, [nodes, registerNodeHandlers]);
 
   const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge({
-      ...params,
-      animated: true,
-      style: { stroke: '#10b981', strokeWidth: 2 }
-    }, eds)),
-    [setEdges],
+    (params) => {
+      setEdges((eds) => addEdge({
+        ...params,
+        animated: true,
+        style: { stroke: '#10b981', strokeWidth: 2 }
+      }, eds));
+      
+      // After creating the connection, check if source node has existing output data
+      // and immediately transmit it to the target node
+      setTimeout(() => {
+        const sourceNode = nodes.find(n => n.id === params.source);
+        if (sourceNode && sourceNode.data) {
+          // Check if source node has existing content to transmit
+          const { content, context, type } = sourceNode.data;
+          if (content || context) {
+            const targetHandler = nodeInputHandlers.current.get(params.target);
+            if (targetHandler) {
+              console.log(`[onConnect] Transmitting existing data from ${params.source} to ${params.target}:`, {
+                content: content ? content.substring(0, 50) + '...' : 'No content',
+                hasContext: !!context,
+                type
+              });
+              targetHandler({ content, context, type });
+            }
+          }
+        }
+      }, 100);
+    },
+    [setEdges, nodes],
   );
 
   // onChange function removed since theme switcher is removed
@@ -271,6 +297,35 @@ function CreativeNodeFlow() {
       flowY: event.clientY,
     });
   }, []);
+
+  // Handle file context from FilePanel
+  const handleFileContext = useCallback((contexts) => {
+    setSelectedFileContexts(contexts);
+    
+    // Optionally auto-inject context into selected prompt nodes
+    const selectedPromptNodes = nodes.filter(node => 
+      node.selected && 
+      (node.type === 'startingPrompt' || node.type === 'agentPrompt')
+    );
+
+    if (selectedPromptNodes.length > 0) {
+      // Update nodes with file context
+      setNodes(currentNodes => 
+        currentNodes.map(node => {
+          if (selectedPromptNodes.some(selected => selected.id === node.id)) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                fileContexts: contexts
+              }
+            };
+          }
+          return node;
+        })
+      );
+    }
+  }, [nodes, setNodes]);
 
   const closeContextMenu = useCallback(() => {
     setContextMenu(null);
@@ -576,6 +631,48 @@ function CreativeNodeFlow() {
         {/* Node creation panel - hidden, will be replaced with right-click context menu */}
       </ReactFlow>
       
+      {/* File Panel */}
+      <FilePanel 
+        onFileContext={handleFileContext}
+        isVisible={filePanelVisible}
+        position="right"
+      />
+      
+      {/* FilePanel Toggle Button */}
+      <button
+        style={{
+          position: 'fixed',
+          top: '20px',
+          right: filePanelVisible ? '380px' : '20px',
+          width: '40px',
+          height: '40px',
+          background: 'var(--node-body-background)',
+          border: '1px solid var(--node-border-color)',
+          borderRadius: '8px',
+          color: 'var(--color-text-primary)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '18px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+          zIndex: 1001,
+          transition: 'all 0.3s ease'
+        }}
+        onClick={() => setFilePanelVisible(!filePanelVisible)}
+        title={filePanelVisible ? 'Hide Files Panel' : 'Show Files Panel'}
+        onMouseEnter={(e) => {
+          e.target.style.background = 'var(--color-accent-primary-alpha)';
+          e.target.style.borderColor = 'var(--color-accent-primary)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.background = 'var(--node-body-background)';
+          e.target.style.borderColor = 'var(--node-border-color)';
+        }}
+      >
+        {filePanelVisible ? '📁' : '📂'}
+      </button>
+      
       {/* Right-click Context Menu */}
       {contextMenu && (
         <div 
@@ -648,7 +745,7 @@ function CreativeNodeFlow() {
             onMouseEnter={(e) => e.target.style.background = 'var(--color-accent-primary-alpha)'}
             onMouseLeave={(e) => e.target.style.background = 'transparent'}
           >
-            Image Prompt
+            Art Director
           </button>
           <button
             style={{

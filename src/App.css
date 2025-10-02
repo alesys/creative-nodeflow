@@ -43,4 +43,26 @@
   color: #fff;
 }
 
+/* File Context Indicator Styles */
+.file-context-indicator {
+  padding: 6px 12px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+  margin: 8px 12px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #3b82f6;
+}
+
+.context-icon {
+  flex-shrink: 0;
+}
+
+.context-text {
+  font-weight: 500;
+}
+
 
