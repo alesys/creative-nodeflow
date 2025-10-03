@@ -18,6 +18,7 @@ import ImagePromptNode from './components/ImagePromptNode';
 import OutputNode from './components/OutputNode';
 import FilePanel from './components/FilePanel';
 import { alertService } from './components/Alert';
+import logger from './utils/logger';
 
 const initialNodes = [
   {
@@ -232,7 +233,7 @@ function CreativeNodeFlow() {
           if (content || context) {
             const targetHandler = nodeInputHandlers.current.get(params.target);
             if (targetHandler) {
-              console.log(`[onConnect] Transmitting existing data from ${params.source} to ${params.target}:`, {
+              logger.debug(`[onConnect] Transmitting existing data from ${params.source} to ${params.target}:`, {
                 content: content ? content.substring(0, 50) + '...' : 'No content',
                 hasContext: !!context,
                 type
@@ -301,7 +302,7 @@ function CreativeNodeFlow() {
 
   // Handle file context from FilePanel
   const handleFileContext = useCallback((contexts) => {
-    console.log('[CreativeNodeFlow] Received file contexts from FilePanel:', contexts);
+    logger.debug('[CreativeNodeFlow] Received file contexts from FilePanel:', contexts);
     setSelectedFileContexts(contexts);
 
     // Optionally auto-inject context into selected prompt nodes
@@ -310,10 +311,10 @@ function CreativeNodeFlow() {
       (node.type === 'startingPrompt' || node.type === 'agentPrompt')
     );
 
-    console.log('[CreativeNodeFlow] Selected prompt nodes:', selectedPromptNodes.length);
+    logger.debug('[CreativeNodeFlow] Selected prompt nodes:', selectedPromptNodes.length);
 
     if (selectedPromptNodes.length > 0) {
-      console.log('[CreativeNodeFlow] Injecting file contexts into nodes:',
+      logger.debug('[CreativeNodeFlow] Injecting file contexts into nodes:',
         selectedPromptNodes.map(n => n.id)
       );
 
@@ -321,7 +322,7 @@ function CreativeNodeFlow() {
       setNodes(currentNodes =>
         currentNodes.map(node => {
           if (selectedPromptNodes.some(selected => selected.id === node.id)) {
-            console.log(`[CreativeNodeFlow] Adding file contexts to node ${node.id}`);
+            logger.debug(`[CreativeNodeFlow] Adding file contexts to node ${node.id}`);
             return {
               ...node,
               data: {
@@ -334,7 +335,7 @@ function CreativeNodeFlow() {
         })
       );
     } else {
-      console.warn('[CreativeNodeFlow] No prompt nodes selected. Please select a Starting Prompt or Agent Prompt node before sending files.');
+      logger.warn('[CreativeNodeFlow] No prompt nodes selected. Please select a Starting Prompt or Agent Prompt node before sending files.');
       alertService.warning('Please select a Starting Prompt or Agent Prompt node first, then click "Send to Prompt"');
     }
   }, [nodes, setNodes]);
@@ -631,7 +632,7 @@ function CreativeNodeFlow() {
           if (error.message && error.message.includes('ResizeObserver')) {
             return;
           }
-          console.error('ReactFlow error:', error);
+          logger.error('ReactFlow error:', error);
         }}
       >
         <Controls />

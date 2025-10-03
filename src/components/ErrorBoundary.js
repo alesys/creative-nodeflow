@@ -1,4 +1,5 @@
 import React from 'react';
+import logger from '../utils/logger';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -14,12 +15,12 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     // Suppress ResizeObserver errors as they're harmless
     if (error.message && error.message.includes('ResizeObserver')) {
-      console.warn('ResizeObserver error suppressed:', error.message);
+      logger.warn('ResizeObserver error suppressed:', error.message);
       return;
     }
 
     // Log other errors
-    console.error('Error caught by boundary:', error, errorInfo);
+    logger.error('Error caught by boundary:', error, errorInfo);
     this.setState({
       error: error,
       errorInfo: errorInfo

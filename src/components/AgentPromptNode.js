@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import OpenAIService from '../services/OpenAIService';
 import { usePromptNode } from '../hooks/useNodeEditor.js';
+import logger from '../utils/logger';
 
 const AgentPromptNode = ({ data, id, isConnectable }) => {
   const {
@@ -23,9 +24,9 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
   // Input listener is now set up automatically by useNodeInput hook
 
   const handleKeyDown = useCallback(async (e) => {
-    console.log('[AgentPromptNode] handleKeyDown called');
-    console.log('[AgentPromptNode] hasReceivedInput:', hasReceivedInput);
-    console.log('[AgentPromptNode] inputContext:', inputContext);
+    logger.debug('[AgentPromptNode] handleKeyDown called');
+    logger.debug('[AgentPromptNode] hasReceivedInput:', hasReceivedInput);
+    logger.debug('[AgentPromptNode] inputContext:', inputContext);
     await baseHandleKeyDown(e, OpenAIService);
   }, [baseHandleKeyDown, hasReceivedInput, inputContext]);
 

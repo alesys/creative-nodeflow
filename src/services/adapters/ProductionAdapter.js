@@ -1,5 +1,6 @@
 // Production storage adapter (S3 + Supabase)
 import { FileValidator } from '../utils/fileValidation.js';
+import logger from '../../utils/logger';
 
 export class ProductionAdapter {
   constructor() {
@@ -51,8 +52,8 @@ export class ProductionAdapter {
       }
 
       const result = await response.json();
-      
-      console.log(`[ProductionAdapter] File uploaded: ${file.name} (${FileValidator.formatFileSize(file.size)})`);
+
+      logger.debug(`[ProductionAdapter] File uploaded: ${file.name} (${FileValidator.formatFileSize(file.size)})`);
 
       return {
         fileId: result.fileId,
@@ -64,7 +65,7 @@ export class ProductionAdapter {
       };
 
     } catch (error) {
-      console.error('[ProductionAdapter] Upload failed:', error);
+      logger.error('[ProductionAdapter] Upload failed:', error);
       throw new Error(`Upload failed: ${error.message}`);
     }
   }
@@ -93,7 +94,7 @@ export class ProductionAdapter {
       return fileData;
 
     } catch (error) {
-      console.error('[ProductionAdapter] Get file failed:', error);
+      logger.error('[ProductionAdapter] Get file failed:', error);
       throw new Error(`Failed to get file: ${error.message}`);
     }
   }
@@ -119,7 +120,7 @@ export class ProductionAdapter {
       return file;
 
     } catch (error) {
-      console.error('[ProductionAdapter] Get file data failed:', error);
+      logger.error('[ProductionAdapter] Get file data failed:', error);
       throw new Error(`Failed to get file data: ${error.message}`);
     }
   }
@@ -145,7 +146,7 @@ export class ProductionAdapter {
       return files;
 
     } catch (error) {
-      console.error('[ProductionAdapter] List files failed:', error);
+      logger.error('[ProductionAdapter] List files failed:', error);
       throw new Error(`Failed to list files: ${error.message}`);
     }
   }
@@ -167,11 +168,11 @@ export class ProductionAdapter {
         throw new Error(`Failed to delete file: ${response.status}`);
       }
 
-      console.log(`[ProductionAdapter] File deleted: ${fileId}`);
+      logger.debug(`[ProductionAdapter] File deleted: ${fileId}`);
       return true;
 
     } catch (error) {
-      console.error('[ProductionAdapter] Delete failed:', error);
+      logger.error('[ProductionAdapter] Delete failed:', error);
       throw new Error(`Failed to delete file: ${error.message}`);
     }
   }
@@ -195,11 +196,11 @@ export class ProductionAdapter {
       }
 
       const result = await response.json();
-      console.log(`[ProductionAdapter] Context saved for file: ${fileId}`);
+      logger.debug(`[ProductionAdapter] Context saved for file: ${fileId}`);
       return result;
 
     } catch (error) {
-      console.error('[ProductionAdapter] Save context failed:', error);
+      logger.error('[ProductionAdapter] Save context failed:', error);
       throw new Error(`Failed to save context: ${error.message}`);
     }
   }
@@ -228,8 +229,34 @@ export class ProductionAdapter {
       return context;
 
     } catch (error) {
-      console.error('[ProductionAdapter] Get context failed:', error);
+      logger.error('[ProductionAdapter] Get context failed:', error);
       throw new Error(`Failed to get context: ${error.message}`);
+    }
+  }
+
+  /**
+   * List all file contexts
+   */
+  async listContexts() {
+    try {
+      const response = await fetch(`${this.apiBase}/files/contexts`, {
+        method: 'GET',
+        headers: {
+          'Authorization': this.getAuthToken() ? `Bearer ${this.getAuthToken()}` : undefined,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to list contexts: ${response.status}`);
+      }
+
+      const contexts = await response.json();
+      return contexts || [];
+
+    } catch (error) {
+      logger.error('[ProductionAdapter] List contexts failed:', error);
+      throw new Error(`Failed to list contexts: ${error.message}`);
     }
   }
 
@@ -257,7 +284,7 @@ export class ProductionAdapter {
       };
 
     } catch (error) {
-      console.error('[ProductionAdapter] Storage info failed:', error);
+      logger.error('[ProductionAdapter] Storage info failed:', error);
       return {
         totalFiles: 0,
         totalSize: 0,
@@ -286,11 +313,11 @@ export class ProductionAdapter {
         throw new Error(`Failed to clear data: ${response.status}`);
       }
 
-      console.log('[ProductionAdapter] All data cleared');
+      logger.debug('[ProductionAdapter] All data cleared');
       return true;
 
     } catch (error) {
-      console.error('[ProductionAdapter] Clear data failed:', error);
+      logger.error('[ProductionAdapter] Clear data failed:', error);
       throw new Error(`Failed to clear data: ${error.message}`);
     }
   }
@@ -309,7 +336,7 @@ export class ProductionAdapter {
 
       return response.ok;
     } catch (error) {
-      console.error('[ProductionAdapter] Readiness check failed:', error);
+      logger.error('[ProductionAdapter] Readiness check failed:', error);
       return false;
     }
   }
@@ -338,7 +365,7 @@ export class ProductionAdapter {
       return await response.json();
 
     } catch (error) {
-      console.error('[ProductionAdapter] Get upload URL failed:', error);
+      logger.error('[ProductionAdapter] Get upload URL failed:', error);
       throw new Error(`Failed to get upload URL: ${error.message}`);
     }
   }

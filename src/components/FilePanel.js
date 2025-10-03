@@ -4,6 +4,7 @@ import { fileStorageService } from '../services/FileStorageService.js';
 import { fileProcessingService } from '../services/FileProcessingService.js';
 import openAIService from '../services/OpenAIService.js';
 import { alertService } from './Alert.js';
+import logger from '../utils/logger';
 import './FilePanel.css';
 
 const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
@@ -40,7 +41,7 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
       setContexts(storedContexts);
       setError(null);
     } catch (error) {
-      console.error('[FilePanel] Failed to load files:', error);
+      logger.error('[FilePanel] Failed to load files:', error);
       setError('Failed to load files: ' + error.message);
     }
   };
@@ -115,7 +116,7 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
               await fileStorageService.saveFileContext(storedFile.fileId, context);
             }
           } catch (processingError) {
-            console.warn('[FilePanel] AI processing failed, using fallback:', processingError);
+            logger.warn('[FilePanel] AI processing failed, using fallback:', processingError);
             
             // Create basic context fallback
             context = {
@@ -156,7 +157,7 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
       await loadFiles();
 
     } catch (error) {
-      console.error('[FilePanel] Upload failed:', error);
+      logger.error('[FilePanel] Upload failed:', error);
       setError('Upload failed: ' + error.message);
     } finally {
       setIsProcessing(false);
@@ -175,7 +176,7 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
         return updated;
       });
     } catch (error) {
-      console.error('[FilePanel] Delete failed:', error);
+      logger.error('[FilePanel] Delete failed:', error);
       setError('Delete failed: ' + error.message);
     }
   };
@@ -198,11 +199,11 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
     // Map selected file IDs to their contexts
     // Note: selectedFiles contains file.id values, but contexts use ctx.fileId
     const selectedFileIds = Array.from(selectedFiles);
-    console.log('[FilePanel] Selected file IDs:', selectedFileIds);
-    console.log('[FilePanel] Available contexts:', contexts.map(c => ({ fileId: c.fileId })));
+    logger.debug('[FilePanel] Selected file IDs:', selectedFileIds);
+    logger.debug('[FilePanel] Available contexts:', contexts.map(c => ({ fileId: c.fileId })));
 
     const selectedContexts = contexts.filter(ctx => selectedFileIds.includes(ctx.fileId));
-    console.log('[FilePanel] Sending contexts to prompt:', {
+    logger.debug('[FilePanel] Sending contexts to prompt:', {
       selectedFilesCount: selectedFiles.size,
       contextsCount: selectedContexts.length,
       selectedContexts
@@ -210,12 +211,12 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
 
     if (selectedContexts.length > 0 && onFileContext) {
       onFileContext(selectedContexts);
-      console.log('[FilePanel] Contexts sent successfully');
+      logger.debug('[FilePanel] Contexts sent successfully');
     } else if (selectedFiles.size > 0 && selectedContexts.length === 0) {
-      console.warn('[FilePanel] Selected files have no processed contexts yet');
+      logger.warn('[FilePanel] Selected files have no processed contexts yet');
       alertService.warning('The selected files are still being processed or have no AI context. Please wait or try re-uploading.');
     } else {
-      console.warn('[FilePanel] No contexts to send or no handler:', {
+      logger.warn('[FilePanel] No contexts to send or no handler:', {
         hasContexts: selectedContexts.length > 0,
         hasHandler: !!onFileContext,
         selectedFilesSize: selectedFiles.size

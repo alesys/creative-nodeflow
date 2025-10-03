@@ -56,11 +56,8 @@ describe('Service Integration Tests', () => {
         hasClient: !!OpenAIService.client
       });
       
-      if (process.env.REACT_APP_OPENAI_API_KEY) {
-        expect(isConfigured).toBe(true);
-      } else {
-        expect(isConfigured).toBe(false);
-      }
+      const expectedValue = process.env.REACT_APP_OPENAI_API_KEY ? true : false;
+      expect(isConfigured).toBe(expectedValue);
     });
 
     test('Google AI service should initialize correctly', () => {
@@ -71,11 +68,8 @@ describe('Service Integration Tests', () => {
         hasClient: !!GoogleAIService.client
       });
       
-      if (process.env.REACT_APP_GOOGLE_API_KEY) {
-        expect(isConfigured).toBe(true);
-      } else {
-        expect(isConfigured).toBe(false);
-      }
+      const expectedValue = process.env.REACT_APP_GOOGLE_API_KEY ? true : false;
+      expect(isConfigured).toBe(expectedValue);
     });
   });
 

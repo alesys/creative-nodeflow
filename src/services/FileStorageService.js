@@ -1,6 +1,7 @@
 // Main file storage service - environment-agnostic abstraction
 import LocalDevAdapter from './adapters/LocalDevAdapter.js';
 import ProductionAdapter from './adapters/ProductionAdapter.js';
+import logger from '../utils/logger';
 
 export class FileStorageService {
   constructor() {
@@ -24,7 +25,7 @@ export class FileStorageService {
         return new ProductionAdapter();
       }
     } catch (error) {
-      console.error('[FileStorageService] Failed to create adapter:', error);
+      logger.error('[FileStorageService] Failed to create adapter:', error);
       throw new Error(`Failed to create storage adapter: ${error.message}`);
     }
   }
@@ -65,7 +66,7 @@ export class FileStorageService {
       
     } catch (error) {
       this.initPromise = null; // Clear promise on error to allow retry
-      console.error('[FileStorageService] Initialization failed:', error);
+      logger.error('[FileStorageService] Initialization failed:', error);
       throw new Error(`Failed to initialize storage: ${error.message}`);
     }
   }
@@ -91,8 +92,8 @@ export class FileStorageService {
    */
   async uploadFile(file, options = {}) {
     await this.ensureInitialized();
-    
-    console.log(`[FileStorageService] Uploading file: ${file.name} (${file.size} bytes)`);
+
+    logger.debug(`[FileStorageService] Uploading file: ${file.name} (${file.size} bytes)`);
     return await this.adapter.uploadFile(file, options);
   }
 

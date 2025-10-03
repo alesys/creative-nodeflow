@@ -1,6 +1,7 @@
 // File processing service - handles AI analysis of uploaded files
 import OpenAIService from './OpenAIService.js';
 import mammoth from 'mammoth';
+import logger from '../utils/logger';
 
 export class FileProcessingService {
   constructor() {
@@ -14,8 +15,8 @@ export class FileProcessingService {
    * @returns {Promise<Object>} Extracted context data
    */
   async extractContext(file) {
-    console.log(`[FileProcessingService] Processing: ${file.name} (${file.type})`);
-    
+    logger.debug(`[FileProcessingService] Processing: ${file.name} (${file.type})`);
+
     try {
       const fileType = this.determineFileType(file);
       
@@ -37,7 +38,7 @@ export class FileProcessingService {
       }
       
     } catch (error) {
-      console.error('[FileProcessingService] Processing failed:', error);
+      logger.error('[FileProcessingService] Processing failed:', error);
       throw new Error(`Failed to process file: ${error.message}`);
     }
   }
@@ -82,8 +83,8 @@ Format your response as structured data.`;
       };
 
     } catch (error) {
-      console.error('[FileProcessingService] Image processing failed:', error);
-      
+      logger.error('[FileProcessingService] Image processing failed:', error);
+
       // Fallback: basic image info
       return {
         type: 'image',
@@ -148,8 +149,8 @@ Format your response as structured data.`;
       }
 
     } catch (error) {
-      console.error('[FileProcessingService] Text processing failed:', error);
-      
+      logger.error('[FileProcessingService] Text processing failed:', error);
+
       return {
         type: 'text',
         category: 'document',
@@ -197,8 +198,8 @@ Format your response as structured data.`;
       }
 
     } catch (error) {
-      console.error('[FileProcessingService] PDF processing failed:', error);
-      
+      logger.error('[FileProcessingService] PDF processing failed:', error);
+
       return {
         type: 'pdf',
         category: 'document',
@@ -220,45 +221,45 @@ Format your response as structured data.`;
    */
   async processDocument(file) {
     try {
-      console.log('[FileProcessingService] Processing document:', file.name, file.type);
+      logger.debug('[FileProcessingService] Processing document:', file.name, file.type);
 
       // For Word documents (.docx), try to extract text
       if (file.name.toLowerCase().endsWith('.docx') || file.type.includes('wordprocessingml')) {
         try {
-          console.log('[FileProcessingService] Detected DOCX file, attempting extraction...');
+          logger.debug('[FileProcessingService] Detected DOCX file, attempting extraction...');
           // Read as ArrayBuffer for binary processing
           const arrayBuffer = await file.arrayBuffer();
-          console.log('[FileProcessingService] ArrayBuffer size:', arrayBuffer.byteLength);
+          logger.debug('[FileProcessingService] ArrayBuffer size:', arrayBuffer.byteLength);
 
           const text = await this.extractDocxText(arrayBuffer);
 
           if (text && text.length > 0) {
-            console.log('[FileProcessingService] Successfully extracted text from DOCX');
-            console.log('[FileProcessingService] Text length:', text.length);
-            console.log('[FileProcessingService] Text preview:', text.substring(0, 200));
+            logger.debug('[FileProcessingService] Successfully extracted text from DOCX');
+            logger.debug('[FileProcessingService] Text length:', text.length);
+            logger.debug('[FileProcessingService] Text preview:', text.substring(0, 200));
             return await this.processExtractedText(text, 'docx');
           } else {
-            console.warn('[FileProcessingService] DOCX extraction returned empty or null');
+            logger.warn('[FileProcessingService] DOCX extraction returned empty or null');
           }
         } catch (docxError) {
-          console.error('[FileProcessingService] DOCX extraction failed:', docxError);
-          console.error('[FileProcessingService] Error stack:', docxError.stack);
+          logger.error('[FileProcessingService] DOCX extraction failed:', docxError);
+          logger.error('[FileProcessingService] Error stack:', docxError.stack);
         }
       }
 
       // Fallback: try to read as plain text (won't work for binary DOCX)
-      console.log('[FileProcessingService] Falling back to plain text read...');
+      logger.debug('[FileProcessingService] Falling back to plain text read...');
       const text = await file.text();
       if (text && text.trim().length > 0 && !text.includes('PK\x03\x04')) {
         // Check it's not binary data (DOCX starts with PK which is ZIP signature)
-        console.log('[FileProcessingService] Extracted as plain text, length:', text.length);
+        logger.debug('[FileProcessingService] Extracted as plain text, length:', text.length);
         return await this.processExtractedText(text, file.type);
       }
 
       throw new Error('No text content extracted - document may be binary format');
 
     } catch (error) {
-      console.error('[FileProcessingService] Document processing failed:', error);
+      logger.error('[FileProcessingService] Document processing failed:', error);
 
       return {
         type: 'document',
@@ -374,8 +375,8 @@ Format as JSON with fields: summary, keyPoints, sections`;
       }
 
     } catch (error) {
-      console.error('AI summarization failed:', error);
-      
+      logger.error('AI summarization failed:', error);
+
       // Fallback: simple text processing
       return {
         summary: text.substring(0, 300) + '...',
@@ -519,7 +520,7 @@ Format as JSON with fields: summary, keyPoints, sections`;
   async extractPDFText(file) {
     // This is a placeholder - in production you'd use PDF.js or a backend service
     // For now, return null to trigger fallback processing
-    console.log('[FileProcessingService] PDF text extraction not implemented - using fallback');
+    logger.debug('[FileProcessingService] PDF text extraction not implemented - using fallback');
     return null;
   }
 
@@ -528,36 +529,36 @@ Format as JSON with fields: summary, keyPoints, sections`;
    */
   async extractDocxText(arrayBuffer) {
     try {
-      console.log('[FileProcessingService] Extracting text from DOCX using mammoth.js');
-      console.log('[FileProcessingService] Mammoth version:', mammoth);
+      logger.debug('[FileProcessingService] Extracting text from DOCX using mammoth.js');
+      logger.debug('[FileProcessingService] Mammoth version:', mammoth);
 
       // Use mammoth.js to extract text from DOCX
       const result = await mammoth.extractRawText({ arrayBuffer });
 
-      console.log('[FileProcessingService] Mammoth result:', result);
+      logger.debug('[FileProcessingService] Mammoth result:', result);
 
       if (result.value && result.value.length > 0) {
-        console.log('[FileProcessingService] Successfully extracted text from DOCX');
-        console.log('[FileProcessingService] Text length:', result.value.length);
-        console.log('[FileProcessingService] First 100 chars:', result.value.substring(0, 100));
+        logger.debug('[FileProcessingService] Successfully extracted text from DOCX');
+        logger.debug('[FileProcessingService] Text length:', result.value.length);
+        logger.debug('[FileProcessingService] First 100 chars:', result.value.substring(0, 100));
 
         // Log any messages/warnings from mammoth
         if (result.messages && result.messages.length > 0) {
-          console.log('[FileProcessingService] Mammoth messages:', result.messages);
+          logger.debug('[FileProcessingService] Mammoth messages:', result.messages);
         }
 
         return result.value;
       }
 
-      console.warn('[FileProcessingService] Mammoth returned empty value');
-      console.warn('[FileProcessingService] Result object:', result);
+      logger.warn('[FileProcessingService] Mammoth returned empty value');
+      logger.warn('[FileProcessingService] Result object:', result);
       return null;
 
     } catch (error) {
-      console.error('[FileProcessingService] DOCX text extraction error:', error);
-      console.error('[FileProcessingService] Error type:', error.constructor.name);
-      console.error('[FileProcessingService] Error message:', error.message);
-      console.error('[FileProcessingService] Error stack:', error.stack);
+      logger.error('[FileProcessingService] DOCX text extraction error:', error);
+      logger.error('[FileProcessingService] Error type:', error.constructor.name);
+      logger.error('[FileProcessingService] Error message:', error.message);
+      logger.error('[FileProcessingService] Error stack:', error.stack);
       return null;
     }
   }

@@ -1,6 +1,7 @@
 // Local development storage adapter
 import { indexedDB as indexedDBManager } from '../database/indexedDB.js';
 import { FileValidator } from '../utils/fileValidation.js';
+import logger from '../../utils/logger';
 
 export class LocalDevAdapter {
   constructor() {
@@ -60,7 +61,7 @@ export class LocalDevAdapter {
       };
 
     } catch (error) {
-      console.error('[LocalDevAdapter] Upload failed:', error);
+      logger.error('[LocalDevAdapter] Upload failed:', error);
       throw new Error(`Upload failed: ${error.message}`);
     }
   }
@@ -88,7 +89,7 @@ export class LocalDevAdapter {
       };
 
     } catch (error) {
-      console.error('[LocalDevAdapter] Get file failed:', error);
+      logger.error('[LocalDevAdapter] Get file failed:', error);
       throw new Error(`Failed to get file: ${error.message}`);
     }
   }
@@ -114,7 +115,7 @@ export class LocalDevAdapter {
       return file;
 
     } catch (error) {
-      console.error('[LocalDevAdapter] Get file data failed:', error);
+      logger.error('[LocalDevAdapter] Get file data failed:', error);
       throw new Error(`Failed to get file data: ${error.message}`);
     }
   }
@@ -138,7 +139,7 @@ export class LocalDevAdapter {
       }));
 
     } catch (error) {
-      console.error('[LocalDevAdapter] List files failed:', error);
+      logger.error('[LocalDevAdapter] List files failed:', error);
       throw new Error(`Failed to list files: ${error.message}`);
     }
   }
@@ -163,7 +164,7 @@ export class LocalDevAdapter {
       return true;
 
     } catch (error) {
-      console.error('[LocalDevAdapter] Delete failed:', error);
+      logger.error('[LocalDevAdapter] Delete failed:', error);
       throw new Error(`Failed to delete file: ${error.message}`);
     }
   }
@@ -177,7 +178,7 @@ export class LocalDevAdapter {
       return contextData;
 
     } catch (error) {
-      console.error('[LocalDevAdapter] Save context failed:', error);
+      logger.error('[LocalDevAdapter] Save context failed:', error);
       throw new Error(`Failed to save context: ${error.message}`);
     }
   }
@@ -191,7 +192,7 @@ export class LocalDevAdapter {
       return context || null;
 
     } catch (error) {
-      console.error('[LocalDevAdapter] Get context failed:', error);
+      logger.error('[LocalDevAdapter] Get context failed:', error);
       throw new Error(`Failed to get context: ${error.message}`);
     }
   }
@@ -205,7 +206,7 @@ export class LocalDevAdapter {
       return contexts || [];
 
     } catch (error) {
-      console.error('[LocalDevAdapter] List contexts failed:', error);
+      logger.error('[LocalDevAdapter] List contexts failed:', error);
       throw new Error(`Failed to list contexts: ${error.message}`);
     }
   }
@@ -227,7 +228,7 @@ export class LocalDevAdapter {
       };
 
     } catch (error) {
-      console.error('[LocalDevAdapter] Storage info failed:', error);
+      logger.error('[LocalDevAdapter] Storage info failed:', error);
       return {
         totalFiles: 0,
         totalSize: 0,
@@ -259,7 +260,7 @@ export class LocalDevAdapter {
       return true;
 
     } catch (error) {
-      console.error('[LocalDevAdapter] Clear data failed:', error);
+      logger.error('[LocalDevAdapter] Clear data failed:', error);
       throw new Error(`Failed to clear data: ${error.message}`);
     }
   }
@@ -272,7 +273,7 @@ export class LocalDevAdapter {
       await indexedDBManager.ensureConnection();
       return true;
     } catch (error) {
-      console.error('[LocalDevAdapter] Readiness check failed:', error);
+      logger.error('[LocalDevAdapter] Readiness check failed:', error);
       return false;
     }
   }

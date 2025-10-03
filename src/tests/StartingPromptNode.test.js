@@ -59,8 +59,8 @@ describe('StartingPromptNode', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Test prompt content')).toBeInTheDocument();
-      expect(screen.queryByPlaceholderText(/Enter your prompt here/)).not.toBeInTheDocument();
     });
+    expect(screen.queryByPlaceholderText(/Enter your prompt here/)).not.toBeInTheDocument();
   });
 
   test('switches back to editing mode when clicking preview', async () => {

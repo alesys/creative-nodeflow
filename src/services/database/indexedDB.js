@@ -1,4 +1,6 @@
 // IndexedDB wrapper for local development storage
+import logger from '../../utils/logger';
+
 class IndexedDBManager {
   constructor() {
     this.dbName = 'CreativeNodeFlowDB';
@@ -18,7 +20,7 @@ class IndexedDBManager {
 
       request.onerror = (event) => {
         const error = event.target.error || new Error('Unknown IndexedDB error');
-        console.error('[IndexedDB] Open failed:', error);
+        logger.error('[IndexedDB] Open failed:', error);
         reject(new Error(`Failed to open IndexedDB: ${error.message}`));
       };
 
@@ -57,7 +59,7 @@ class IndexedDBManager {
       try {
         await this.init();
       } catch (error) {
-        console.error('[IndexedDB] Connection failed:', error);
+        logger.error('[IndexedDB] Connection failed:', error);
         throw new Error(`Database connection failed: ${error.message}`);
       }
     }

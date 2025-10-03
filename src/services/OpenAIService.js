@@ -1,6 +1,7 @@
 // AI Service for OpenAI integration
 import OpenAI from 'openai';
 import { LIMITS, MODELS, API_ERRORS } from '../constants/app.js';
+import logger from '../utils/logger';
 
 class OpenAIService {
   constructor() {
@@ -12,7 +13,7 @@ class OpenAIService {
     try {
       const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
       if (!apiKey) {
-        console.warn('OpenAI API key not found');
+        logger.warn('OpenAI API key not found');
         return;
       }
 
@@ -22,7 +23,7 @@ class OpenAIService {
       });
 
     } catch (error) {
-      console.error('Failed to initialize OpenAI client:', error);
+      logger.error('Failed to initialize OpenAI client:', error);
     }
   }
 
@@ -94,7 +95,7 @@ class OpenAIService {
       };
 
     } catch (error) {
-      console.error('OpenAI API Error:', error);
+      logger.error('OpenAI API Error:', error);
       
       if (error.message?.includes('billing')) {
         throw new Error(API_ERRORS.BILLING_REQUIRED);
@@ -153,7 +154,7 @@ class OpenAIService {
       return response.choices[0].message.content.trim();
 
     } catch (error) {
-      console.error('OpenAI Vision API Error:', error);
+      logger.error('OpenAI Vision API Error:', error);
       throw new Error(`Failed to analyze image: ${error.message}`);
     }
   }

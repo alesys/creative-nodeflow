@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Handle, Position, NodeResizer, useReactFlow } from '@xyflow/react';
+import logger from '../utils/logger';
 
 const OutputNode = ({ data, id }) => {
   const [content, setContent] = useState(data.content || '');
@@ -19,8 +20,8 @@ const OutputNode = ({ data, id }) => {
   useEffect(() => {
     if (data.onReceiveInput) {
       data.onReceiveInput((inputData) => {
-        console.log('[OutputNode] Received input:', inputData);
-        console.log('[OutputNode] Context has', inputData.context?.messages?.length, 'messages');
+        logger.debug('[OutputNode] Received input:', inputData);
+        logger.debug('[OutputNode] Context has', inputData.context?.messages?.length, 'messages');
         setContent(inputData.content);
         setContext(inputData.context);
         setContentType(inputData.type || 'text');
@@ -45,7 +46,7 @@ const OutputNode = ({ data, id }) => {
 
         // Pass context through to output if there are connected nodes
         if (data.onOutput) {
-          console.log('[OutputNode] Sending to connected nodes via onOutput');
+          logger.debug('[OutputNode] Sending to connected nodes via onOutput');
           data.onOutput({
             nodeId: id,
             content: inputData.content,
@@ -95,11 +96,11 @@ const OutputNode = ({ data, id }) => {
               className="output-image clickable"
               onClick={() => setLightboxOpen(true)}
               onError={(e) => {
-                console.error('Image load error:', e.target.src);
+                logger.error('Image load error:', e.target.src);
                 setImageError(true);
               }}
               onLoad={(e) => {
-                console.log('Image loaded successfully:', content.substring(0, 50));
+                logger.debug('Image loaded successfully:', content.substring(0, 50));
                 setImageError(false);
                 
                 // Auto-resize node to accommodate image

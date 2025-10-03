@@ -5,6 +5,7 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { LIMITS, MODELS, API_ERRORS } from '../constants/app.js';
+import logger from '../utils/logger';
 
 class GoogleAIService {
   constructor() {
@@ -18,14 +19,14 @@ class GoogleAIService {
 
     
     if (!apiKey || apiKey.trim() === '') {
-      console.warn(API_ERRORS.GOOGLE_NOT_CONFIGURED);
+      logger.warn(API_ERRORS.GOOGLE_NOT_CONFIGURED);
       return;
     }
     
     try {
       this.client = new GoogleGenerativeAI(apiKey.trim());
     } catch (error) {
-      console.error('Failed to initialize Google AI client:', error);
+      logger.error('Failed to initialize Google AI client:', error);
       this.client = null;
     }
   }
@@ -56,22 +57,22 @@ class GoogleAIService {
         }
       }
 
-      console.log('Generating image with prompt:', fullPrompt.substring(0, 100) + '...');
+      logger.debug('Generating image with prompt:', fullPrompt.substring(0, 100) + '...');
       
       const result = await model.generateContent([fullPrompt]);
       const response = await result.response;
       
-      console.log('Gemini image response received');
-      console.log('Response candidates:', response.candidates?.length);
-      console.log('Response status:', response.candidates?.[0]?.finishReason);
+      logger.debug('Gemini image response received');
+      logger.debug('Response candidates:', response.candidates?.length);
+      logger.debug('Response status:', response.candidates?.[0]?.finishReason);
       
       if (!response.candidates || response.candidates.length === 0) {
         throw new Error('No candidates returned from Gemini. This may indicate a billing or access issue.');
       }
 
       const candidate = response.candidates[0];
-      console.log('Candidate finish reason:', candidate.finishReason);
-      console.log('Candidate safety ratings:', candidate.safetyRatings);
+      logger.debug('Candidate finish reason:', candidate.finishReason);
+      logger.debug('Candidate safety ratings:', candidate.safetyRatings);
       
       if (candidate.finishReason === 'SAFETY') {
         throw new Error('Image generation blocked due to safety filters. Please try a different prompt.');
@@ -82,44 +83,44 @@ class GoogleAIService {
       }
       
       if (!candidate.content || !candidate.content.parts) {
-        console.log('Full response structure:', JSON.stringify(response, null, 2));
+        logger.debug('Full response structure:', JSON.stringify(response, null, 2));
         throw new Error('No content parts in response. This may indicate billing is required for image generation.');
       }
       
-      console.log('Number of content parts:', candidate.content.parts.length);
+      logger.debug('Number of content parts:', candidate.content.parts.length);
       
       // Handle Gemini image generation response format
       let imageData = null;
       let textData = null;
       
       for (const part of candidate.content.parts) {
-        console.log('Processing part - inlineData:', typeof part.inlineData, 'text:', typeof part.text);
+        logger.debug('Processing part - inlineData:', typeof part.inlineData, 'text:', typeof part.text);
         
         // Check for inlineData (camelCase - actual API response format)
         if (part.inlineData && part.inlineData.data) {
           // Convert base64 data to data URL for display
           imageData = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-          console.log('Generated image data URL (first 100 chars):', imageData.substring(0, 100));
+          logger.debug('Generated image data URL (first 100 chars):', imageData.substring(0, 100));
           break;
         }
         
         // Also check for snake_case format (backup compatibility)
         if (part.inline_data && part.inline_data.data) {
           imageData = `data:${part.inline_data.mime_type};base64,${part.inline_data.data}`;
-          console.log('Generated image data URL from snake_case (first 100 chars):', imageData.substring(0, 100));
+          logger.debug('Generated image data URL from snake_case (first 100 chars):', imageData.substring(0, 100));
           break;
         }
         
         if (part.text) {
           textData = part.text;
-          console.log('Text part found:', part.text.substring(0, 100));
+          logger.debug('Text part found:', part.text.substring(0, 100));
         }
       }
       
       if (!imageData) {
-        console.warn('No inlineData found in response parts');
-        console.log('Available parts:', candidate.content.parts.map(p => Object.keys(p)));
-        console.log('Full candidate structure for debugging:', JSON.stringify(candidate, null, 2));
+        logger.warn('No inlineData found in response parts');
+        logger.debug('Available parts:', candidate.content.parts.map(p => Object.keys(p)));
+        logger.debug('Full candidate structure for debugging:', JSON.stringify(candidate, null, 2));
         
         let errorMessage = 'No image data received from Gemini.';
         
@@ -151,7 +152,7 @@ class GoogleAIService {
         }
       };
     } catch (error) {
-      console.error('Google AI API Error Details:', {
+      logger.error('Google AI API Error Details:', {
         message: error.message,
         status: error.status,
         statusCode: error.statusCode,
@@ -218,7 +219,7 @@ class GoogleAIService {
         }
       };
     } catch (error) {
-      console.error('Google AI API Error:', error);
+      logger.error('Google AI API Error:', error);
       throw new Error(`Failed to generate text: ${error.message}`);
     }
   }

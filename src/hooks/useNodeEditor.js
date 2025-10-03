@@ -1,6 +1,7 @@
 // Custom hooks for node components to reduce code duplication
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { TIMING } from '../constants/app.js';
+import logger from '../utils/logger';
 
 /**
  * Hook for managing node editing state
@@ -50,7 +51,7 @@ export const useNodeProcessing = () => {
     try {
       await processFn();
     } catch (err) {
-      console.error('Error processing node:', err);
+      logger.error('Error processing node:', err);
       setError(err.message);
     } finally {
       setIsProcessing(false);
@@ -89,12 +90,12 @@ export const useNodeInput = (data) => {
 
   // Set up input listener whenever onReceiveInput changes
   useEffect(() => {
-    console.log('[useNodeInput] Setting up input listener, onReceiveInput:', !!onReceiveInput);
+    logger.debug('[useNodeInput] Setting up input listener, onReceiveInput:', !!onReceiveInput);
     if (onReceiveInput) {
       onReceiveInput((inputData) => {
-        console.log(`[useNodeInput] Received input:`, inputData);
-        console.log(`[useNodeInput] Context:`, inputData.context);
-        console.log(`[useNodeInput] Context messages:`, inputData.context?.messages?.length);
+        logger.debug(`[useNodeInput] Received input:`, inputData);
+        logger.debug(`[useNodeInput] Context:`, inputData.context);
+        logger.debug(`[useNodeInput] Context messages:`, inputData.context?.messages?.length);
         setInputContext(inputData.context);
         setHasReceivedInput(true);
       });
@@ -136,11 +137,11 @@ export const usePromptNode = (initialPrompt, data, id) => {
     // Build enhanced prompt with file contexts if available
     let enhancedPrompt = prompt;
     if (data.fileContexts && data.fileContexts.length > 0) {
-      console.log('[useNodeEditor] Building context from file contexts:', data.fileContexts);
+      logger.debug('[useNodeEditor] Building context from file contexts:', data.fileContexts);
 
       const contextSummary = data.fileContexts
         .map(ctx => {
-          console.log('[useNodeEditor] Processing context:', ctx);
+          logger.debug('[useNodeEditor] Processing context:', ctx);
 
           // Try to get the most detailed content available
           let contextText = '';
@@ -148,22 +149,22 @@ export const usePromptNode = (initialPrompt, data, id) => {
           if (ctx.content && ctx.content.fullText) {
             // Use full text if available
             contextText = ctx.content.fullText;
-            console.log('[useNodeEditor] Using fullText, length:', contextText.length);
+            logger.debug('[useNodeEditor] Using fullText, length:', contextText.length);
           } else if (ctx.contextPrompt) {
             // Use contextPrompt (pre-formatted for prompts)
             contextText = ctx.contextPrompt;
-            console.log('[useNodeEditor] Using contextPrompt');
+            logger.debug('[useNodeEditor] Using contextPrompt');
           } else if (ctx.summary) {
             // Use summary as fallback
             contextText = ctx.summary;
-            console.log('[useNodeEditor] Using summary');
+            logger.debug('[useNodeEditor] Using summary');
           } else if (ctx.content) {
             // Try to stringify content object
             contextText = JSON.stringify(ctx.content, null, 2);
-            console.log('[useNodeEditor] Stringified content object');
+            logger.debug('[useNodeEditor] Stringified content object');
           } else {
             contextText = `File context (ID: ${ctx.fileId})`;
-            console.warn('[useNodeEditor] No usable context found, using placeholder');
+            logger.warn('[useNodeEditor] No usable context found, using placeholder');
           }
 
           return contextText;
@@ -178,8 +179,8 @@ ${contextSummary}
 User request:
 ${prompt}`;
 
-      console.log('[useNodeEditor] Enhanced prompt length:', enhancedPrompt.length);
-      console.log('[useNodeEditor] Enhanced prompt preview:', enhancedPrompt.substring(0, 300) + '...');
+      logger.debug('[useNodeEditor] Enhanced prompt length:', enhancedPrompt.length);
+      logger.debug('[useNodeEditor] Enhanced prompt preview:', enhancedPrompt.substring(0, 300) + '...');
     }
 
     const response = await service.generateResponse(enhancedPrompt, systemPrompt, context);
@@ -201,9 +202,9 @@ ${prompt}`;
     if (e.ctrlKey && e.key === 'Enter') {
       e.preventDefault();
 
-      console.log('[usePromptNode] Ctrl+Enter pressed');
-      console.log('[usePromptNode] Has received input:', input.hasReceivedInput);
-      console.log('[usePromptNode] Input context:', input.inputContext);
+      logger.debug('[usePromptNode] Ctrl+Enter pressed');
+      logger.debug('[usePromptNode] Has received input:', input.hasReceivedInput);
+      logger.debug('[usePromptNode] Input context:', input.inputContext);
 
       // Switch from editing to render mode
       editor.setIsEditing(false);
@@ -215,7 +216,7 @@ ${prompt}`;
       }
 
       await processing.handleProcess(async () => {
-        console.log('[usePromptNode] Executing prompt with context:', input.inputContext);
+        logger.debug('[usePromptNode] Executing prompt with context:', input.inputContext);
         await executePrompt(service, editor.prompt, systemPrompt, input.inputContext);
       });
     }
