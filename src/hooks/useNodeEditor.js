@@ -1,6 +1,6 @@
 // Custom hooks for node components to reduce code duplication
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { TIMING } from '../constants/app.js';
+import { TIMING } from '../constants/app';
 import logger from '../utils/logger';
 import inputSanitizer from '../utils/inputSanitizer';
 

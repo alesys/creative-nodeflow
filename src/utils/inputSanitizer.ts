@@ -7,21 +7,60 @@ import DOMPurify from 'dompurify';
 import logger from './logger';
 
 // Maximum lengths for various input types
-const MAX_LENGTHS = {
+export const MAX_LENGTHS = {
   PROMPT: 50000,
   SYSTEM_PROMPT: 10000,
   FILE_NAME: 255,
   FILE_CONTENT: 10 * 1024 * 1024, // 10MB
   CONTEXT: 100000,
-};
+} as const;
 
 // Rate limiting configuration
-const RATE_LIMITS = {
+export const RATE_LIMITS = {
   MAX_REQUESTS_PER_MINUTE: 60,
   MAX_FILE_UPLOADS_PER_MINUTE: 10,
-};
+} as const;
+
+type LimitType = 'request' | 'file';
+type InputType = 'text' | 'prompt' | 'systemPrompt' | 'fileName' | 'html' | 'context';
+
+interface ValidationResult<T = string | SanitizedContext> {
+  valid: boolean;
+  errors: string[];
+  sanitized: T | null;
+}
+
+interface FileValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+interface FileTypeValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
+interface RateLimitResult {
+  allowed: boolean;
+  error?: string;
+}
+
+interface ContextData {
+  fileName?: string;
+  content?: string;
+  type?: string;
+}
+
+interface SanitizedContext {
+  fileName?: string;
+  content?: string;
+  type?: string;
+}
 
 class InputSanitizer {
+  private requestCounts: Map<string, number[]>;
+  private fileUploadCounts: Map<string, number[]>;
+
   constructor() {
     this.requestCounts = new Map();
     this.fileUploadCounts = new Map();
@@ -30,7 +69,7 @@ class InputSanitizer {
   /**
    * Sanitize HTML content to prevent XSS attacks
    */
-  sanitizeHtml(input) {
+  sanitizeHtml(input: string): string {
     if (typeof input !== 'string') {
       return '';
     }
@@ -43,7 +82,7 @@ class InputSanitizer {
   /**
    * Sanitize plain text input (removes HTML, scripts, etc.)
    */
-  sanitizeText(input, maxLength = MAX_LENGTHS.PROMPT) {
+  sanitizeText(input: string, maxLength: number = MAX_LENGTHS.PROMPT): string {
     if (typeof input !== 'string') {
       return '';
     }
@@ -69,21 +108,21 @@ class InputSanitizer {
   /**
    * Validate and sanitize prompt input
    */
-  sanitizePrompt(prompt) {
+  sanitizePrompt(prompt: string): string {
     return this.sanitizeText(prompt, MAX_LENGTHS.PROMPT);
   }
 
   /**
    * Validate and sanitize system prompt
    */
-  sanitizeSystemPrompt(systemPrompt) {
+  sanitizeSystemPrompt(systemPrompt: string): string {
     return this.sanitizeText(systemPrompt, MAX_LENGTHS.SYSTEM_PROMPT);
   }
 
   /**
    * Validate and sanitize file name
    */
-  sanitizeFileName(fileName) {
+  sanitizeFileName(fileName: string): string {
     if (typeof fileName !== 'string') {
       return '';
     }
@@ -110,8 +149,8 @@ class InputSanitizer {
   /**
    * Validate file content
    */
-  validateFileContent(content, fileName) {
-    const errors = [];
+  validateFileContent(content: string | Blob | File, _fileName?: string): FileValidationResult {
+    const errors: string[] = [];
 
     if (!content) {
       errors.push('File content is empty');
@@ -122,7 +161,11 @@ class InputSanitizer {
       if (content.length > MAX_LENGTHS.FILE_CONTENT) {
         errors.push(`File size exceeds maximum allowed size of ${MAX_LENGTHS.FILE_CONTENT / (1024 * 1024)}MB`);
       }
-    } else if (content instanceof Blob || content instanceof File) {
+    } else if (typeof File !== 'undefined' && content instanceof File) {
+      if (content.size > MAX_LENGTHS.FILE_CONTENT) {
+        errors.push(`File size exceeds maximum allowed size of ${MAX_LENGTHS.FILE_CONTENT / (1024 * 1024)}MB`);
+      }
+    } else if (typeof Blob !== 'undefined' && content instanceof Blob) {
       if (content.size > MAX_LENGTHS.FILE_CONTENT) {
         errors.push(`File size exceeds maximum allowed size of ${MAX_LENGTHS.FILE_CONTENT / (1024 * 1024)}MB`);
       }
@@ -137,7 +180,10 @@ class InputSanitizer {
   /**
    * Validate file type against allowed extensions
    */
-  validateFileType(fileName, allowedExtensions = ['.txt', '.md', '.json', '.js', '.jsx', '.ts', '.tsx', '.css', '.html']) {
+  validateFileType(
+    fileName: string,
+    allowedExtensions: string[] = ['.txt', '.md', '.json', '.js', '.jsx', '.ts', '.tsx', '.css', '.html']
+  ): FileTypeValidationResult {
     const ext = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
 
     if (!allowedExtensions.includes(ext)) {
@@ -153,12 +199,12 @@ class InputSanitizer {
   /**
    * Sanitize context data
    */
-  sanitizeContext(context) {
+  sanitizeContext(context: ContextData | null | undefined): SanitizedContext | null {
     if (!context || typeof context !== 'object') {
       return null;
     }
 
-    const sanitized = {};
+    const sanitized: SanitizedContext = {};
 
     if (context.fileName) {
       sanitized.fileName = this.sanitizeFileName(context.fileName);
@@ -178,7 +224,7 @@ class InputSanitizer {
   /**
    * Rate limiting check
    */
-  checkRateLimit(identifier, limitType = 'request') {
+  checkRateLimit(identifier: string, limitType: LimitType = 'request'): RateLimitResult {
     const now = Date.now();
     const windowMs = 60000; // 1 minute
     const maxRequests = limitType === 'file'
@@ -191,7 +237,7 @@ class InputSanitizer {
       counts.set(identifier, []);
     }
 
-    const timestamps = counts.get(identifier);
+    const timestamps = counts.get(identifier)!;
 
     // Remove old timestamps outside the window
     const recentTimestamps = timestamps.filter(ts => now - ts < windowMs);
@@ -213,45 +259,45 @@ class InputSanitizer {
   /**
    * Comprehensive input validation
    */
-  validateInput(input, type = 'text') {
-    const errors = [];
+  validateInput(input: unknown, type: InputType = 'text'): ValidationResult {
+    const errors: string[] = [];
 
     if (input === null || input === undefined) {
       errors.push('Input is required');
       return { valid: false, errors, sanitized: null };
     }
 
-    let sanitized;
+    let sanitized: string | SanitizedContext | null;
 
     switch (type) {
       case 'prompt':
-        sanitized = this.sanitizePrompt(input);
-        if (sanitized.length === 0 && input.length > 0) {
+        sanitized = this.sanitizePrompt(input as string);
+        if (sanitized.length === 0 && (input as string).length > 0) {
           errors.push('Prompt contains only invalid characters');
         }
         break;
 
       case 'systemPrompt':
-        sanitized = this.sanitizeSystemPrompt(input);
+        sanitized = this.sanitizeSystemPrompt(input as string);
         break;
 
       case 'fileName':
-        sanitized = this.sanitizeFileName(input);
-        if (sanitized.length === 0 && input.length > 0) {
+        sanitized = this.sanitizeFileName(input as string);
+        if (sanitized.length === 0 && (input as string).length > 0) {
           errors.push('File name contains only invalid characters');
         }
         break;
 
       case 'html':
-        sanitized = this.sanitizeHtml(input);
+        sanitized = this.sanitizeHtml(input as string);
         break;
 
       case 'context':
-        sanitized = this.sanitizeContext(input);
+        sanitized = this.sanitizeContext(input as ContextData);
         break;
 
       default:
-        sanitized = this.sanitizeText(input);
+        sanitized = this.sanitizeText(input as string);
     }
 
     return {
@@ -265,4 +311,3 @@ class InputSanitizer {
 const inputSanitizer = new InputSanitizer();
 
 export default inputSanitizer;
-export { MAX_LENGTHS, RATE_LIMITS };

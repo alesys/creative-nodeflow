@@ -6,7 +6,7 @@ export const TIMING = {
   HANDLER_REGISTRATION_DELAY: 100, // ms - delay for registering node handlers
   FOCUS_DELAY: 0, // ms - delay before focusing textarea
   DEBOUNCE_DELAY: 300, // ms - general debounce delay
-};
+} as const;
 
 // Limits and constraints
 export const LIMITS = {
@@ -15,7 +15,7 @@ export const LIMITS = {
   PREVIEW_TEXT_LENGTH_LONG: 100, // Characters for longer previews
   MAX_PROMPT_LENGTH: 10000, // Maximum allowed prompt length
   MAX_TOKENS: 2000, // Maximum tokens for API requests
-};
+} as const;
 
 // API Models
 export const MODELS = {
@@ -23,7 +23,7 @@ export const MODELS = {
   OPENAI_VISION: 'gpt-5-nano', // GPT-5-nano supports both text and vision
   GOOGLE_IMAGE: 'gemini-2.5-flash-image-preview', // "Nano Banana"
   GOOGLE_TEXT: 'gemini-2.5-flash',
-};
+} as const;
 
 // API Error Messages
 export const API_ERRORS = {
@@ -33,15 +33,17 @@ export const API_ERRORS = {
   BILLING_REQUIRED: 'Image generation requires billing to be enabled on your Google Cloud account.',
   RATE_LIMIT: 'Rate limit exceeded. Please wait before making another request.',
   INVALID_REQUEST: 'Invalid request. Please check your input and try again.',
-};
+} as const;
 
 // Node Types
 export const NODE_TYPES = {
   STARTING_PROMPT: 'startingPrompt',
-  AGENT_PROMPT: 'agentPrompt', 
+  AGENT_PROMPT: 'agentPrompt',
   IMAGE_PROMPT: 'imagePrompt',
   CUSTOM_OUTPUT: 'customOutput',
-};
+} as const;
+
+export type NodeType = typeof NODE_TYPES[keyof typeof NODE_TYPES];
 
 // Default positions for new nodes
 export const DEFAULT_POSITIONS = {
@@ -49,7 +51,7 @@ export const DEFAULT_POSITIONS = {
   AGENT_PROMPT: { x: 250, y: 250 },
   IMAGE_PROMPT: { x: 250, y: 400 },
   OUTPUT: { x: 500, y: 200 },
-};
+} as const;
 
 // CSS Classes
 export const CSS_CLASSES = {
@@ -57,14 +59,14 @@ export const CSS_CLASSES = {
   CONNECTED_OUTPUT: 'connected-output',
   PROCESSING: 'processing',
   ERROR: 'error',
-};
+} as const;
 
 // Default system prompts
 export const SYSTEM_PROMPTS = {
   DEFAULT: 'You are a helpful AI assistant.',
   CREATIVE: 'You are a creative AI assistant specializing in imaginative and innovative responses.',
   TECHNICAL: 'You are a technical AI assistant with expertise in programming and technology.',
-};
+} as const;
 
 // Validation patterns
 export const VALIDATION = {
@@ -74,15 +76,15 @@ export const VALIDATION = {
   },
   MIN_PROMPT_LENGTH: 1,
   MAX_NODE_NAME_LENGTH: 50,
-};
+} as const;
 
 // Default values
 export const DEFAULTS = {
   TEMPERATURE: 0.7,
   NODE_WIDTH: 300,
-  NODE_HEIGHT: 'auto',
+  NODE_HEIGHT: 'auto' as const,
   ZOOM_LEVEL: 1,
-};
+} as const;
 
 const constants = {
   TIMING,
@@ -95,6 +97,6 @@ const constants = {
   SYSTEM_PROMPTS,
   VALIDATION,
   DEFAULTS,
-};
+} as const;
 
 export default constants;

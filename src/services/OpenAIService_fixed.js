@@ -1,6 +1,6 @@
 // AI Service for OpenAI integration
 import OpenAI from 'openai';
-import { LIMITS, MODELS, API_ERRORS } from '../constants/app.js';
+import { LIMITS, MODELS, API_ERRORS } from '../constants/app';
 
 class OpenAIService {
   constructor() {

@@ -4,7 +4,7 @@
 // Documentation: https://ai.google.dev/gemini-api/docs/image-generation
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { LIMITS, MODELS, API_ERRORS } from '../constants/app.js';
+import { LIMITS, MODELS, API_ERRORS } from '../constants/app';
 import logger from '../utils/logger';
 
 class GoogleAIService {
