@@ -2,6 +2,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { TIMING } from '../constants/app.js';
 import logger from '../utils/logger';
+import inputSanitizer from '../utils/inputSanitizer';
 
 /**
  * Hook for managing node editing state
@@ -134,8 +135,16 @@ export const usePromptNode = (initialPrompt, data, id) => {
       throw new Error(`${service.constructor.name} not configured. Please check your .env file.`);
     }
 
+    // Sanitize inputs before processing
+    const sanitizedPrompt = inputSanitizer.sanitizePrompt(prompt);
+    const sanitizedSystemPrompt = inputSanitizer.sanitizeSystemPrompt(systemPrompt);
+
+    if (!sanitizedPrompt) {
+      throw new Error('Prompt is empty or contains only invalid characters');
+    }
+
     // Build enhanced prompt with file contexts if available
-    let enhancedPrompt = prompt;
+    let enhancedPrompt = sanitizedPrompt;
     if (data.fileContexts && data.fileContexts.length > 0) {
       logger.debug('[useNodeEditor] Building context from file contexts:', data.fileContexts);
 
@@ -183,7 +192,7 @@ ${prompt}`;
       logger.debug('[useNodeEditor] Enhanced prompt preview:', enhancedPrompt.substring(0, 300) + '...');
     }
 
-    const response = await service.generateResponse(enhancedPrompt, systemPrompt, context);
+    const response = await service.generateResponse(enhancedPrompt, sanitizedSystemPrompt, context);
     
     // Emit the response through the output
     if (onOutput) {

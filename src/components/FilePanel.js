@@ -5,6 +5,7 @@ import { fileProcessingService } from '../services/FileProcessingService.js';
 import openAIService from '../services/OpenAIService.js';
 import { alertService } from './Alert.js';
 import logger from '../utils/logger';
+import inputSanitizer from '../utils/inputSanitizer';
 import './FilePanel.css';
 
 const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
@@ -87,18 +88,33 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
     try {
       // Ensure storage is initialized
       await fileStorageService.init();
-      
+
       for (const file of fileList) {
+        // Validate and sanitize file
+        const sanitizedFileName = inputSanitizer.sanitizeFileName(file.name);
+        const fileValidation = inputSanitizer.validateFileContent(file, sanitizedFileName);
+
+        if (!fileValidation.valid) {
+          alertService.error(`Invalid file ${file.name}: ${fileValidation.errors.join(', ')}`);
+          continue;
+        }
+
+        const fileTypeValidation = inputSanitizer.validateFileType(sanitizedFileName);
+        if (!fileTypeValidation.valid) {
+          alertService.error(fileTypeValidation.error);
+          continue;
+        }
+
         const fileId = `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
+
         // Update progress
         setUploadProgress(prev => ({
           ...prev,
-          [fileId]: { file: file.name, progress: 0, stage: 'uploading' }
+          [fileId]: { file: sanitizedFileName, progress: 0, stage: 'uploading' }
         }));
 
-        // Store file
-        const storedFile = await fileStorageService.uploadFile(file, { fileId });
+        // Store file with sanitized name
+        const storedFile = await fileStorageService.uploadFile(file, { fileId, name: sanitizedFileName });
         
         setUploadProgress(prev => ({
           ...prev,
