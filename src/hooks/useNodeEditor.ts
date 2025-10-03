@@ -1,18 +1,62 @@
 // Custom hooks for node components to reduce code duplication
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, type RefObject } from 'react';
 import { TIMING } from '../constants/app';
 import logger from '../utils/logger';
 import inputSanitizer from '../utils/inputSanitizer';
+import type { ConversationContext } from '../types/api';
+import type { PromptNodeData, AIService, InputData } from '../types/nodes';
+
+// ============================================================================
+// Hook Return Types
+// ============================================================================
+
+interface UseNodeEditorReturn {
+  isEditing: boolean;
+  setIsEditing: (editing: boolean) => void;
+  prompt: string;
+  setPrompt: (prompt: string) => void;
+  textareaRef: RefObject<HTMLTextAreaElement | null>;
+  handleEditClick: () => void;
+}
+
+interface UseNodeProcessingReturn {
+  isProcessing: boolean;
+  error: string | null;
+  handleProcess: (processFn: () => Promise<void>) => Promise<void>;
+  clearError: () => void;
+  setProcessing: (processing: boolean) => void;
+  setError: (error: string | null) => void;
+}
+
+interface UseNodeInputReturn {
+  inputContext: ConversationContext | null;
+  hasReceivedInput: boolean;
+  setInputContext: (context: ConversationContext | null) => void;
+  setHasReceivedInput: (received: boolean) => void;
+}
+
+interface UsePromptNodeReturn extends UseNodeEditorReturn, UseNodeProcessingReturn, UseNodeInputReturn {
+  systemPrompt: string;
+  executePrompt: (
+    service: AIService,
+    prompt: string,
+    systemPrompt: string,
+    context?: ConversationContext | null
+  ) => Promise<{ content: string; context: ConversationContext }>;
+  handleKeyDown: (e: React.KeyboardEvent, service: AIService) => Promise<void>;
+}
+
+// ============================================================================
+// Hooks
+// ============================================================================
 
 /**
  * Hook for managing node editing state
- * @param {string} initialPrompt - Initial prompt value
- * @returns {Object} - Editing state and handlers
  */
-export const useNodeEditor = (initialPrompt = '') => {
+export const useNodeEditor = (initialPrompt: string = ''): UseNodeEditorReturn => {
   const [isEditing, setIsEditing] = useState(true);
   const [prompt, setPrompt] = useState(initialPrompt);
-  const textareaRef = useRef(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleEditClick = useCallback(() => {
     setIsEditing(true);
@@ -24,7 +68,7 @@ export const useNodeEditor = (initialPrompt = '') => {
     }, TIMING.FOCUS_DELAY);
   }, []);
 
-  const setEditingMode = useCallback((editing) => {
+  const setEditingMode = useCallback((editing: boolean) => {
     setIsEditing(editing);
   }, []);
 
@@ -40,20 +84,20 @@ export const useNodeEditor = (initialPrompt = '') => {
 
 /**
  * Hook for managing node processing state and error handling
- * @returns {Object} - Processing state and handlers
  */
-export const useNodeProcessing = () => {
+export const useNodeProcessing = (): UseNodeProcessingReturn => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleProcess = useCallback(async (processFn) => {
+  const handleProcess = useCallback(async (processFn: () => Promise<void>) => {
     setIsProcessing(true);
     setError(null);
     try {
       await processFn();
     } catch (err) {
       logger.error('Error processing node:', err);
-      setError(err.message);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -63,7 +107,7 @@ export const useNodeProcessing = () => {
     setError(null);
   }, []);
 
-  const setProcessingState = useCallback((processing) => {
+  const setProcessingState = useCallback((processing: boolean) => {
     setIsProcessing(processing);
   }, []);
 
@@ -79,11 +123,9 @@ export const useNodeProcessing = () => {
 
 /**
  * Hook for managing input context from connected nodes
- * @param {Object} data - Node data containing onReceiveInput callback
- * @returns {Object} - Input context state and handlers
  */
-export const useNodeInput = (data) => {
-  const [inputContext, setInputContext] = useState(null);
+export const useNodeInput = (data: Pick<PromptNodeData, 'onReceiveInput'>): UseNodeInputReturn => {
+  const [inputContext, setInputContext] = useState<ConversationContext | null>(null);
   const [hasReceivedInput, setHasReceivedInput] = useState(false);
 
   // Destructure onReceiveInput to prevent dependency on entire data object
@@ -93,11 +135,11 @@ export const useNodeInput = (data) => {
   useEffect(() => {
     logger.debug('[useNodeInput] Setting up input listener, onReceiveInput:', !!onReceiveInput);
     if (onReceiveInput) {
-      onReceiveInput((inputData) => {
-        logger.debug(`[useNodeInput] Received input:`, inputData);
-        logger.debug(`[useNodeInput] Context:`, inputData.context);
-        logger.debug(`[useNodeInput] Context messages:`, inputData.context?.messages?.length);
-        setInputContext(inputData.context);
+      onReceiveInput((inputData: InputData) => {
+        logger.debug('[useNodeInput] Received input:', inputData);
+        logger.debug('[useNodeInput] Context:', inputData.context);
+        logger.debug('[useNodeInput] Context messages:', inputData.context?.messages?.length);
+        setInputContext(inputData.context || null);
         setHasReceivedInput(true);
       });
     }
@@ -113,24 +155,29 @@ export const useNodeInput = (data) => {
 
 /**
  * Combined hook for prompt nodes with common functionality
- * @param {string} initialPrompt - Initial prompt value
- * @param {Object} data - Node data
- * @param {string} id - Node ID
- * @returns {Object} - Combined state and handlers for prompt nodes
  */
-export const usePromptNode = (initialPrompt, data, id) => {
+export const usePromptNode = (
+  initialPrompt: string,
+  data: PromptNodeData,
+  id: string
+): UsePromptNodeReturn => {
   const editor = useNodeEditor(initialPrompt);
   const processing = useNodeProcessing();
   const input = useNodeInput(data);
 
   // Destructure data properties to optimize dependency arrays
   const { onOutput, systemPrompt: dataSystemPrompt } = data;
-  
-  const systemPrompt = dataSystemPrompt || 
-    process.env.REACT_APP_DEFAULT_SYSTEM_PROMPT || 
+
+  const systemPrompt = dataSystemPrompt ||
+    process.env.REACT_APP_DEFAULT_SYSTEM_PROMPT ||
     'You are a helpful AI assistant.';
 
-  const executePrompt = useCallback(async (service, prompt, systemPrompt, context = null) => {
+  const executePrompt = useCallback(async (
+    service: AIService,
+    prompt: string,
+    systemPrompt: string,
+    context: ConversationContext | null = null
+  ) => {
     if (!service.isConfigured()) {
       throw new Error(`${service.constructor.name} not configured. Please check your .env file.`);
     }
@@ -155,9 +202,9 @@ export const usePromptNode = (initialPrompt, data, id) => {
           // Try to get the most detailed content available
           let contextText = '';
 
-          if (ctx.content && ctx.content.fullText) {
+          if (typeof ctx.content === 'object' && ctx.content !== null && 'fullText' in ctx.content) {
             // Use full text if available
-            contextText = ctx.content.fullText;
+            contextText = ctx.content.fullText as string;
             logger.debug('[useNodeEditor] Using fullText, length:', contextText.length);
           } else if (ctx.contextPrompt) {
             // Use contextPrompt (pre-formatted for prompts)
@@ -192,22 +239,26 @@ ${prompt}`;
       logger.debug('[useNodeEditor] Enhanced prompt preview:', enhancedPrompt.substring(0, 300) + '...');
     }
 
+    if (!service.generateResponse) {
+      throw new Error('Service does not support text generation');
+    }
+
     const response = await service.generateResponse(enhancedPrompt, sanitizedSystemPrompt, context);
-    
+
     // Emit the response through the output
     if (onOutput) {
       onOutput({
         nodeId: id,
         content: response.content,
         context: response.context,
-        type: response.type || 'text'
+        type: 'text'
       });
     }
 
     return response;
   }, [onOutput, id, data.fileContexts]);
 
-  const handleKeyDown = useCallback(async (e, service) => {
+  const handleKeyDown = useCallback(async (e: React.KeyboardEvent, service: AIService) => {
     if (e.ctrlKey && e.key === 'Enter') {
       e.preventDefault();
 

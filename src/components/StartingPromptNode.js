@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import OpenAIService from '../services/OpenAIService';
-import { usePromptNode } from '../hooks/useNodeEditor.js';
+import { usePromptNode } from '../hooks/useNodeEditor';
 
 const StartingPromptNode = ({ data, id, isConnectable }) => {
   const {

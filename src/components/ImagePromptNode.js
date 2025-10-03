@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import GoogleAIService from '../services/GoogleAIService';
-import { usePromptNode } from '../hooks/useNodeEditor.js';
+import { usePromptNode } from '../hooks/useNodeEditor';
 
 const ImagePromptNode = ({ data, id, isConnectable }) => {
   const {
