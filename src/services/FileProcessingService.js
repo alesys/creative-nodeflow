@@ -1,5 +1,5 @@
 // File processing service - handles AI analysis of uploaded files
-import OpenAIService from './OpenAIService.js';
+import OpenAIService from './OpenAIService';
 import mammoth from 'mammoth';
 import logger from '../utils/logger';
 

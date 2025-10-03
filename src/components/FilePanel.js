@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { fileStorageService } from '../services/FileStorageService.js';
 import { fileProcessingService } from '../services/FileProcessingService.js';
-import openAIService from '../services/OpenAIService.js';
+import openAIService from '../services/OpenAIService';
 import { alertService } from './Alert.js';
 import logger from '../utils/logger';
 import inputSanitizer from '../utils/inputSanitizer';
