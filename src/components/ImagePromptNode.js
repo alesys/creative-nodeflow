@@ -68,13 +68,11 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
   const getConnectionStatus = () => {
     if (hasReceivedInput) {
       return {
-        icon: '✅',
         text: 'Context received',
         color: '#059669'
       };
     }
     return {
-      icon: '🔗',
       text: 'No input (standalone mode)',
       color: '#6b7280'
     };
@@ -96,8 +94,7 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
       {/* Compact Status Bar */}
       <div className="image-status-bar">
         <div className="status-item">
-          <span className="status-icon" style={{ color: connectionStatus.color }}>{connectionStatus.icon}</span>
-          <span className="status-text">{connectionStatus.text}</span>
+          <span className="status-text" style={{ color: connectionStatus.color }}>{connectionStatus.text}</span>
         </div>
       </div>
 
@@ -182,7 +179,7 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
           {isProcessing && (
             <div className="parameter-control" style={{ borderBottom: 'none', margin: 0 }}>
               <span className="control-label" style={{ color: 'var(--color-accent-primary)' }}>
-                🔄 Generating image with Nano Banana...
+                Generating image with Nano Banana...
               </span>
             </div>
           )}
@@ -190,7 +187,7 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
           {error && !isProcessing && (
             <div className="parameter-control" style={{ borderBottom: 'none', margin: 0 }}>
               <span className="control-label" style={{ color: 'var(--color-accent-error)' }}>
-                ⚠️ {error}
+                {error}
               </span>
             </div>
           )}

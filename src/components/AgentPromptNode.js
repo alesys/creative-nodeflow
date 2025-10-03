@@ -23,19 +23,20 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
   // Input listener is now set up automatically by useNodeInput hook
 
   const handleKeyDown = useCallback(async (e) => {
+    console.log('[AgentPromptNode] handleKeyDown called');
+    console.log('[AgentPromptNode] hasReceivedInput:', hasReceivedInput);
+    console.log('[AgentPromptNode] inputContext:', inputContext);
     await baseHandleKeyDown(e, OpenAIService);
-  }, [baseHandleKeyDown]);
+  }, [baseHandleKeyDown, hasReceivedInput, inputContext]);
 
   const getConnectionStatus = () => {
     if (!hasReceivedInput) {
       return {
-        icon: '⚠️',
         text: 'Waiting for input context',
         color: '#d97706'
       };
     }
     return {
-      icon: '✅',
       text: 'Context received',
       color: '#059669'
     };
@@ -59,8 +60,7 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
       {/* Compact Status Bar */}
       <div className="agent-status-bar">
         <div className="status-item">
-          <span className="status-icon" style={{ color: connectionStatus.color }}>{connectionStatus.icon}</span>
-          <span className="status-text">{connectionStatus.text}</span>
+          <span className="status-text" style={{ color: connectionStatus.color }}>{connectionStatus.text}</span>
         </div>
       </div>
 
@@ -145,7 +145,7 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
           {isProcessing && (
             <div className="parameter-control" style={{ borderBottom: 'none', margin: 0 }}>
               <span className="control-label" style={{ color: 'var(--color-accent-primary)' }}>
-                🔄 Processing with context...
+                Processing with context...
               </span>
             </div>
           )}
@@ -153,7 +153,7 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
           {error && !isProcessing && (
             <div className="parameter-control" style={{ borderBottom: 'none', margin: 0 }}>
               <span className="control-label" style={{ color: 'var(--color-accent-error)' }}>
-                ⚠️ {error}
+                {error}
               </span>
             </div>
           )}

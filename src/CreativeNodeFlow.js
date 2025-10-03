@@ -17,6 +17,7 @@ import AgentPromptNode from './components/AgentPromptNode';
 import ImagePromptNode from './components/ImagePromptNode';
 import OutputNode from './components/OutputNode';
 import FilePanel from './components/FilePanel';
+import { alertService } from './components/Alert';
 
 const initialNodes = [
   {
@@ -300,19 +301,27 @@ function CreativeNodeFlow() {
 
   // Handle file context from FilePanel
   const handleFileContext = useCallback((contexts) => {
+    console.log('[CreativeNodeFlow] Received file contexts from FilePanel:', contexts);
     setSelectedFileContexts(contexts);
-    
+
     // Optionally auto-inject context into selected prompt nodes
-    const selectedPromptNodes = nodes.filter(node => 
-      node.selected && 
+    const selectedPromptNodes = nodes.filter(node =>
+      node.selected &&
       (node.type === 'startingPrompt' || node.type === 'agentPrompt')
     );
 
+    console.log('[CreativeNodeFlow] Selected prompt nodes:', selectedPromptNodes.length);
+
     if (selectedPromptNodes.length > 0) {
+      console.log('[CreativeNodeFlow] Injecting file contexts into nodes:',
+        selectedPromptNodes.map(n => n.id)
+      );
+
       // Update nodes with file context
-      setNodes(currentNodes => 
+      setNodes(currentNodes =>
         currentNodes.map(node => {
           if (selectedPromptNodes.some(selected => selected.id === node.id)) {
+            console.log(`[CreativeNodeFlow] Adding file contexts to node ${node.id}`);
             return {
               ...node,
               data: {
@@ -324,6 +333,9 @@ function CreativeNodeFlow() {
           return node;
         })
       );
+    } else {
+      console.warn('[CreativeNodeFlow] No prompt nodes selected. Please select a Starting Prompt or Agent Prompt node before sending files.');
+      alertService.warning('Please select a Starting Prompt or Agent Prompt node first, then click "Send to Prompt"');
     }
   }, [nodes, setNodes]);
 
@@ -623,9 +635,17 @@ function CreativeNodeFlow() {
         }}
       >
         <Controls />
-        <MiniMap />
+        <MiniMap
+          position="bottom-left"
+          pannable={true}
+          zoomable={true}
+          style={{
+            marginLeft: '120px',
+            marginBottom: '20px'
+          }}
+        />
         <Background variant="dots" gap={12} size={1} />
-        
+
 
 
         {/* Node creation panel - hidden, will be replaced with right-click context menu */}
@@ -638,8 +658,8 @@ function CreativeNodeFlow() {
         position="right"
       />
       
-      {/* FilePanel Toggle Button */}
-      <button
+      {/* FilePanel Toggle Button - Hidden, using internal collapse button instead */}
+      {/* <button
         style={{
           position: 'fixed',
           top: '20px',
@@ -671,7 +691,7 @@ function CreativeNodeFlow() {
         }}
       >
         {filePanelVisible ? '📁' : '📂'}
-      </button>
+      </button> */}
       
       {/* Right-click Context Menu */}
       {contextMenu && (

@@ -19,13 +19,33 @@ const OutputNode = ({ data, id }) => {
   useEffect(() => {
     if (data.onReceiveInput) {
       data.onReceiveInput((inputData) => {
+        console.log('[OutputNode] Received input:', inputData);
+        console.log('[OutputNode] Context has', inputData.context?.messages?.length, 'messages');
         setContent(inputData.content);
         setContext(inputData.context);
         setContentType(inputData.type || 'text');
         setLastUpdated(new Date());
-        
+
+        // Update node data so connections can access it
+        setNodes((nds) =>
+          nds.map((node) =>
+            node.id === id
+              ? {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    content: inputData.content,
+                    context: inputData.context,
+                    type: inputData.type
+                  }
+                }
+              : node
+          )
+        );
+
         // Pass context through to output if there are connected nodes
         if (data.onOutput) {
+          console.log('[OutputNode] Sending to connected nodes via onOutput');
           data.onOutput({
             nodeId: id,
             content: inputData.content,
@@ -35,7 +55,7 @@ const OutputNode = ({ data, id }) => {
         }
       });
     }
-  }, [data, id]);
+  }, [data, id, setNodes]);
 
   const renderContent = () => {
     if (!content) {
@@ -59,7 +79,7 @@ const OutputNode = ({ data, id }) => {
         if (imageError) {
           return (
             <div className="image-error" style={{display: 'block'}}>
-              ⚠️ Failed to load image
+              Failed to load image
               <br/>
               <small>Data: {content ? content.substring(0, 50) + '...' : 'No data'}</small>
             </div>
@@ -116,9 +136,9 @@ const OutputNode = ({ data, id }) => {
     }
   };
 
-  const getStatusIcon = () => {
-    if (!content) return '⏳';
-    return contentType === 'image' ? '🖼️' : '📝';
+  const getContentTypeLabel = () => {
+    if (!content) return 'Waiting';
+    return contentType === 'image' ? 'Image' : 'Text';
   };
 
   return (
@@ -138,8 +158,7 @@ const OutputNode = ({ data, id }) => {
         {/* Compact Status Bar */}
         <div className="output-status-bar">
           <div className="status-item">
-            <span className="status-icon">{getStatusIcon()}</span>
-            <span className="status-text">{content ? 'Content received' : 'Waiting for input...'}</span>
+            <span className="status-text">{getContentTypeLabel()}: {content ? 'Content received' : 'Waiting for input...'}</span>
           </div>
           {lastUpdated && (
             <div className="status-item">

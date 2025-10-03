@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import CreativeNodeFlow from './CreativeNodeFlow';
 import ErrorBoundary from './components/ErrorBoundary';
+import AlertProvider from './components/AlertProvider';
 
 // Uncomment the line below for environment debugging
 // import EnvDiagnostic from './components/EnvDiagnostic';
@@ -50,13 +51,15 @@ function App() {
   }, []);
 
   return (
-    <div className="app-container">
-      <ErrorBoundary>
-        {/* <EnvironmentDebugger /> */}
-        {/* <EnvDiagnostic /> */}
-        <CreativeNodeFlow />
-      </ErrorBoundary>
-    </div>
+    <AlertProvider>
+      <div className="app-container">
+        <ErrorBoundary>
+          {/* <EnvironmentDebugger /> */}
+          {/* <EnvDiagnostic /> */}
+          <CreativeNodeFlow />
+        </ErrorBoundary>
+      </div>
+    </AlertProvider>
   );
 }
 

@@ -1,5 +1,6 @@
 // File processing service - handles AI analysis of uploaded files
 import OpenAIService from './OpenAIService.js';
+import mammoth from 'mammoth';
 
 export class FileProcessingService {
   constructor() {
@@ -219,23 +220,57 @@ Format your response as structured data.`;
    */
   async processDocument(file) {
     try {
-      // Attempt to read as text
+      console.log('[FileProcessingService] Processing document:', file.name, file.type);
+
+      // For Word documents (.docx), try to extract text
+      if (file.name.toLowerCase().endsWith('.docx') || file.type.includes('wordprocessingml')) {
+        try {
+          console.log('[FileProcessingService] Detected DOCX file, attempting extraction...');
+          // Read as ArrayBuffer for binary processing
+          const arrayBuffer = await file.arrayBuffer();
+          console.log('[FileProcessingService] ArrayBuffer size:', arrayBuffer.byteLength);
+
+          const text = await this.extractDocxText(arrayBuffer);
+
+          if (text && text.length > 0) {
+            console.log('[FileProcessingService] Successfully extracted text from DOCX');
+            console.log('[FileProcessingService] Text length:', text.length);
+            console.log('[FileProcessingService] Text preview:', text.substring(0, 200));
+            return await this.processExtractedText(text, 'docx');
+          } else {
+            console.warn('[FileProcessingService] DOCX extraction returned empty or null');
+          }
+        } catch (docxError) {
+          console.error('[FileProcessingService] DOCX extraction failed:', docxError);
+          console.error('[FileProcessingService] Error stack:', docxError.stack);
+        }
+      }
+
+      // Fallback: try to read as plain text (won't work for binary DOCX)
+      console.log('[FileProcessingService] Falling back to plain text read...');
       const text = await file.text();
-      return await this.processExtractedText(text, file.type);
+      if (text && text.trim().length > 0 && !text.includes('PK\x03\x04')) {
+        // Check it's not binary data (DOCX starts with PK which is ZIP signature)
+        console.log('[FileProcessingService] Extracted as plain text, length:', text.length);
+        return await this.processExtractedText(text, file.type);
+      }
+
+      throw new Error('No text content extracted - document may be binary format');
 
     } catch (error) {
       console.error('[FileProcessingService] Document processing failed:', error);
-      
+
       return {
         type: 'document',
         category: 'document',
         content: {
           summary: `Document: ${file.name}`,
-          format: file.type
+          format: file.type,
+          errorMessage: `Unable to extract text: ${error.message}. Please save as .txt or paste the content manually.`
         },
-        summary: `Document: ${file.name} (${this.formatFileSize(file.size)})`,
+        summary: `Document: ${file.name} (${this.formatFileSize(file.size)}) - Text extraction failed`,
         searchableContent: file.name,
-        contextPrompt: `Document: ${file.name}`,
+        contextPrompt: `Document file "${file.name}" - Text extraction failed. Please paste the document content manually or save as .txt format for automatic extraction.`,
         processingMethod: 'fallback',
         error: error.message
       };
@@ -486,6 +521,45 @@ Format as JSON with fields: summary, keyPoints, sections`;
     // For now, return null to trigger fallback processing
     console.log('[FileProcessingService] PDF text extraction not implemented - using fallback');
     return null;
+  }
+
+  /**
+   * Extract text from DOCX files using mammoth.js
+   */
+  async extractDocxText(arrayBuffer) {
+    try {
+      console.log('[FileProcessingService] Extracting text from DOCX using mammoth.js');
+      console.log('[FileProcessingService] Mammoth version:', mammoth);
+
+      // Use mammoth.js to extract text from DOCX
+      const result = await mammoth.extractRawText({ arrayBuffer });
+
+      console.log('[FileProcessingService] Mammoth result:', result);
+
+      if (result.value && result.value.length > 0) {
+        console.log('[FileProcessingService] Successfully extracted text from DOCX');
+        console.log('[FileProcessingService] Text length:', result.value.length);
+        console.log('[FileProcessingService] First 100 chars:', result.value.substring(0, 100));
+
+        // Log any messages/warnings from mammoth
+        if (result.messages && result.messages.length > 0) {
+          console.log('[FileProcessingService] Mammoth messages:', result.messages);
+        }
+
+        return result.value;
+      }
+
+      console.warn('[FileProcessingService] Mammoth returned empty value');
+      console.warn('[FileProcessingService] Result object:', result);
+      return null;
+
+    } catch (error) {
+      console.error('[FileProcessingService] DOCX text extraction error:', error);
+      console.error('[FileProcessingService] Error type:', error.constructor.name);
+      console.error('[FileProcessingService] Error message:', error.message);
+      console.error('[FileProcessingService] Error stack:', error.stack);
+      return null;
+    }
   }
 
   /**

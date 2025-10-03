@@ -40,17 +40,14 @@ const StartingPromptNode = ({ data, id, isConnectable }) => {
         <div className="status-item">
           {isProcessing ? (
             <>
-              <span className="status-icon" style={{ color: 'var(--color-accent-primary)' }}>🔄</span>
               <span className="status-text">Processing with OpenAI...</span>
             </>
           ) : error ? (
             <>
-              <span className="status-icon" style={{ color: 'var(--color-accent-error)' }}>⚠️</span>
-              <span className="status-text">{error}</span>
+              <span className="status-text" style={{ color: 'var(--color-accent-error)' }}>{error}</span>
             </>
           ) : (
             <>
-              <span className="status-icon" style={{ color: '#059669' }}>🚀</span>
               <span className="status-text">Entry point (no input required)</span>
             </>
           )}

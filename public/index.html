@@ -22,18 +22,85 @@
     
     <!-- Suppress SES lockdown noise from browser extensions -->
     <script>
-      if (typeof window !== 'undefined') {
-        const originalError = console.error;
-        console.error = function(...args) {
-          // Filter out SES lockdown errors from browser extensions
-          const message = args.join(' ');
-          if (message.includes('SES_UNCAUGHT_EXCEPTION') || 
-              message.includes('lockdown-install')) {
-            return; // Suppress these specific errors
-          }
-          return originalError.apply(console, args);
+      (function() {
+        'use strict';
+
+        // Ultra-aggressive console patching to suppress browser extension errors
+        // This must run BEFORE any extension code
+
+        const noop = function() {};
+
+        // Store original console methods at the lowest level possible
+        const proto = Object.getPrototypeOf(console);
+        const originalMethods = {
+          log: proto.log || console.log,
+          warn: proto.warn || console.warn,
+          error: proto.error || console.error,
+          info: proto.info || console.info,
+          debug: proto.debug || console.debug
         };
-      }
+
+        // Helper to check if message should be suppressed
+        const shouldSuppress = function(args) {
+          try {
+            const str = Array.prototype.slice.call(args).join(' ');
+            return /SES_UNCAUGHT_EXCEPTION|lockdown-install|lockdown.*null/i.test(str);
+          } catch (e) {
+            return false;
+          }
+        };
+
+        // Patch each console method at prototype level
+        const patchMethod = function(method, original) {
+          const patched = function() {
+            if (!shouldSuppress(arguments)) {
+              return original.apply(this, arguments);
+            }
+          };
+
+          // Patch both prototype and instance
+          try {
+            proto[method] = patched;
+            console[method] = patched;
+          } catch (e) {
+            // Silently fail if we can't patch
+          }
+        };
+
+        // Patch all methods
+        Object.keys(originalMethods).forEach(function(method) {
+          patchMethod(method, originalMethods[method]);
+        });
+
+        // Also intercept at the global error level
+        const errorHandler = function(event) {
+          if (event && event.message && /SES_UNCAUGHT_EXCEPTION|lockdown/i.test(event.message)) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+            return false;
+          }
+        };
+
+        window.addEventListener('error', errorHandler, true);
+        window.addEventListener('unhandledrejection', function(event) {
+          if (event && event.reason && /SES_UNCAUGHT_EXCEPTION|lockdown/i.test(String(event.reason))) {
+            event.preventDefault();
+            return false;
+          }
+        }, true);
+
+        // Keep patching even if extensions try to restore
+        const keepPatching = function() {
+          Object.keys(originalMethods).forEach(function(method) {
+            if (console[method] !== proto[method]) {
+              patchMethod(method, originalMethods[method]);
+            }
+          });
+        };
+
+        // Re-patch periodically to catch extension modifications
+        setInterval(keepPatching, 100);
+      })();
     </script>
     
     <!--

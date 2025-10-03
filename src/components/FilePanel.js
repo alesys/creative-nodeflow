@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { fileStorageService } from '../services/FileStorageService.js';
 import { fileProcessingService } from '../services/FileProcessingService.js';
 import openAIService from '../services/OpenAIService.js';
+import { alertService } from './Alert.js';
 import './FilePanel.css';
 
 const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
@@ -194,9 +195,31 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
 
   // Send selected contexts to parent
   const handleSendToPrompt = () => {
-    const selectedContexts = contexts.filter(ctx => selectedFiles.has(ctx.fileId));
+    // Map selected file IDs to their contexts
+    // Note: selectedFiles contains file.id values, but contexts use ctx.fileId
+    const selectedFileIds = Array.from(selectedFiles);
+    console.log('[FilePanel] Selected file IDs:', selectedFileIds);
+    console.log('[FilePanel] Available contexts:', contexts.map(c => ({ fileId: c.fileId })));
+
+    const selectedContexts = contexts.filter(ctx => selectedFileIds.includes(ctx.fileId));
+    console.log('[FilePanel] Sending contexts to prompt:', {
+      selectedFilesCount: selectedFiles.size,
+      contextsCount: selectedContexts.length,
+      selectedContexts
+    });
+
     if (selectedContexts.length > 0 && onFileContext) {
       onFileContext(selectedContexts);
+      console.log('[FilePanel] Contexts sent successfully');
+    } else if (selectedFiles.size > 0 && selectedContexts.length === 0) {
+      console.warn('[FilePanel] Selected files have no processed contexts yet');
+      alertService.warning('The selected files are still being processed or have no AI context. Please wait or try re-uploading.');
+    } else {
+      console.warn('[FilePanel] No contexts to send or no handler:', {
+        hasContexts: selectedContexts.length > 0,
+        hasHandler: !!onFileContext,
+        selectedFilesSize: selectedFiles.size
+      });
     }
   };
 
@@ -228,13 +251,13 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // Get file type icon
-  const getFileTypeIcon = (type) => {
-    if (type.startsWith('image/')) return '🖼️';
-    if (type.startsWith('text/')) return '📄';
-    if (type === 'application/pdf') return '📕';
-    if (type.includes('document')) return '📝';
-    return '📎';
+  // Get file type label
+  const getFileTypeLabel = (type) => {
+    if (type.startsWith('image/')) return 'IMG';
+    if (type.startsWith('text/')) return 'TXT';
+    if (type === 'application/pdf') return 'PDF';
+    if (type.includes('document')) return 'DOC';
+    return 'FILE';
   };
 
   if (!isVisible) return null;
@@ -257,7 +280,7 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
           onClick={() => setIsCollapsed(!isCollapsed)}
           title={isCollapsed ? 'Expand panel' : 'Collapse panel'}
         >
-          {isCollapsed ? '▶' : '◀'}
+          {isCollapsed ? '◀' : '▶'}
         </button>
       </div>
 
@@ -324,7 +347,6 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
             onDragLeave={handleDragLeave}
           >
             <div className="drop-zone-content">
-              <span className="drop-icon">📁</span>
               <span>Drop files here or click "Add Files"</span>
             </div>
           </div>
@@ -332,7 +354,7 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
           {/* Error Display */}
           {error && (
             <div className="error-message">
-              <span className="error-icon">⚠️</span>
+              <span className="error-icon">!</span>
               {error}
               <button onClick={() => setError(null)} className="error-close">×</button>
             </div>
@@ -364,13 +386,11 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
               <div className="empty-state">
                 {files.length === 0 ? (
                   <div>
-                    <div className="empty-icon">📄</div>
                     <p>No files uploaded yet</p>
                     <p className="empty-hint">Add reference materials to enhance your prompts</p>
                   </div>
                 ) : (
                   <div>
-                    <div className="empty-icon">🔍</div>
                     <p>No files match your search</p>
                   </div>
                 )}
@@ -387,8 +407,8 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
                   >
                     <div className="file-item-header">
                       <div className="file-info">
-                        <span className="file-icon">
-                          {getFileTypeIcon(file.type)}
+                        <span className="file-icon" style={{ fontSize: '10px', fontWeight: '600', color: 'var(--color-text-secondary)' }}>
+                          {getFileTypeLabel(file.type)}
                         </span>
                         <div className="file-details">
                           <div className="file-name" title={file.name}>
@@ -432,7 +452,7 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
                         <div className="context-meta">
                           {context.processingMethod} • {context.type}
                           {context.error && (
-                            <span className="context-error" title={context.error}>⚠️</span>
+                            <span className="context-error" title={context.error}>Error</span>
                           )}
                         </div>
                       </div>
@@ -450,7 +470,7 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
                 Storage: {files.length} files
                 {!openAIService.isConfigured() && (
                   <div className="ai-warning">
-                    ⚠️ Configure OpenAI API for AI processing
+                    Configure OpenAI API for AI processing
                   </div>
                 )}
               </div>
