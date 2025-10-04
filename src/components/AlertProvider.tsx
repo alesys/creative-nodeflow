@@ -2,18 +2,28 @@
 import React, { useState, useEffect } from 'react';
 import Alert, { alertService } from './Alert';
 
-const AlertProvider = ({ children }) => {
-  const [alert, setAlert] = useState(null);
+interface AlertData {
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  autoClose: boolean;
+}
+
+interface AlertProviderProps {
+  children: React.ReactNode;
+}
+
+const AlertProvider: React.FC<AlertProviderProps> = ({ children }) => {
+  const [alert, setAlert] = useState<AlertData | null>(null);
 
   useEffect(() => {
-    const unsubscribe = alertService.subscribe((alertData) => {
+    const unsubscribe = alertService.subscribe((alertData: AlertData) => {
       setAlert(alertData);
     });
 
     return unsubscribe;
   }, []);
 
-  const handleClose = () => {
+  const handleClose = (): void => {
     setAlert(null);
   };
 

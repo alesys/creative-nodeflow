@@ -1,8 +1,50 @@
 // Production storage adapter (S3 + Supabase)
-import { FileValidator } from '../utils/fileValidation.js';
+import { FileValidator } from '../utils/fileValidation';
 import logger from '../../utils/logger';
 
+export interface UploadOptions {
+  metadata?: Record<string, any>;
+}
+
+export interface FileInfo {
+  fileId: string;
+  id: string;
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+  category: string;
+}
+
+export interface FileMetadata {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  url: string;
+  downloadUrl?: string;
+  category?: string;
+  uploadedAt?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface StorageInfo {
+  totalFiles: number;
+  totalSize: number;
+  usedQuota: number;
+  availableQuota: number;
+  environment: string;
+}
+
+export interface UploadUrlResponse {
+  uploadUrl: string;
+  fileId: string;
+}
+
 export class ProductionAdapter {
+  private environment: string;
+  private apiBase: string;
+
   constructor() {
     this.environment = 'production';
     this.apiBase = process.env.REACT_APP_API_BASE_URL || '/api';
@@ -11,7 +53,7 @@ export class ProductionAdapter {
   /**
    * Get authentication token for API calls
    */
-  getAuthToken() {
+  getAuthToken(): string | null {
     // This will be implemented when you add authentication
     // For now, return null (unauthenticated development)
     return localStorage.getItem('auth_token') || null;
@@ -20,10 +62,10 @@ export class ProductionAdapter {
   /**
    * Upload file to S3 via backend API
    */
-  async uploadFile(file, options = {}) {
+  async uploadFile(file: File, options: UploadOptions = {}): Promise<FileInfo> {
     try {
       // Validate file
-      const validation = FileValidator.validate(file, this.environment);
+      const validation = FileValidator.validate(file, this.environment as 'development' | 'production');
       if (!validation.isValid) {
         throw new Error(`File validation failed: ${validation.errors.join(', ')}`);
       }
@@ -32,18 +74,22 @@ export class ProductionAdapter {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('category', validation.fileType);
-      
+
       if (options.metadata) {
         formData.append('metadata', JSON.stringify(options.metadata));
       }
 
       // Upload to backend
+      const headers: HeadersInit = {};
+      const authToken = this.getAuthToken();
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`${this.apiBase}/files/upload`, {
         method: 'POST',
         body: formData,
-        headers: {
-          'Authorization': this.getAuthToken() ? `Bearer ${this.getAuthToken()}` : undefined
-        }
+        headers
       });
 
       if (!response.ok) {
@@ -57,6 +103,7 @@ export class ProductionAdapter {
 
       return {
         fileId: result.fileId,
+        id: result.fileId, // Alias for compatibility with components
         url: result.url,
         name: file.name,
         type: file.type,
@@ -66,21 +113,26 @@ export class ProductionAdapter {
 
     } catch (error) {
       logger.error('[ProductionAdapter] Upload failed:', error);
-      throw new Error(`Upload failed: ${error.message}`);
+      throw new Error(`Upload failed: ${(error as Error).message}`);
     }
   }
 
   /**
    * Get file metadata from API
    */
-  async getFile(fileId) {
+  async getFile(fileId: string): Promise<FileMetadata> {
     try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      const authToken = this.getAuthToken();
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`${this.apiBase}/files/${fileId}`, {
         method: 'GET',
-        headers: {
-          'Authorization': this.getAuthToken() ? `Bearer ${this.getAuthToken()}` : undefined,
-          'Content-Type': 'application/json'
-        }
+        headers
       });
 
       if (!response.ok) {
@@ -95,47 +147,52 @@ export class ProductionAdapter {
 
     } catch (error) {
       logger.error('[ProductionAdapter] Get file failed:', error);
-      throw new Error(`Failed to get file: ${error.message}`);
+      throw new Error(`Failed to get file: ${(error as Error).message}`);
     }
   }
 
   /**
    * Get raw file data for processing
    */
-  async getFileData(fileId) {
+  async getFileData(fileId: string): Promise<File> {
     try {
       const fileInfo = await this.getFile(fileId);
-      
+
       // Download file from signed URL
       const response = await fetch(fileInfo.downloadUrl || fileInfo.url);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to download file: ${response.status}`);
       }
 
       const blob = await response.blob();
-      
+
       // Convert to File object
       const file = new File([blob], fileInfo.name, { type: fileInfo.type });
       return file;
 
     } catch (error) {
       logger.error('[ProductionAdapter] Get file data failed:', error);
-      throw new Error(`Failed to get file data: ${error.message}`);
+      throw new Error(`Failed to get file data: ${(error as Error).message}`);
     }
   }
 
   /**
    * List all user files
    */
-  async listFiles() {
+  async listFiles(): Promise<FileMetadata[]> {
     try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      const authToken = this.getAuthToken();
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`${this.apiBase}/files`, {
         method: 'GET',
-        headers: {
-          'Authorization': this.getAuthToken() ? `Bearer ${this.getAuthToken()}` : undefined,
-          'Content-Type': 'application/json'
-        }
+        headers
       });
 
       if (!response.ok) {
@@ -147,21 +204,26 @@ export class ProductionAdapter {
 
     } catch (error) {
       logger.error('[ProductionAdapter] List files failed:', error);
-      throw new Error(`Failed to list files: ${error.message}`);
+      throw new Error(`Failed to list files: ${(error as Error).message}`);
     }
   }
 
   /**
    * Delete file from S3 and database
    */
-  async deleteFile(fileId) {
+  async deleteFile(fileId: string): Promise<boolean> {
     try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      const authToken = this.getAuthToken();
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`${this.apiBase}/files/${fileId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': this.getAuthToken() ? `Bearer ${this.getAuthToken()}` : undefined,
-          'Content-Type': 'application/json'
-        }
+        headers
       });
 
       if (!response.ok) {
@@ -173,21 +235,26 @@ export class ProductionAdapter {
 
     } catch (error) {
       logger.error('[ProductionAdapter] Delete failed:', error);
-      throw new Error(`Failed to delete file: ${error.message}`);
+      throw new Error(`Failed to delete file: ${(error as Error).message}`);
     }
   }
 
   /**
    * Save processed file context
    */
-  async saveFileContext(fileId, context) {
+  async saveFileContext(fileId: string, context: any): Promise<any> {
     try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      const authToken = this.getAuthToken();
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`${this.apiBase}/files/${fileId}/context`, {
         method: 'POST',
-        headers: {
-          'Authorization': this.getAuthToken() ? `Bearer ${this.getAuthToken()}` : undefined,
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify(context)
       });
 
@@ -201,21 +268,26 @@ export class ProductionAdapter {
 
     } catch (error) {
       logger.error('[ProductionAdapter] Save context failed:', error);
-      throw new Error(`Failed to save context: ${error.message}`);
+      throw new Error(`Failed to save context: ${(error as Error).message}`);
     }
   }
 
   /**
    * Get processed file context
    */
-  async getFileContext(fileId) {
+  async getFileContext(fileId: string): Promise<any | null> {
     try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      const authToken = this.getAuthToken();
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`${this.apiBase}/files/${fileId}/context`, {
         method: 'GET',
-        headers: {
-          'Authorization': this.getAuthToken() ? `Bearer ${this.getAuthToken()}` : undefined,
-          'Content-Type': 'application/json'
-        }
+        headers
       });
 
       if (!response.ok) {
@@ -230,21 +302,26 @@ export class ProductionAdapter {
 
     } catch (error) {
       logger.error('[ProductionAdapter] Get context failed:', error);
-      throw new Error(`Failed to get context: ${error.message}`);
+      throw new Error(`Failed to get context: ${(error as Error).message}`);
     }
   }
 
   /**
    * List all file contexts
    */
-  async listContexts() {
+  async listContexts(): Promise<any[]> {
     try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      const authToken = this.getAuthToken();
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`${this.apiBase}/files/contexts`, {
         method: 'GET',
-        headers: {
-          'Authorization': this.getAuthToken() ? `Bearer ${this.getAuthToken()}` : undefined,
-          'Content-Type': 'application/json'
-        }
+        headers
       });
 
       if (!response.ok) {
@@ -256,21 +333,26 @@ export class ProductionAdapter {
 
     } catch (error) {
       logger.error('[ProductionAdapter] List contexts failed:', error);
-      throw new Error(`Failed to list contexts: ${error.message}`);
+      throw new Error(`Failed to list contexts: ${(error as Error).message}`);
     }
   }
 
   /**
    * Get storage usage statistics
    */
-  async getStorageInfo() {
+  async getStorageInfo(): Promise<StorageInfo> {
     try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      const authToken = this.getAuthToken();
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`${this.apiBase}/files/storage-info`, {
         method: 'GET',
-        headers: {
-          'Authorization': this.getAuthToken() ? `Bearer ${this.getAuthToken()}` : undefined,
-          'Content-Type': 'application/json'
-        }
+        headers
       });
 
       if (!response.ok) {
@@ -298,14 +380,19 @@ export class ProductionAdapter {
   /**
    * Clear all user data (requires confirmation)
    */
-  async clearAllData(confirmationToken) {
+  async clearAllData(confirmationToken: string | null): Promise<boolean> {
     try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      const authToken = this.getAuthToken();
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`${this.apiBase}/files/clear-all`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': this.getAuthToken() ? `Bearer ${this.getAuthToken()}` : undefined,
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify({ confirmationToken })
       });
 
@@ -318,14 +405,14 @@ export class ProductionAdapter {
 
     } catch (error) {
       logger.error('[ProductionAdapter] Clear data failed:', error);
-      throw new Error(`Failed to clear data: ${error.message}`);
+      throw new Error(`Failed to clear data: ${(error as Error).message}`);
     }
   }
 
   /**
    * Check if adapter is ready and API is accessible
    */
-  async isReady() {
+  async isReady(): Promise<boolean> {
     try {
       const response = await fetch(`${this.apiBase}/health`, {
         method: 'GET',
@@ -344,14 +431,19 @@ export class ProductionAdapter {
   /**
    * Get signed URL for direct file upload (optional optimization)
    */
-  async getUploadUrl(fileName, fileType) {
+  async getUploadUrl(fileName: string, fileType: string): Promise<UploadUrlResponse> {
     try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      const authToken = this.getAuthToken();
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`${this.apiBase}/files/upload-url`, {
         method: 'POST',
-        headers: {
-          'Authorization': this.getAuthToken() ? `Bearer ${this.getAuthToken()}` : undefined,
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify({
           fileName: FileValidator.sanitizeFileName(fileName),
           fileType
@@ -366,7 +458,7 @@ export class ProductionAdapter {
 
     } catch (error) {
       logger.error('[ProductionAdapter] Get upload URL failed:', error);
-      throw new Error(`Failed to get upload URL: ${error.message}`);
+      throw new Error(`Failed to get upload URL: ${(error as Error).message}`);
     }
   }
 }

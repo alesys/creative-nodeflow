@@ -7,6 +7,11 @@ import {
   useNodesState,
   useEdgesState,
   addEdge,
+  Node,
+  Edge,
+  Connection,
+  OnConnect,
+  NodeTypes,
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
@@ -20,7 +25,45 @@ import FilePanel from './components/FilePanel';
 import { alertService } from './components/Alert';
 import logger from './utils/logger';
 
-const initialNodes = [
+// Import types
+import type {
+  StartingPromptNodeData,
+  AgentPromptNodeData,
+  ImagePromptNodeData,
+  OutputNodeData
+} from './types/nodes';
+import type { FileContext, OutputData, ConversationContext } from './types/api';
+
+// ============================================================================
+// Type Definitions
+// ============================================================================
+
+interface ContextMenuState {
+  x: number;
+  y: number;
+  flowX: number;
+  flowY: number;
+  nodeId?: string;
+  handleType?: 'source' | 'target';
+  handleId?: string;
+}
+
+interface HandleContextState {
+  nodeId: string;
+  handleType: 'source' | 'target';
+  handleId: string;
+  isSource: boolean;
+}
+
+type CustomNodeType = 'startingPrompt' | 'agentPrompt' | 'imagePrompt' | 'customOutput';
+
+type InputHandlerCallback = (data: { content: string; context?: ConversationContext; type: 'text' | 'image'; nodeId?: string }) => void;
+
+// ============================================================================
+// Initial State
+// ============================================================================
+
+const initialNodes: Node[] = [
   {
     id: 'starting-1',
     position: { x: 100, y: 100 },
@@ -28,46 +71,52 @@ const initialNodes = [
     width: 320,
     height: 240,
     zIndex: 1,
-    data: { 
+    data: {
       prompt: '',
       systemPrompt: 'You are a creative writing assistant.',
-      onOutput: null // Will be set in component
+      onOutput: undefined, // Will be set in component
+      onReceiveInput: undefined
     },
   },
   {
-    id: 'output-1', 
+    id: 'output-1',
     position: { x: 500, y: 100 },
     type: 'customOutput',
     width: 480,
     height: 320,
     zIndex: 2,
-    data: { 
+    data: {
       content: '',
-      onReceiveInput: null, // Will be set in component
-      onOutput: null
+      onReceiveInput: undefined, // Will be set in component
+      onOutput: undefined
     },
   },
 ];
 
-const initialEdges = [
-  { 
-    id: 'starting-output', 
-    source: 'starting-1', 
+const initialEdges: Edge[] = [
+  {
+    id: 'starting-output',
+    source: 'starting-1',
     target: 'output-1',
     animated: true,
     style: { stroke: '#10b981', strokeWidth: 2 }
   },
 ];
 
+// ============================================================================
+// Main Component
+// ============================================================================
+
 function CreativeNodeFlow() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [contextMenu, setContextMenu] = useState(null);
-  const [handleContext, setHandleContext] = useState(null); // Store handle info for auto-connection
-  const [filePanelVisible, setFilePanelVisible] = useState(true); // File panel visibility
-  const [selectedFileContexts, setSelectedFileContexts] = useState([]); // File contexts for prompts // eslint-disable-line no-unused-vars
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [handleContext, setHandleContext] = useState<HandleContextState | null>(null);
+  const [filePanelVisible] = useState<boolean>(true);
+  const [, setSelectedFileContexts] = useState<FileContext[]>([]);
+
   // Using useRef for nodeInputHandlers to prevent state mutation
-  const nodeInputHandlers = useRef(new Map());
+  const nodeInputHandlers = useRef<Map<string, InputHandlerCallback>>(new Map());
 
   // Update connection state colors based on edges
   useEffect(() => {
@@ -92,19 +141,17 @@ function CreativeNodeFlow() {
     });
   }, [edges]);
 
-  // Reset and cleanup functions removed - replaced by resetToInitialState in context menu
-
   // Use refs to access current values without causing re-renders
-  const edgesRef = useRef(edges);
-  const nodesRef = useRef(nodes);
-  
+  const edgesRef = useRef<Edge[]>(edges);
+  const nodesRef = useRef<Node[]>(nodes);
+
   useEffect(() => {
     edgesRef.current = edges;
     nodesRef.current = nodes;
   }, [edges, nodes]);
 
   // Define custom node types
-  const nodeTypes = useMemo(() => ({
+  const nodeTypes: NodeTypes = useMemo(() => ({
     startingPrompt: StartingPromptNode,
     agentPrompt: AgentPromptNode,
     imagePrompt: ImagePromptNode,
@@ -112,7 +159,7 @@ function CreativeNodeFlow() {
   }), []);
 
   // Helper function to get the highest z-index from existing nodes
-  const getHighestZIndex = useCallback(() => {
+  const getHighestZIndex = useCallback((): number => {
     const currentNodes = nodesRef.current;
     let maxZ = 0;
     currentNodes.forEach(node => {
@@ -124,14 +171,14 @@ function CreativeNodeFlow() {
   }, []);
 
   // Handle node output events - optimized to reduce re-renders
-  const handleNodeOutput = useCallback((outputData) => {
+  const handleNodeOutput = useCallback((outputData: OutputData) => {
     const { nodeId, content, context, type } = outputData;
-    
+
     // Find edges that originate from this node
     const currentEdges = edgesRef.current;
     const currentNodes = nodesRef.current;
     const outgoingEdges = currentEdges.filter(edge => edge.source === nodeId);
-    
+
     // Send data to connected target nodes
     outgoingEdges.forEach(edge => {
       const inputHandler = nodeInputHandlers.current.get(edge.target);
@@ -143,37 +190,37 @@ function CreativeNodeFlow() {
     // Auto-create output node if none exists and it's not already an output node
     if (outgoingEdges.length === 0) {
       const sourceNode = currentNodes.find(n => n.id === nodeId);
-      
+
       // Don't auto-create if the source is already an output node or if we're already creating one
       if (sourceNode && sourceNode.type !== 'customOutput') {
         // Check if there's already an auto-output for this node
-        const existingAutoOutput = currentNodes.find(n => 
-          n.id.startsWith(`auto-output-${nodeId}`) || 
+        const existingAutoOutput = currentNodes.find(n =>
+          n.id.startsWith(`auto-output-${nodeId}`) ||
           currentEdges.some(edge => edge.source === nodeId && edge.target === n.id && n.type === 'customOutput')
         );
-        
+
         if (!existingAutoOutput) {
           const newOutputId = `auto-output-${nodeId}-${Date.now()}`;
-          const newOutputNode = {
+          const newOutputNode: any = {
             id: newOutputId,
-            position: { 
-              x: sourceNode.position.x + 350, 
-              y: sourceNode.position.y 
+            position: {
+              x: sourceNode.position.x + 350,
+              y: sourceNode.position.y
             },
             type: 'customOutput',
             width: 480,
             height: 320,
             zIndex: getHighestZIndex(),
-            data: { 
+            data: {
               content,
               context,
               type,
-              onReceiveInput: (handler) => nodeInputHandlers.current.set(newOutputId, handler),
+              onReceiveInput: (handler: InputHandlerCallback) => nodeInputHandlers.current.set(newOutputId, handler),
               onOutput: handleNodeOutput
             },
           };
 
-          const newEdge = {
+          const newEdge: Edge = {
             id: `${nodeId}-${newOutputId}`,
             source: nodeId,
             target: newOutputId,
@@ -197,10 +244,10 @@ function CreativeNodeFlow() {
   }, [setNodes, setEdges, getHighestZIndex]);
 
   // Register output and input handlers for nodes
-  const registerNodeHandlers = useCallback((nodeId) => {
+  const registerNodeHandlers = useCallback((nodeId: string) => {
     return {
       onOutput: handleNodeOutput,
-      onReceiveInput: (handler) => nodeInputHandlers.current.set(nodeId, handler)
+      onReceiveInput: (handler: InputHandlerCallback) => nodeInputHandlers.current.set(nodeId, handler)
     };
   }, [handleNodeOutput]);
 
@@ -215,23 +262,23 @@ function CreativeNodeFlow() {
     }));
   }, [nodes, registerNodeHandlers]);
 
-  const onConnect = useCallback(
-    (params) => {
+  const onConnect: OnConnect = useCallback(
+    (params: Connection) => {
       setEdges((eds) => addEdge({
         ...params,
         animated: true,
         style: { stroke: '#10b981', strokeWidth: 2 }
       }, eds));
-      
+
       // After creating the connection, check if source node has existing output data
       // and immediately transmit it to the target node
       setTimeout(() => {
         const sourceNode = nodes.find(n => n.id === params.source);
         if (sourceNode && sourceNode.data) {
           // Check if source node has existing content to transmit
-          const { content, context, type } = sourceNode.data;
+          const { content, context, type } = sourceNode.data as any;
           if (content || context) {
-            const targetHandler = nodeInputHandlers.current.get(params.target);
+            const targetHandler = nodeInputHandlers.current.get(params.target!);
             if (targetHandler) {
               logger.debug(`[onConnect] Transmitting existing data from ${params.source} to ${params.target}:`, {
                 content: content ? content.substring(0, 50) + '...' : 'No content',
@@ -247,42 +294,38 @@ function CreativeNodeFlow() {
     [setEdges, nodes],
   );
 
-  // onChange function removed since theme switcher is removed
-
-  // addNode function removed - replaced by createNodeFromMenu in context menu
-
   // Handle keyboard events for deletion
-  const handleKeyDown = useCallback((event) => {
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (event.key === 'Delete' || event.key === 'Backspace') {
       // Get selected nodes and edges
       const selectedNodes = nodes.filter(node => node.selected);
       const selectedEdges = edges.filter(edge => edge.selected);
-      
+
       if (selectedNodes.length > 0) {
         // Delete selected nodes and their connections
         const nodeIdsToDelete = selectedNodes.map(node => node.id);
-        
-        setNodes(currentNodes => 
+
+        setNodes(currentNodes =>
           currentNodes.filter(node => !nodeIdsToDelete.includes(node.id))
         );
-        
-        setEdges(currentEdges => 
-          currentEdges.filter(edge => 
-            !nodeIdsToDelete.includes(edge.source) && 
+
+        setEdges(currentEdges =>
+          currentEdges.filter(edge =>
+            !nodeIdsToDelete.includes(edge.source) &&
             !nodeIdsToDelete.includes(edge.target)
           )
         );
-        
+
         // Clear input handlers for deleted nodes
         nodeIdsToDelete.forEach(id => {
           nodeInputHandlers.current.delete(id);
         });
       }
-      
+
       if (selectedEdges.length > 0) {
         // Delete selected edges
         const edgeIdsToDelete = selectedEdges.map(edge => edge.id);
-        setEdges(currentEdges => 
+        setEdges(currentEdges =>
           currentEdges.filter(edge => !edgeIdsToDelete.includes(edge.id))
         );
       }
@@ -290,7 +333,7 @@ function CreativeNodeFlow() {
   }, [nodes, edges, setNodes, setEdges]);
 
   // Right-click context menu handler
-  const handlePaneContextMenu = useCallback((event) => {
+  const handlePaneContextMenu = useCallback((event: React.MouseEvent | MouseEvent) => {
     event.preventDefault();
     setContextMenu({
       x: event.clientX, // Screen coordinates for menu positioning
@@ -301,7 +344,7 @@ function CreativeNodeFlow() {
   }, []);
 
   // Handle file context from FilePanel
-  const handleFileContext = useCallback((contexts) => {
+  const handleFileContext = useCallback((contexts: any) => {
     logger.debug('[CreativeNodeFlow] Received file contexts from FilePanel:', contexts);
     setSelectedFileContexts(contexts);
 
@@ -346,26 +389,26 @@ function CreativeNodeFlow() {
   }, []);
 
   // Find non-overlapping position for new node
-  const findNonOverlappingPosition = useCallback((baseX, baseY, direction = 'right') => {
+  const findNonOverlappingPosition = useCallback((baseX: number, baseY: number, direction: 'right' | 'left' = 'right'): { x: number; y: number } => {
     const nodeWidth = 250;
     const nodeHeight = 200;
     const spacing = 50;
-    
+
     let offsetX = direction === 'right' ? nodeWidth + spacing : -(nodeWidth + spacing);
     let offsetY = 0;
-    
+
     let attempts = 0;
     const maxAttempts = 20;
-    
+
     while (attempts < maxAttempts) {
       const testX = baseX + offsetX;
       const testY = baseY + offsetY;
-      
+
       // Check for overlap with existing nodes
       const hasOverlap = nodes.some(node => {
         const nodeX = node.position.x;
         const nodeY = node.position.y;
-        
+
         return (
           testX < nodeX + nodeWidth + spacing &&
           testX + nodeWidth + spacing > nodeX &&
@@ -373,11 +416,11 @@ function CreativeNodeFlow() {
           testY + nodeHeight + spacing > nodeY
         );
       });
-      
+
       if (!hasOverlap) {
         return { x: testX, y: testY };
       }
-      
+
       // Try different positions
       if (attempts < 5) {
         offsetY += 100; // Try below
@@ -387,35 +430,35 @@ function CreativeNodeFlow() {
         offsetX += direction === 'right' ? 100 : -100; // Try further away
         offsetY = 0;
       }
-      
+
       attempts++;
     }
-    
+
     // Fallback position if no good spot found
     return { x: baseX + offsetX, y: baseY + offsetY };
   }, [nodes]);
 
   // Context menu node creation handlers
-  const createNodeFromMenu = useCallback((nodeType, x, y) => {
+  const createNodeFromMenu = useCallback((nodeType: CustomNodeType, x: number, y: number) => {
     const newId = `${nodeType}-${Date.now()}`;
-    
-    let position;
+
+    let position: { x: number; y: number };
     let autoConnect = false;
-    let sourceNodeId = null;
+    let sourceNodeId: string | null = null;
     let isSourceHandle = false;
-    
+
     // Check if this was triggered from a handle double-click
     if (handleContext) {
       const sourceNode = nodes.find(n => n.id === handleContext.nodeId);
       if (sourceNode) {
         sourceNodeId = handleContext.nodeId;
         isSourceHandle = handleContext.isSource;
-        
+
         // Position new node relative to source node (next to the triggering node)
-        const direction = isSourceHandle ? 'right' : 'left';
+        const direction: 'right' | 'left' = isSourceHandle ? 'right' : 'left';
         position = findNonOverlappingPosition(
-          sourceNode.position.x, 
-          sourceNode.position.y, 
+          sourceNode.position.x,
+          sourceNode.position.y,
           direction
         );
         autoConnect = true;
@@ -437,7 +480,7 @@ function CreativeNodeFlow() {
       }
     }
 
-    let nodeData = { 
+    let nodeData: any = {
       ...registerNodeHandlers(newId)
     };
 
@@ -447,33 +490,33 @@ function CreativeNodeFlow() {
           ...nodeData,
           prompt: '',
           systemPrompt: 'You are a helpful AI assistant.'
-        };
+        } as StartingPromptNodeData;
         break;
       case 'agentPrompt':
         nodeData = {
           ...nodeData,
           prompt: '',
           systemPrompt: 'You are a helpful AI assistant.'
-        };
+        } as AgentPromptNodeData;
         break;
       case 'imagePrompt':
         nodeData = {
           ...nodeData,
           prompt: ''
-        };
+        } as ImagePromptNodeData;
         break;
       case 'customOutput':
         nodeData = {
           ...nodeData,
           content: '',
-          context: null
-        };
+          context: undefined
+        } as OutputNodeData;
         break;
       default:
         break;
     }
 
-    const newNode = {
+    const newNode: any = {
       id: newId,
       position,
       type: nodeType,
@@ -484,12 +527,13 @@ function CreativeNodeFlow() {
     };
 
     setNodes(nodes => [...nodes, newNode]);
-    
+
     // Auto-connect if created from handle double-click
     if (autoConnect && sourceNodeId) {
       const newEdgeId = `${sourceNodeId}-${newId}`;
-      let sourceId, targetId;
-      
+      let sourceId: string;
+      let targetId: string;
+
       if (isSourceHandle) {
         // Source handle was double-clicked, connect source -> new node
         sourceId = sourceNodeId;
@@ -499,18 +543,18 @@ function CreativeNodeFlow() {
         sourceId = newId;
         targetId = sourceNodeId;
       }
-      
-      const newEdge = {
+
+      const newEdge: Edge = {
         id: newEdgeId,
         source: sourceId,
         target: targetId,
         animated: true,
         style: { stroke: '#10b981', strokeWidth: 2 }
       };
-      
+
       setEdges(edges => [...edges, newEdge]);
     }
-    
+
     closeContextMenu();
     setHandleContext(null); // Clear handle context
   }, [setNodes, setEdges, registerNodeHandlers, closeContextMenu, handleContext, nodes, findNonOverlappingPosition, getHighestZIndex]);
@@ -525,16 +569,16 @@ function CreativeNodeFlow() {
 
   // Add keyboard event listener
   useEffect(() => {
-    const handleGlobalKeyDown = (event) => {
+    const handleGlobalKeyDown = (event: KeyboardEvent) => {
       // Only handle if no input is focused
-      if (!event.target.closest('input, textarea, select')) {
+      if (!(event.target as HTMLElement).closest('input, textarea, select')) {
         handleKeyDown(event);
       }
     };
-    
+
     document.addEventListener('keydown', handleGlobalKeyDown);
     document.addEventListener('click', closeContextMenu);
-    
+
     return () => {
       document.removeEventListener('keydown', handleGlobalKeyDown);
       document.removeEventListener('click', closeContextMenu);
@@ -543,17 +587,18 @@ function CreativeNodeFlow() {
 
   // Add double-click listeners to handles
   useEffect(() => {
-    const handleDoubleClick = (event) => {
-      const handle = event.target.closest('.react-flow__handle');
+    const handleDoubleClick = (event: MouseEvent) => {
+      const handle = (event.target as HTMLElement).closest('.react-flow__handle');
       if (handle) {
         event.stopPropagation();
-        
+
         // Get handle information
         const nodeId = handle.closest('[data-id]')?.getAttribute('data-id');
         const isSource = handle.classList.contains('react-flow__handle-source');
-        const isTarget = handle.classList.contains('react-flow__handle-target');
         const handleId = handle.getAttribute('data-handleid');
-        
+
+        if (!nodeId) return;
+
         // Check if handle is already connected
         const isConnected = edges.some(edge => {
           if (isSource) {
@@ -562,25 +607,27 @@ function CreativeNodeFlow() {
             return edge.target === nodeId;
           }
         });
-        
+
         // Only show menu for unconnected handles
         if (!isConnected) {
           // Store handle context for auto-connection
           setHandleContext({
             nodeId,
             handleType: isSource ? 'source' : 'target',
-            handleId,
+            handleId: handleId || '',
             isSource
           });
-          
+
           // Show context menu at handle position
           const rect = handle.getBoundingClientRect();
           setContextMenu({
             x: rect.right + 10,
             y: rect.top,
+            flowX: rect.right + 10,
+            flowY: rect.top,
             nodeId,
             handleType: isSource ? 'source' : 'target',
-            handleId
+            handleId: handleId || undefined
           });
         }
       }
@@ -590,7 +637,7 @@ function CreativeNodeFlow() {
     const addHandleListeners = () => {
       const handles = document.querySelectorAll('.react-flow__handle');
       handles.forEach(handle => {
-        handle.addEventListener('dblclick', handleDoubleClick);
+        handle.addEventListener('dblclick', handleDoubleClick as EventListener);
       });
     };
 
@@ -598,7 +645,7 @@ function CreativeNodeFlow() {
     const removeHandleListeners = () => {
       const handles = document.querySelectorAll('.react-flow__handle');
       handles.forEach(handle => {
-        handle.removeEventListener('dblclick', handleDoubleClick);
+        handle.removeEventListener('dblclick', handleDoubleClick as EventListener);
       });
     };
 
@@ -627,12 +674,12 @@ function CreativeNodeFlow() {
           padding: 0.1,
           includeHiddenNodes: false
         }}
-        onError={(error) => {
+        onError={(id, message) => {
           // Suppress ResizeObserver errors
-          if (error.message && error.message.includes('ResizeObserver')) {
+          if (message && message.includes('ResizeObserver')) {
             return;
           }
-          logger.error('ReactFlow error:', error);
+          logger.error('ReactFlow error:', id, message);
         }}
       >
         <Controls />
@@ -645,20 +692,20 @@ function CreativeNodeFlow() {
             marginBottom: '20px'
           }}
         />
-        <Background variant="dots" gap={12} size={1} />
+        <Background variant={'dots' as any} gap={12} size={1} />
 
 
 
         {/* Node creation panel - hidden, will be replaced with right-click context menu */}
       </ReactFlow>
-      
+
       {/* File Panel */}
-      <FilePanel 
+      <FilePanel
         onFileContext={handleFileContext}
         isVisible={filePanelVisible}
         position="right"
       />
-      
+
       {/* FilePanel Toggle Button - Hidden, using internal collapse button instead */}
       {/* <button
         style={{
@@ -693,10 +740,10 @@ function CreativeNodeFlow() {
       >
         {filePanelVisible ? '📁' : '📂'}
       </button> */}
-      
+
       {/* Right-click Context Menu */}
       {contextMenu && (
-        <div 
+        <div
           style={{
             position: 'fixed',
             top: contextMenu.y,
@@ -727,8 +774,8 @@ function CreativeNodeFlow() {
               fontSize: '14px'
             }}
             onClick={() => createNodeFromMenu('startingPrompt', contextMenu.x, contextMenu.y)}
-            onMouseEnter={(e) => e.target.style.background = 'var(--color-accent-primary-alpha)'}
-            onMouseLeave={(e) => e.target.style.background = 'transparent'}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-accent-primary-alpha)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
             Starting Prompt
           </button>
@@ -745,8 +792,8 @@ function CreativeNodeFlow() {
               fontSize: '14px'
             }}
             onClick={() => createNodeFromMenu('agentPrompt', contextMenu.x, contextMenu.y)}
-            onMouseEnter={(e) => e.target.style.background = 'var(--color-accent-primary-alpha)'}
-            onMouseLeave={(e) => e.target.style.background = 'transparent'}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-accent-primary-alpha)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
             Agent Prompt
           </button>
@@ -763,8 +810,8 @@ function CreativeNodeFlow() {
               fontSize: '14px'
             }}
             onClick={() => createNodeFromMenu('imagePrompt', contextMenu.x, contextMenu.y)}
-            onMouseEnter={(e) => e.target.style.background = 'var(--color-accent-primary-alpha)'}
-            onMouseLeave={(e) => e.target.style.background = 'transparent'}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-accent-primary-alpha)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
             Art Director
           </button>
@@ -781,8 +828,8 @@ function CreativeNodeFlow() {
               fontSize: '14px'
             }}
             onClick={() => createNodeFromMenu('customOutput', contextMenu.x, contextMenu.y)}
-            onMouseEnter={(e) => e.target.style.background = 'var(--color-accent-primary-alpha)'}
-            onMouseLeave={(e) => e.target.style.background = 'transparent'}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-accent-primary-alpha)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
             Output
           </button>
@@ -800,8 +847,8 @@ function CreativeNodeFlow() {
               fontSize: '14px'
             }}
             onClick={resetToInitialState}
-            onMouseEnter={(e) => e.target.style.background = 'rgba(239, 68, 68, 0.1)'}
-            onMouseLeave={(e) => e.target.style.background = 'transparent'}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
             Reset
           </button>

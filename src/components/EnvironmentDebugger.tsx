@@ -1,18 +1,18 @@
 import React from 'react';
 
-const EnvironmentDebugger = () => {
+const EnvironmentDebugger: React.FC = () => {
   const openAIKey = process.env.REACT_APP_OPENAI_API_KEY;
   const googleKey = process.env.REACT_APP_GOOGLE_API_KEY;
-  
+
   return (
-    <div style={{ 
-      position: 'fixed', 
-      top: '10px', 
-      right: '10px', 
-      background: 'rgba(0,0,0,0.8)', 
-      color: 'white', 
-      padding: '10px', 
-      borderRadius: '5px', 
+    <div style={{
+      position: 'fixed',
+      top: '10px',
+      right: '10px',
+      background: 'rgba(0,0,0,0.8)',
+      color: 'white',
+      padding: '10px',
+      borderRadius: '5px',
       fontSize: '12px',
       zIndex: 9999,
       maxWidth: '300px'

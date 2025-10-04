@@ -2,16 +2,25 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 
-const CustomNodeBase = ({ 
-  children, 
-  hasInput = false, 
-  hasOutput = false, 
+interface CustomNodeBaseProps {
+  children?: React.ReactNode;
+  hasInput?: boolean;
+  hasOutput?: boolean;
+  className?: string;
+  nodeType?: string;
+  [key: string]: any; // Allow additional props to be spread
+}
+
+const CustomNodeBase: React.FC<CustomNodeBaseProps> = ({
+  children,
+  hasInput = false,
+  hasOutput = false,
   className = '',
   nodeType = 'default',
-  ...props 
+  ...props
 }) => {
   return (
-    <div 
+    <div
       className={`custom-node ${nodeType}-node ${className}`}
       {...props}
     >
@@ -23,12 +32,12 @@ const CustomNodeBase = ({
           className="custom-handle input-handle"
         />
       )}
-      
+
       {/* Node content */}
       <div className="node-content">
         {children}
       </div>
-      
+
       {/* Output handle on the right side */}
       {hasOutput && (
         <Handle

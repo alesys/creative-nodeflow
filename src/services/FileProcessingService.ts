@@ -3,10 +3,61 @@ import OpenAIService from './OpenAIService';
 import mammoth from 'mammoth';
 import logger from '../utils/logger';
 
+export interface ProcessingContent {
+  description?: string;
+  style?: string;
+  elements?: string[];
+  useCases?: string[];
+  colors?: string[];
+  mood?: string;
+  composition?: string;
+  fullText?: string;
+  summary?: string;
+  keyPoints?: string[];
+  wordCount?: number;
+  sections?: string[];
+  name?: string;
+  type?: string;
+  size?: number;
+  lastModified?: string;
+  format?: string;
+  errorMessage?: string;
+  pageCount?: string;
+  extractedText?: boolean;
+}
+
+export interface ProcessedContext {
+  type: string;
+  category: string;
+  content: ProcessingContent;
+  summary: string;
+  searchableContent: string;
+  contextPrompt: string;
+  processingMethod: string;
+  error?: string;
+}
+
+export interface TextSummary {
+  summary: string;
+  keyPoints: string[];
+  sections: string[];
+}
+
+export interface ImageAnalysis {
+  description: string;
+  style: string;
+  elements: string[];
+  useCases: string[];
+  colors?: string[];
+  mood?: string;
+  composition?: string;
+}
+
 export class FileProcessingService {
+  private maxContextLength: number;
+
   constructor() {
     this.maxContextLength = 4000; // Characters for text summarization
-    this.maxImageSize = 20 * 1024 * 1024; // 20MB max for OpenAI Vision
   }
 
   /**
@@ -14,43 +65,40 @@ export class FileProcessingService {
    * @param {File} file - File object to process
    * @returns {Promise<Object>} Extracted context data
    */
-  async extractContext(file) {
+  async extractContext(file: File): Promise<ProcessedContext> {
     logger.debug(`[FileProcessingService] Processing: ${file.name} (${file.type})`);
 
     try {
       const fileType = this.determineFileType(file);
-      
+
       switch (fileType) {
         case 'image':
           return await this.processImage(file);
-        
+
         case 'text':
           return await this.processTextFile(file);
-        
+
         case 'pdf':
           return await this.processPDF(file);
-        
+
         case 'document':
           return await this.processDocument(file);
-        
+
         default:
           return await this.processGenericFile(file);
       }
-      
+
     } catch (error) {
       logger.error('[FileProcessingService] Processing failed:', error);
-      throw new Error(`Failed to process file: ${error.message}`);
+      throw new Error(`Failed to process file: ${(error as Error).message}`);
     }
   }
 
   /**
    * Process image files using OpenAI Vision
    */
-  async processImage(file) {
+  async processImage(file: File): Promise<ProcessedContext> {
     try {
-      // Convert to base64 for OpenAI Vision API
-      const base64 = await this.fileToBase64(file);
-      
       const prompt = `Analyze this image for use as creative reference material. Provide:
 1. A brief description of the content
 2. Visual style characteristics (colors, composition, mood)
@@ -59,11 +107,11 @@ export class FileProcessingService {
 
 Format your response as structured data.`;
 
-      const response = await OpenAIService.analyzeImage(base64, prompt);
-      
+      const response = await OpenAIService.analyzeImage(file, prompt);
+
       // Parse the response to extract structured data
       const analysis = this.parseImageAnalysis(response);
-      
+
       return {
         type: 'image',
         category: 'visual_reference',
@@ -99,7 +147,7 @@ Format your response as structured data.`;
         searchableContent: file.name,
         contextPrompt: `Reference image: ${file.name}`,
         processingMethod: 'fallback',
-        error: error.message
+        error: (error as Error).message
       };
     }
   }
@@ -107,10 +155,10 @@ Format your response as structured data.`;
   /**
    * Process text files directly
    */
-  async processTextFile(file) {
+  async processTextFile(file: File): Promise<ProcessedContext> {
     try {
       const text = await file.text();
-      
+
       if (text.length <= this.maxContextLength) {
         // Short text - use directly
         return {
@@ -130,7 +178,7 @@ Format your response as structured data.`;
       } else {
         // Long text - summarize with AI
         const summary = await this.summarizeText(text);
-        
+
         return {
           type: 'text',
           category: 'document',
@@ -163,7 +211,7 @@ Format your response as structured data.`;
         searchableContent: file.name,
         contextPrompt: `Text file: ${file.name}`,
         processingMethod: 'fallback',
-        error: error.message
+        error: (error as Error).message
       };
     }
   }
@@ -171,13 +219,13 @@ Format your response as structured data.`;
   /**
    * Process PDF files (basic text extraction)
    */
-  async processPDF(file) {
+  async processPDF(file: File): Promise<ProcessedContext> {
     try {
       // For now, we'll use a simple approach
       // In production, you might want to use PDF.js or a backend service
-      
+
       const text = await this.extractPDFText(file);
-      
+
       if (text) {
         return await this.processExtractedText(text, 'pdf');
       } else {
@@ -211,7 +259,7 @@ Format your response as structured data.`;
         searchableContent: file.name,
         contextPrompt: `PDF file: ${file.name}`,
         processingMethod: 'fallback',
-        error: error.message
+        error: (error as Error).message
       };
     }
   }
@@ -219,7 +267,7 @@ Format your response as structured data.`;
   /**
    * Process other document types
    */
-  async processDocument(file) {
+  async processDocument(file: File): Promise<ProcessedContext> {
     try {
       logger.debug('[FileProcessingService] Processing document:', file.name, file.type);
 
@@ -243,7 +291,7 @@ Format your response as structured data.`;
           }
         } catch (docxError) {
           logger.error('[FileProcessingService] DOCX extraction failed:', docxError);
-          logger.error('[FileProcessingService] Error stack:', docxError.stack);
+          logger.error('[FileProcessingService] Error stack:', (docxError as Error).stack);
         }
       }
 
@@ -267,13 +315,13 @@ Format your response as structured data.`;
         content: {
           summary: `Document: ${file.name}`,
           format: file.type,
-          errorMessage: `Unable to extract text: ${error.message}. Please save as .txt or paste the content manually.`
+          errorMessage: `Unable to extract text: ${(error as Error).message}. Please save as .txt or paste the content manually.`
         },
         summary: `Document: ${file.name} (${this.formatFileSize(file.size)}) - Text extraction failed`,
         searchableContent: file.name,
         contextPrompt: `Document file "${file.name}" - Text extraction failed. Please paste the document content manually or save as .txt format for automatic extraction.`,
         processingMethod: 'fallback',
-        error: error.message
+        error: (error as Error).message
       };
     }
   }
@@ -281,7 +329,7 @@ Format your response as structured data.`;
   /**
    * Process generic/unknown files
    */
-  async processGenericFile(file) {
+  async processGenericFile(file: File): Promise<ProcessedContext> {
     return {
       type: 'file',
       category: 'unknown',
@@ -305,7 +353,7 @@ Format your response as structured data.`;
   /**
    * Determine file type for processing
    */
-  determineFileType(file) {
+  determineFileType(file: File): string {
     const fileName = file.name.toLowerCase();
     const mimeType = file.type.toLowerCase();
 
@@ -335,12 +383,12 @@ Format your response as structured data.`;
   /**
    * Convert file to base64 for API calls
    */
-  async fileToBase64(file) {
+  async fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
         // Remove data URL prefix and return just base64
-        const result = reader.result.split(',')[1];
+        const result = (reader.result as string).split(',')[1];
         resolve(result);
       };
       reader.onerror = reject;
@@ -351,7 +399,7 @@ Format your response as structured data.`;
   /**
    * Summarize long text using OpenAI
    */
-  async summarizeText(text) {
+  async summarizeText(text: string): Promise<TextSummary> {
     const prompt = `Summarize this document and extract key information:
 
 Document:
@@ -366,12 +414,13 @@ Format as JSON with fields: summary, keyPoints, sections`;
 
     try {
       const response = await OpenAIService.generateResponse(prompt);
-      
+      const responseText = response.content;
+
       // Try to parse as JSON, fallback to structured text
       try {
-        return JSON.parse(response);
+        return JSON.parse(responseText);
       } catch {
-        return this.parseTextSummary(response);
+        return this.parseTextSummary(responseText);
       }
 
     } catch (error) {
@@ -389,14 +438,14 @@ Format as JSON with fields: summary, keyPoints, sections`;
   /**
    * Parse image analysis response
    */
-  parseImageAnalysis(response) {
+  parseImageAnalysis(response: string): ImageAnalysis {
     try {
       // Try to extract structured data from AI response
       const lines = response.split('\n');
       let description = '';
       let style = '';
-      const elements = [];
-      const useCases = [];
+      const elements: string[] = [];
+      const useCases: string[] = [];
 
       for (const line of lines) {
         const lower = line.toLowerCase();
@@ -433,12 +482,12 @@ Format as JSON with fields: summary, keyPoints, sections`;
   /**
    * Parse text summary response
    */
-  parseTextSummary(response) {
+  parseTextSummary(response: string | any): TextSummary {
     // Ensure response is a string
     const responseText = typeof response === 'string' ? response : String(response || '');
     const lines = responseText.split('\n').filter(line => line.trim());
     let summary = '';
-    const keyPoints = [];
+    const keyPoints: string[] = [];
 
     for (const line of lines) {
       const trimmed = line.trim();
@@ -450,7 +499,7 @@ Format as JSON with fields: summary, keyPoints, sections`;
     }
 
     return {
-      summary: summary || response.substring(0, 300),
+      summary: summary || responseText.substring(0, 300),
       keyPoints: keyPoints.slice(0, 7),
       sections: []
     };
@@ -459,10 +508,10 @@ Format as JSON with fields: summary, keyPoints, sections`;
   /**
    * Extract key points from text (fallback method)
    */
-  extractKeyPoints(text) {
+  extractKeyPoints(text: string): string[] {
     // Simple extraction: look for sentences that might be important
     const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20);
-    const keyPoints = [];
+    const keyPoints: string[] = [];
 
     for (const sentence of sentences.slice(0, 10)) {
       const trimmed = sentence.trim();
@@ -477,7 +526,7 @@ Format as JSON with fields: summary, keyPoints, sections`;
   /**
    * Process extracted text (common logic for PDF/documents)
    */
-  async processExtractedText(text, sourceType) {
+  async processExtractedText(text: string, sourceType: string): Promise<ProcessedContext> {
     if (text.length <= this.maxContextLength) {
       return {
         type: sourceType,
@@ -495,7 +544,7 @@ Format as JSON with fields: summary, keyPoints, sections`;
       };
     } else {
       const summary = await this.summarizeText(text);
-      
+
       return {
         type: sourceType,
         category: 'document',
@@ -517,7 +566,7 @@ Format as JSON with fields: summary, keyPoints, sections`;
   /**
    * Basic PDF text extraction (placeholder)
    */
-  async extractPDFText(file) {
+  async extractPDFText(_file: File): Promise<string | null> {
     // This is a placeholder - in production you'd use PDF.js or a backend service
     // For now, return null to trigger fallback processing
     logger.debug('[FileProcessingService] PDF text extraction not implemented - using fallback');
@@ -527,7 +576,7 @@ Format as JSON with fields: summary, keyPoints, sections`;
   /**
    * Extract text from DOCX files using mammoth.js
    */
-  async extractDocxText(arrayBuffer) {
+  async extractDocxText(arrayBuffer: ArrayBuffer): Promise<string | null> {
     try {
       logger.debug('[FileProcessingService] Extracting text from DOCX using mammoth.js');
       logger.debug('[FileProcessingService] Mammoth version:', mammoth);
@@ -556,9 +605,9 @@ Format as JSON with fields: summary, keyPoints, sections`;
 
     } catch (error) {
       logger.error('[FileProcessingService] DOCX text extraction error:', error);
-      logger.error('[FileProcessingService] Error type:', error.constructor.name);
-      logger.error('[FileProcessingService] Error message:', error.message);
-      logger.error('[FileProcessingService] Error stack:', error.stack);
+      logger.error('[FileProcessingService] Error type:', (error as Error).constructor.name);
+      logger.error('[FileProcessingService] Error message:', (error as Error).message);
+      logger.error('[FileProcessingService] Error stack:', (error as Error).stack);
       return null;
     }
   }
@@ -566,7 +615,7 @@ Format as JSON with fields: summary, keyPoints, sections`;
   /**
    * Format file size for display
    */
-  formatFileSize(bytes) {
+  formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];

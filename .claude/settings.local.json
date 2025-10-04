@@ -13,7 +13,9 @@
       "Bash(npx eslint:*)",
       "Bash(find:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(del \"src\\CreativeNodeFlow.js\")",
+      "Bash(del:*)"
     ],
     "deny": [],
     "ask": []

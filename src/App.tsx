@@ -7,15 +7,15 @@ import AlertProvider from './components/AlertProvider';
 // import EnvDiagnostic from './components/EnvDiagnostic';
 // import EnvironmentDebugger from './components/EnvironmentDebugger';
 
-function App() {
+const App: React.FC = () => {
   useEffect(() => {
     // More comprehensive ResizeObserver error suppression
     const suppressResizeObserverErrors = () => {
       const resizeObserverErr = /ResizeObserver loop completed with undelivered notifications/;
-      
+
       // Override window.onerror
       const originalOnError = window.onerror;
-      window.onerror = (message, source, lineno, colno, error) => {
+      window.onerror = (message: string | Event, source?: string, lineno?: number, colno?: number, error?: Error): boolean => {
         if (typeof message === 'string' && resizeObserverErr.test(message)) {
           return true; // Suppress the error
         }
@@ -27,17 +27,26 @@ function App() {
 
       // Override addEventListener for error events
       const originalAddEventListener = EventTarget.prototype.addEventListener;
-      EventTarget.prototype.addEventListener = function(type, listener, options) {
+      EventTarget.prototype.addEventListener = function(
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        options?: boolean | AddEventListenerOptions
+      ): void {
         if (type === 'error') {
-          const wrappedListener = function(event) {
-            if (event.error && resizeObserverErr.test(event.error.message)) {
-              return true;
+          const wrappedListener = function(this: EventTarget, event: Event): void {
+            if (event instanceof ErrorEvent && event.error && resizeObserverErr.test(event.error.message)) {
+              event.preventDefault();
+              return;
             }
-            return listener.call(this, event);
+            if (typeof listener === 'function') {
+              listener.call(this, event);
+            } else {
+              listener.handleEvent.call(this, event);
+            }
           };
-          return originalAddEventListener.call(this, type, wrappedListener, options);
+          return originalAddEventListener.call(this, type, wrappedListener as EventListener, options);
         }
-        return originalAddEventListener.call(this, type, listener, options);
+        return originalAddEventListener.call(this, type, listener as EventListener, options);
       };
 
       return () => {
@@ -61,6 +70,6 @@ function App() {
       </div>
     </AlertProvider>
   );
-}
+};
 
 export default App;

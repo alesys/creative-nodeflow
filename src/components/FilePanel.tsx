@@ -1,28 +1,72 @@
 // File Panel Component - provides file upload, management, and AI processing interface
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { fileStorageService } from '../services/FileStorageService.js';
-import { fileProcessingService } from '../services/FileProcessingService.js';
+import { fileStorageService } from '../services/FileStorageService';
+import { fileProcessingService } from '../services/FileProcessingService';
 import openAIService from '../services/OpenAIService';
-import { alertService } from './Alert.js';
+import { alertService } from './Alert';
 import logger from '../utils/logger';
 import inputSanitizer from '../utils/inputSanitizer';
 import './FilePanel.css';
 
-const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
+// Type definitions
+interface StoredFile {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  url?: string;
+  category?: string;
+  uploadedAt?: string;
+  metadata?: Record<string, any>;
+}
+
+interface FileContext {
+  fileId: string;
+  type: string;
+  category: string;
+  content: {
+    name?: string;
+    type?: string;
+    size?: number;
+    keyPoints?: string[];
+    [key: string]: any;
+  };
+  summary: string;
+  searchableContent: string;
+  contextPrompt: string;
+  processingMethod: string;
+  error?: string;
+}
+
+interface UploadProgress {
+  file: string;
+  progress: number;
+  stage: 'uploading' | 'processing' | 'complete';
+}
+
+interface FilePanelProps {
+  onFileContext?: (contexts: FileContext[]) => void;
+  isVisible?: boolean;
+  position?: 'left' | 'right';
+}
+
+type FilterType = 'all' | 'image' | 'text' | 'document';
+
+const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, position = 'right' }) => {
   // State management
-  const [files, setFiles] = useState([]);
-  const [contexts, setContexts] = useState([]);
-  const [selectedFiles, setSelectedFiles] = useState(new Set());
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState({});
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState('all');
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [error, setError] = useState(null);
+  const [files, setFiles] = useState<StoredFile[]>([]);
+  const [contexts, setContexts] = useState<FileContext[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, UploadProgress>>({});
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [filterType, setFilterType] = useState<FilterType>('all');
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Refs
-  const fileInputRef = useRef(null);
-  const dropZoneRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   // Load existing files on mount
   useEffect(() => {
@@ -30,58 +74,58 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
   }, []);
 
   // Load files from storage
-  const loadFiles = async () => {
+  const loadFiles = async (): Promise<void> => {
     try {
       // Initialize storage service first
       await fileStorageService.init();
-      
+
       const storedFiles = await fileStorageService.listFiles();
       const storedContexts = await fileStorageService.listContexts();
-      
+
       setFiles(storedFiles);
       setContexts(storedContexts);
       setError(null);
     } catch (error) {
       logger.error('[FilePanel] Failed to load files:', error);
-      setError('Failed to load files: ' + error.message);
+      setError('Failed to load files: ' + (error as Error).message);
     }
   };
 
   // Handle file selection
-  const handleFileSelect = useCallback((event) => {
-    const selectedFiles = Array.from(event.target.files);
+  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>): void => {
+    const selectedFiles = Array.from(event.target.files || []);
     if (selectedFiles.length > 0) {
       uploadFiles(selectedFiles);
     }
   }, []);
 
   // Handle drag and drop
-  const handleDrop = useCallback((event) => {
+  const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>): void => {
     event.preventDefault();
     event.stopPropagation();
-    
+
     const droppedFiles = Array.from(event.dataTransfer.files);
     if (droppedFiles.length > 0) {
       uploadFiles(droppedFiles);
     }
-    
+
     dropZoneRef.current?.classList.remove('drag-over');
   }, []);
 
-  const handleDragOver = useCallback((event) => {
+  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>): void => {
     event.preventDefault();
     event.stopPropagation();
     dropZoneRef.current?.classList.add('drag-over');
   }, []);
 
-  const handleDragLeave = useCallback((event) => {
+  const handleDragLeave = useCallback((event: React.DragEvent<HTMLDivElement>): void => {
     event.preventDefault();
     event.stopPropagation();
     dropZoneRef.current?.classList.remove('drag-over');
   }, []);
 
   // Upload and process files
-  const uploadFiles = async (fileList) => {
+  const uploadFiles = async (fileList: File[]): Promise<void> => {
     setIsProcessing(true);
     setError(null);
 
@@ -101,7 +145,7 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
 
         const fileTypeValidation = inputSanitizer.validateFileType(sanitizedFileName);
         if (!fileTypeValidation.valid) {
-          alertService.error(fileTypeValidation.error);
+          alertService.error(fileTypeValidation.error || 'Invalid file type');
           continue;
         }
 
@@ -114,28 +158,29 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
         }));
 
         // Store file with sanitized name
-        const storedFile = await fileStorageService.uploadFile(file, { fileId, name: sanitizedFileName });
-        
+        const storedFile = await fileStorageService.uploadFile(file, { fileId, name: sanitizedFileName }) as StoredFile;
+
         setUploadProgress(prev => ({
           ...prev,
           [fileId]: { ...prev[fileId], progress: 50, stage: 'processing' }
         }));
 
         // Process with AI
-        let context = null;
+        let context: FileContext | null = null;
         if (openAIService.isConfigured()) {
           try {
-            context = await fileProcessingService.extractContext(file);
-            
+            context = await fileProcessingService.extractContext(file) as FileContext;
+
             // Store context
             if (context) {
-              await fileStorageService.saveFileContext(storedFile.fileId, context);
+              await fileStorageService.saveFileContext(storedFile.id, context);
             }
           } catch (processingError) {
             logger.warn('[FilePanel] AI processing failed, using fallback:', processingError);
-            
+
             // Create basic context fallback
             context = {
+              fileId: storedFile.id,
               type: file.type.split('/')[0] || 'file',
               category: 'unknown',
               content: {
@@ -147,10 +192,10 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
               searchableContent: file.name,
               contextPrompt: `File: ${file.name}`,
               processingMethod: 'fallback',
-              error: processingError.message
+              error: (processingError as Error).message
             };
-            
-            await fileStorageService.saveFileContext(storedFile.fileId, context);
+
+            await fileStorageService.saveFileContext(storedFile.id, context);
           }
         }
 
@@ -174,14 +219,14 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
 
     } catch (error) {
       logger.error('[FilePanel] Upload failed:', error);
-      setError('Upload failed: ' + error.message);
+      setError('Upload failed: ' + (error as Error).message);
     } finally {
       setIsProcessing(false);
     }
   };
 
   // Delete file
-  const handleDeleteFile = async (fileId) => {
+  const handleDeleteFile = async (fileId: string): Promise<void> => {
     try {
       await fileStorageService.init();
       await fileStorageService.deleteFile(fileId);
@@ -193,12 +238,12 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
       });
     } catch (error) {
       logger.error('[FilePanel] Delete failed:', error);
-      setError('Delete failed: ' + error.message);
+      setError('Delete failed: ' + (error as Error).message);
     }
   };
 
   // Toggle file selection
-  const handleFileToggle = (fileId) => {
+  const handleFileToggle = (fileId: string): void => {
     setSelectedFiles(prev => {
       const updated = new Set(prev);
       if (updated.has(fileId)) {
@@ -211,7 +256,7 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
   };
 
   // Send selected contexts to parent
-  const handleSendToPrompt = () => {
+  const handleSendToPrompt = (): void => {
     // Map selected file IDs to their contexts
     // Note: selectedFiles contains file.id values, but contexts use ctx.fileId
     const selectedFileIds = Array.from(selectedFiles);
@@ -242,25 +287,25 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
 
   // Filter files based on search and type
   const filteredFiles = files.filter(file => {
-    const matchesSearch = !searchQuery || 
+    const matchesSearch = !searchQuery ||
       file.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       file.type.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesType = filterType === 'all' || 
+
+    const matchesType = filterType === 'all' ||
       (filterType === 'image' && file.type.startsWith('image/')) ||
       (filterType === 'text' && (file.type.startsWith('text/') || file.type === 'application/pdf')) ||
       (filterType === 'document' && (file.type.includes('document') || file.type.includes('pdf')));
-    
+
     return matchesSearch && matchesType;
   });
 
   // Get context for a file
-  const getFileContext = (fileId) => {
+  const getFileContext = (fileId: string): FileContext | undefined => {
     return contexts.find(ctx => ctx.fileId === fileId);
   };
 
   // Format file size
-  const formatFileSize = (bytes) => {
+  const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -269,7 +314,7 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
   };
 
   // Get file type label
-  const getFileTypeLabel = (type) => {
+  const getFileTypeLabel = (type: string): string => {
     if (type.startsWith('image/')) return 'IMG';
     if (type.startsWith('text/')) return 'TXT';
     if (type === 'application/pdf') return 'PDF';
@@ -345,7 +390,7 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
             />
             <select
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
+              onChange={(e) => setFilterType(e.target.value as FilterType)}
               className="filter-select"
             >
               <option value="all">All Types</option>
@@ -387,8 +432,8 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
                     <span className="progress-stage">{progress.stage}</span>
                   </div>
                   <div className="progress-bar">
-                    <div 
-                      className="progress-fill" 
+                    <div
+                      className="progress-fill"
                       style={{ width: `${progress.progress}%` }}
                     />
                   </div>
@@ -416,10 +461,10 @@ const FilePanel = ({ onFileContext, isVisible = true, position = 'right' }) => {
               filteredFiles.map(file => {
                 const context = getFileContext(file.id);
                 const isSelected = selectedFiles.has(file.id);
-                
+
                 return (
-                  <div 
-                    key={file.id} 
+                  <div
+                    key={file.id}
                     className={`file-item ${isSelected ? 'selected' : ''}`}
                   >
                     <div className="file-item-header">

@@ -1,4 +1,24 @@
 // File validation utilities
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  fileType: string;
+  extension: string;
+}
+
+export interface SupportedTypes {
+  images: string[];
+  documents: string[];
+  text: string[];
+  code: string[];
+}
+
+export interface SizeLimits {
+  development: number;
+  production: number;
+}
+
 export const FileValidator = {
   // Supported file types
   SUPPORTED_TYPES: {
@@ -6,20 +26,20 @@ export const FileValidator = {
     documents: ['.pdf', '.doc', '.docx', '.txt', '.md', '.rtf'],
     text: ['.txt', '.md', '.csv', '.json', '.xml', '.yaml', '.yml'],
     code: ['.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.cpp', '.c', '.css', '.html', '.php']
-  },
+  } as SupportedTypes,
 
   // Size limits (in bytes)
   SIZE_LIMITS: {
     development: 50 * 1024 * 1024, // 50MB in development
     production: 100 * 1024 * 1024   // 100MB in production
-  },
+  } as SizeLimits,
 
   /**
    * Validate file type, size, and other constraints
    */
-  validate(file, environment = 'development') {
-    const errors = [];
-    
+  validate(file: File, environment: 'development' | 'production' = 'development'): ValidationResult {
+    const errors: string[] = [];
+
     // Check file size
     const maxSize = this.SIZE_LIMITS[environment];
     if (file.size > maxSize) {
@@ -48,7 +68,7 @@ export const FileValidator = {
   /**
    * Get file extension (with dot)
    */
-  getFileExtension(fileName) {
+  getFileExtension(fileName: string): string {
     const lastDot = fileName.lastIndexOf('.');
     return lastDot === -1 ? '' : fileName.substring(lastDot).toLowerCase();
   },
@@ -56,7 +76,7 @@ export const FileValidator = {
   /**
    * Check if file type is supported
    */
-  isSupportedType(extension) {
+  isSupportedType(extension: string): boolean {
     return Object.values(this.SUPPORTED_TYPES)
       .some(types => types.includes(extension));
   },
@@ -64,7 +84,7 @@ export const FileValidator = {
   /**
    * Get file category (images, documents, text, code)
    */
-  getFileCategory(extension) {
+  getFileCategory(extension: string): string {
     for (const [category, types] of Object.entries(this.SUPPORTED_TYPES)) {
       if (types.includes(extension)) {
         return category;
@@ -76,12 +96,12 @@ export const FileValidator = {
   /**
    * Check if file name is valid (no invalid characters)
    */
-  isValidFileName(fileName) {
+  isValidFileName(fileName: string): boolean {
     // Disallow dangerous characters and reserved names
     const invalidChars = /[<>:"/\\|?*\x00-\x1f]/;
     const reservedNames = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
-    
-    return !invalidChars.test(fileName) && 
+
+    return !invalidChars.test(fileName) &&
            !reservedNames.test(fileName.split('.')[0]) &&
            fileName.length > 0 &&
            fileName.length <= 255;
@@ -90,27 +110,27 @@ export const FileValidator = {
   /**
    * Format file size for display
    */
-  formatFileSize(bytes) {
+  formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
-    
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   },
 
   /**
    * Generate safe file ID
    */
-  generateFileId() {
+  generateFileId(): string {
     return `file_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
   },
 
   /**
    * Sanitize file name for storage
    */
-  sanitizeFileName(fileName) {
+  sanitizeFileName(fileName: string): string {
     // Replace invalid characters with underscores
     return fileName
       .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
@@ -121,14 +141,14 @@ export const FileValidator = {
   /**
    * Check if file is an image
    */
-  isImage(file) {
+  isImage(file: File): boolean {
     return this.getFileCategory(this.getFileExtension(file.name)) === 'images';
   },
 
   /**
    * Check if file is a document
    */
-  isDocument(file) {
+  isDocument(file: File): boolean {
     const category = this.getFileCategory(this.getFileExtension(file.name));
     return category === 'documents' || category === 'text';
   },
@@ -136,9 +156,9 @@ export const FileValidator = {
   /**
    * Get MIME type for file
    */
-  getMimeType(fileName) {
+  getMimeType(fileName: string): string {
     const extension = this.getFileExtension(fileName);
-    const mimeTypes = {
+    const mimeTypes: Record<string, string> = {
       // Images
       '.jpg': 'image/jpeg',
       '.jpeg': 'image/jpeg',
@@ -147,7 +167,7 @@ export const FileValidator = {
       '.webp': 'image/webp',
       '.bmp': 'image/bmp',
       '.svg': 'image/svg+xml',
-      
+
       // Documents
       '.pdf': 'application/pdf',
       '.doc': 'application/msword',
@@ -155,14 +175,14 @@ export const FileValidator = {
       '.txt': 'text/plain',
       '.md': 'text/markdown',
       '.rtf': 'application/rtf',
-      
+
       // Text/Data
       '.csv': 'text/csv',
       '.json': 'application/json',
       '.xml': 'application/xml',
       '.yaml': 'application/x-yaml',
       '.yml': 'application/x-yaml',
-      
+
       // Code
       '.js': 'application/javascript',
       '.jsx': 'application/javascript',
@@ -172,7 +192,7 @@ export const FileValidator = {
       '.css': 'text/css',
       '.html': 'text/html'
     };
-    
+
     return mimeTypes[extension] || 'application/octet-stream';
   }
 };

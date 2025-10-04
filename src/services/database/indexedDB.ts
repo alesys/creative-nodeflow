@@ -1,14 +1,52 @@
 // IndexedDB wrapper for local development storage
 import logger from '../../utils/logger';
 
+export interface FileData {
+  id: string;
+  name: string;
+  originalName?: string;
+  type: string;
+  size: number;
+  data: ArrayBuffer;
+  url: string;
+  category: string;
+  extension: string;
+  uploadedAt: string;
+  lastModified: string;
+  environment: string;
+  metadata?: Record<string, any>;
+}
+
+export interface FileContext {
+  fileId: string;
+  type?: string;
+  category?: string;
+  content?: any;
+  summary?: string;
+  searchableContent?: string;
+  contextPrompt?: string;
+  processingMethod?: string;
+  processedAt?: string;
+  error?: string;
+}
+
+export interface StorageEstimate {
+  usage: number;
+  quota: number;
+}
+
 class IndexedDBManager {
+  private dbName: string;
+  private dbVersion: number;
+  private db: IDBDatabase | null;
+
   constructor() {
     this.dbName = 'CreativeNodeFlowDB';
     this.dbVersion = 1;
     this.db = null;
   }
 
-  async init() {
+  async init(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
       // Check if IndexedDB is available
       if (!window.indexedDB) {
@@ -19,7 +57,8 @@ class IndexedDBManager {
       const request = window.indexedDB.open(this.dbName, this.dbVersion);
 
       request.onerror = (event) => {
-        const error = event.target.error || new Error('Unknown IndexedDB error');
+        const target = event.target as IDBOpenDBRequest;
+        const error = target.error || new Error('Unknown IndexedDB error');
         logger.error('[IndexedDB] Open failed:', error);
         reject(new Error(`Failed to open IndexedDB: ${error.message}`));
       };
@@ -30,7 +69,8 @@ class IndexedDBManager {
       };
 
       request.onupgradeneeded = (event) => {
-        const db = event.target.result;
+        const target = event.target as IDBOpenDBRequest;
+        const db = target.result;
 
         // Files object store
         if (!db.objectStoreNames.contains('files')) {
@@ -54,25 +94,25 @@ class IndexedDBManager {
     });
   }
 
-  async ensureConnection() {
+  async ensureConnection(): Promise<IDBDatabase> {
     if (!this.db) {
       try {
         await this.init();
       } catch (error) {
         logger.error('[IndexedDB] Connection failed:', error);
-        throw new Error(`Database connection failed: ${error.message}`);
+        throw new Error(`Database connection failed: ${(error as Error).message}`);
       }
     }
-    
+
     if (!this.db) {
       throw new Error('Database connection is null after initialization');
     }
-    
+
     return this.db;
   }
 
   // File operations
-  async addFile(fileData) {
+  async addFile(fileData: FileData): Promise<string> {
     const db = await this.ensureConnection();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(['files'], 'readwrite');
@@ -84,7 +124,7 @@ class IndexedDBManager {
     });
   }
 
-  async getFile(fileId) {
+  async getFile(fileId: string): Promise<FileData | undefined> {
     const db = await this.ensureConnection();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(['files'], 'readonly');
@@ -96,7 +136,7 @@ class IndexedDBManager {
     });
   }
 
-  async getAllFiles() {
+  async getAllFiles(): Promise<FileData[]> {
     const db = await this.ensureConnection();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(['files'], 'readonly');
@@ -108,15 +148,15 @@ class IndexedDBManager {
     });
   }
 
-  async deleteFile(fileId) {
-    const db = await this.ensureConnection();
+  async deleteFile(fileId: string): Promise<void[]> {
+    await this.ensureConnection();
     return Promise.all([
       this.deleteFromStore('files', fileId),
       this.deleteFromStore('fileContexts', fileId)
     ]);
   }
 
-  async deleteFromStore(storeName, key) {
+  async deleteFromStore(storeName: string, key: string): Promise<void> {
     const db = await this.ensureConnection();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([storeName], 'readwrite');
@@ -129,9 +169,9 @@ class IndexedDBManager {
   }
 
   // Context operations
-  async saveFileContext(fileId, context) {
+  async saveFileContext(fileId: string, context: Partial<FileContext>): Promise<FileContext> {
     const db = await this.ensureConnection();
-    const contextData = {
+    const contextData: FileContext = {
       fileId,
       ...context,
       processedAt: new Date().toISOString()
@@ -147,7 +187,7 @@ class IndexedDBManager {
     });
   }
 
-  async getFileContext(fileId) {
+  async getFileContext(fileId: string): Promise<FileContext | undefined> {
     const db = await this.ensureConnection();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(['fileContexts'], 'readonly');
@@ -159,25 +199,25 @@ class IndexedDBManager {
     });
   }
 
-  async getAllFileContexts() {
+  async getAllFileContexts(): Promise<FileContext[]> {
     const db = await this.ensureConnection();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(['fileContexts'], 'readonly');
       const store = transaction.objectStore('fileContexts');
       const request = store.getAll();
-      
+
       request.onsuccess = () => resolve(request.result || []);
       request.onerror = () => reject(request.error);
     });
   }
 
   // Utility methods
-  async clearAllData() {
+  async clearAllData(): Promise<void[]> {
     const db = await this.ensureConnection();
     const storeNames = ['files', 'fileContexts', 'projectSettings'];
-    
+
     return Promise.all(storeNames.map(storeName => {
-      return new Promise((resolve, reject) => {
+      return new Promise<void>((resolve, reject) => {
         const transaction = db.transaction([storeName], 'readwrite');
         const store = transaction.objectStore(storeName);
         const request = store.clear();
@@ -188,9 +228,13 @@ class IndexedDBManager {
     }));
   }
 
-  async getStorageUsage() {
+  async getStorageUsage(): Promise<StorageEstimate> {
     if ('storage' in navigator && 'estimate' in navigator.storage) {
-      return await navigator.storage.estimate();
+      const estimate = await navigator.storage.estimate();
+      return {
+        usage: estimate.usage || 0,
+        quota: estimate.quota || 0
+      };
     }
     return { usage: 0, quota: 0 };
   }

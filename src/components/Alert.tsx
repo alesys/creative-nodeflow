@@ -3,7 +3,17 @@ import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import './Alert.css';
 
-const Alert = ({ message, type = 'info', onClose, autoClose = false, duration = 5000 }) => {
+type AlertType = 'info' | 'success' | 'warning' | 'error';
+
+interface AlertProps {
+  message: string;
+  type?: AlertType;
+  onClose: () => void;
+  autoClose?: boolean;
+  duration?: number;
+}
+
+const Alert: React.FC<AlertProps> = ({ message, type = 'info', onClose, autoClose = false, duration = 5000 }) => {
   useEffect(() => {
     if (autoClose) {
       const timer = setTimeout(() => {
@@ -11,9 +21,10 @@ const Alert = ({ message, type = 'info', onClose, autoClose = false, duration = 
       }, duration);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [autoClose, duration, onClose]);
 
-  const getIcon = () => {
+  const getIcon = (): string => {
     switch (type) {
       case 'error':
         return '!';
@@ -43,33 +54,39 @@ const Alert = ({ message, type = 'info', onClose, autoClose = false, duration = 
   );
 };
 
+interface AlertData {
+  message: string;
+  type: AlertType;
+  autoClose: boolean;
+}
+
+type AlertListener = (alertData: AlertData) => void;
+
 // Alert service for imperative usage
 class AlertService {
-  constructor() {
-    this.listeners = [];
-  }
+  private listeners: AlertListener[] = [];
 
-  show(message, type = 'info', autoClose = true) {
+  show(message: string, type: AlertType = 'info', autoClose: boolean = true): void {
     this.listeners.forEach(listener => listener({ message, type, autoClose }));
   }
 
-  info(message, autoClose = true) {
+  info(message: string, autoClose: boolean = true): void {
     this.show(message, 'info', autoClose);
   }
 
-  success(message, autoClose = true) {
+  success(message: string, autoClose: boolean = true): void {
     this.show(message, 'success', autoClose);
   }
 
-  warning(message, autoClose = true) {
+  warning(message: string, autoClose: boolean = true): void {
     this.show(message, 'warning', autoClose);
   }
 
-  error(message, autoClose = false) {
+  error(message: string, autoClose: boolean = false): void {
     this.show(message, 'error', autoClose);
   }
 
-  subscribe(listener) {
+  subscribe(listener: AlertListener): () => void {
     this.listeners.push(listener);
     return () => {
       this.listeners = this.listeners.filter(l => l !== listener);

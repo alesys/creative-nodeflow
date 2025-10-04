@@ -3,9 +3,14 @@ import React, { useEffect, useState } from 'react';
 import OpenAIService from '../services/OpenAIService';
 import GoogleAIService from '../services/GoogleAIService';
 
-const EnvDiagnostic = () => {
-  const [isVisible, setIsVisible] = useState(true);
-  const [serviceStatus, setServiceStatus] = useState({
+interface ServiceStatus {
+  openai: boolean;
+  google: boolean;
+}
+
+const EnvDiagnostic: React.FC = () => {
+  const [isVisible, setIsVisible] = useState<boolean>(true);
+  const [serviceStatus, setServiceStatus] = useState<ServiceStatus>({
     openai: false,
     google: false
   });
@@ -35,16 +40,16 @@ const EnvDiagnostic = () => {
 
   if (!isVisible) return null;
 
-  const getStatusColor = (isWorking) => isWorking ? '#10b981' : '#ef4444';
-  const getStatusText = (isWorking) => isWorking ? '✅ Working' : '❌ Not Working';
+  const getStatusColor = (isWorking: boolean): string => isWorking ? '#10b981' : '#ef4444';
+  const getStatusText = (isWorking: boolean): string => isWorking ? '✅ Working' : '❌ Not Working';
 
   return (
-    <div style={{ 
-      position: 'fixed', 
-      top: '10px', 
-      left: '10px', 
-      background: 'rgba(255, 255, 255, 0.95)', 
-      padding: '15px', 
+    <div style={{
+      position: 'fixed',
+      top: '10px',
+      left: '10px',
+      background: 'rgba(255, 255, 255, 0.95)',
+      padding: '15px',
       border: '2px solid #374151',
       borderRadius: '8px',
       zIndex: 1000,
@@ -55,13 +60,13 @@ const EnvDiagnostic = () => {
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
         <h4 style={{ margin: 0, color: '#374151' }}>🔧 Environment Debug</h4>
-        <button 
+        <button
           onClick={() => setIsVisible(false)}
-          style={{ 
-            background: '#ef4444', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '3px', 
+          style={{
+            background: '#ef4444',
+            color: 'white',
+            border: 'none',
+            borderRadius: '3px',
             padding: '2px 6px',
             cursor: 'pointer'
           }}
@@ -73,13 +78,13 @@ const EnvDiagnostic = () => {
       <div style={{ marginBottom: '8px' }}>
         <strong>API Keys Status:</strong>
       </div>
-      
+
       <div style={{ marginLeft: '10px', marginBottom: '5px' }}>
         <span style={{ color: getStatusColor(!!openaiKey) }}>
           OpenAI: {openaiKey ? `${openaiKey.substring(0, 7)}...` : 'NOT FOUND'}
         </span>
       </div>
-      
+
       <div style={{ marginLeft: '10px', marginBottom: '5px' }}>
         <span style={{ color: getStatusColor(!!googleKey) }}>
           Google: {googleKey ? `${googleKey.substring(0, 10)}...` : 'NOT FOUND'}
@@ -89,13 +94,13 @@ const EnvDiagnostic = () => {
       <div style={{ marginBottom: '8px', marginTop: '10px' }}>
         <strong>Service Initialization:</strong>
       </div>
-      
+
       <div style={{ marginLeft: '10px', marginBottom: '5px' }}>
         <span style={{ color: getStatusColor(serviceStatus.openai) }}>
           OpenAI Service: {getStatusText(serviceStatus.openai)}
         </span>
       </div>
-      
+
       <div style={{ marginLeft: '10px', marginBottom: '5px' }}>
         <span style={{ color: getStatusColor(serviceStatus.google) }}>
           Google Service: {getStatusText(serviceStatus.google)}
@@ -106,10 +111,10 @@ const EnvDiagnostic = () => {
         <div><strong>NODE_ENV:</strong> {process.env.NODE_ENV}</div>
         <div><strong>System Prompt:</strong> {systemPrompt ? 'SET' : 'NOT SET'}</div>
         {(!openaiKey || !googleKey) && (
-          <div style={{ 
-            marginTop: '8px', 
-            padding: '8px', 
-            background: '#fef2f2', 
+          <div style={{
+            marginTop: '8px',
+            padding: '8px',
+            background: '#fef2f2',
             border: '1px solid #fecaca',
             borderRadius: '4px',
             color: '#dc2626'
