@@ -12,6 +12,7 @@ import {
   Connection,
   OnConnect,
   NodeTypes,
+  useReactFlow,
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
@@ -21,6 +22,7 @@ import StartingPromptNode from './components/StartingPromptNode';
 import AgentPromptNode from './components/AgentPromptNode';
 import ImagePromptNode from './components/ImagePromptNode';
 import OutputNode from './components/OutputNode';
+import ImagePanelNode from './components/ImagePanelNode';
 import FilePanel from './components/FilePanel';
 import { alertService } from './components/Alert';
 import logger from './utils/logger';
@@ -30,7 +32,8 @@ import type {
   StartingPromptNodeData,
   AgentPromptNodeData,
   ImagePromptNodeData,
-  OutputNodeData
+  OutputNodeData,
+  ImagePanelNodeData
 } from './types/nodes';
 import type { FileContext, OutputData, ConversationContext } from './types/api';
 
@@ -55,7 +58,7 @@ interface HandleContextState {
   isSource: boolean;
 }
 
-type CustomNodeType = 'startingPrompt' | 'agentPrompt' | 'imagePrompt' | 'customOutput';
+type CustomNodeType = 'startingPrompt' | 'agentPrompt' | 'imagePrompt' | 'customOutput' | 'imagePanel';
 
 type InputHandlerCallback = (data: { content: string; context?: ConversationContext; type: 'text' | 'image'; nodeId?: string }) => void;
 
@@ -118,6 +121,9 @@ function CreativeNodeFlow() {
   // Using useRef for nodeInputHandlers to prevent state mutation
   const nodeInputHandlers = useRef<Map<string, InputHandlerCallback>>(new Map());
 
+  // Get ReactFlow instance for viewport coordinates
+  const { screenToFlowPosition } = useReactFlow();
+
   // Update connection state colors based on edges
   useEffect(() => {
     // Remove all existing connection state classes
@@ -156,6 +162,7 @@ function CreativeNodeFlow() {
     agentPrompt: AgentPromptNode,
     imagePrompt: ImagePromptNode,
     customOutput: OutputNode,
+    imagePanel: ImagePanelNode,
   }), []);
 
   // Helper function to get the highest z-index from existing nodes
@@ -294,8 +301,53 @@ function CreativeNodeFlow() {
     [setEdges, nodes],
   );
 
-  // Handle keyboard events for deletion
+  // Handle connection end (when user releases connection without connecting)
+  const onConnectEnd = useCallback(
+    (event: MouseEvent | TouchEvent) => {
+      // Check if the connection was actually made
+      const target = event.target as HTMLElement;
+      const isHandle = target.classList.contains('react-flow__handle');
+
+      // If not released on a handle, show the context menu to create a new node
+      if (!isHandle) {
+        const mouseEvent = event as MouseEvent;
+        const flowPosition = screenToFlowPosition({
+          x: mouseEvent.clientX,
+          y: mouseEvent.clientY
+        });
+
+        setContextMenu({
+          x: mouseEvent.clientX,
+          y: mouseEvent.clientY,
+          flowX: flowPosition.x,
+          flowY: flowPosition.y,
+        });
+      }
+    },
+    [screenToFlowPosition]
+  );
+
+  // Handle double-click on pane to create node
+  const onPaneDoubleClick = useCallback(
+    (event: React.MouseEvent) => {
+      const flowPosition = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY
+      });
+
+      setContextMenu({
+        x: event.clientX,
+        y: event.clientY,
+        flowX: flowPosition.x,
+        flowY: flowPosition.y,
+      });
+    },
+    [screenToFlowPosition]
+  );
+
+  // Handle keyboard events for deletion and paste
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    // Handle Delete/Backspace
     if (event.key === 'Delete' || event.key === 'Backspace') {
       // Get selected nodes and edges
       const selectedNodes = nodes.filter(node => node.selected);
@@ -330,7 +382,107 @@ function CreativeNodeFlow() {
         );
       }
     }
-  }, [nodes, edges, setNodes, setEdges]);
+
+    // Handle Ctrl+V paste
+    if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
+      // Check if we're in a text input/textarea - if so, ignore
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // Try to read image from clipboard
+      navigator.clipboard.read().then(clipboardItems => {
+        for (const clipboardItem of clipboardItems) {
+          for (const type of clipboardItem.types) {
+            if (type.startsWith('image/')) {
+              clipboardItem.getType(type).then(blob => {
+                // Convert blob to data URL
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                  const imageUrl = e.target?.result as string;
+
+                  // Check if an Image Panel is selected
+                  const selectedImagePanels = nodes.filter(
+                    node => node.selected && node.type === 'imagePanel'
+                  );
+
+                  if (selectedImagePanels.length > 0) {
+                    // Update the first selected Image Panel
+                    const targetNodeId = selectedImagePanels[0].id;
+                    setNodes(currentNodes =>
+                      currentNodes.map(node =>
+                        node.id === targetNodeId
+                          ? {
+                              ...node,
+                              data: {
+                                ...node.data,
+                                imageUrl
+                              }
+                            }
+                          : node
+                      )
+                    );
+
+                    // Trigger output
+                    const onOutput = (selectedImagePanels[0].data as any).onOutput;
+                    if (onOutput && typeof onOutput === 'function') {
+                      onOutput({
+                        nodeId: targetNodeId,
+                        content: imageUrl,
+                        type: 'image'
+                      });
+                    }
+                  } else {
+                    // Create a new Image Panel in the center of viewport
+                    const reactFlowViewport = document.querySelector('.react-flow__viewport');
+                    if (reactFlowViewport) {
+                      const bounds = reactFlowViewport.getBoundingClientRect();
+                      const centerX = bounds.width / 2;
+                      const centerY = bounds.height / 2;
+
+                      const flowPosition = screenToFlowPosition({
+                        x: bounds.left + centerX,
+                        y: bounds.top + centerY
+                      });
+
+                      const newId = `imagePanel-${Date.now()}`;
+                      const newNode: any = {
+                        id: newId,
+                        position: { x: flowPosition.x - 140, y: flowPosition.y - 100 },
+                        type: 'imagePanel',
+                        width: 280,
+                        height: 200,
+                        zIndex: getHighestZIndex(),
+                        data: {
+                          imageUrl,
+                          ...registerNodeHandlers(newId)
+                        }
+                      };
+
+                      setNodes(nodes => [...nodes, newNode]);
+
+                      // Trigger output
+                      setTimeout(() => {
+                        const handler = nodeInputHandlers.current.get(newId);
+                        if (handler) {
+                          handler({ content: imageUrl, type: 'image', nodeId: newId });
+                        }
+                      }, 100);
+                    }
+                  }
+                };
+                reader.readAsDataURL(blob);
+              });
+              break;
+            }
+          }
+        }
+      }).catch(err => {
+        logger.debug('No image in clipboard or clipboard access denied:', err);
+      });
+    }
+  }, [nodes, edges, setNodes, setEdges, screenToFlowPosition, getHighestZIndex, registerNodeHandlers]);
 
   // Right-click context menu handler
   const handlePaneContextMenu = useCallback((event: React.MouseEvent | MouseEvent) => {
@@ -439,7 +591,9 @@ function CreativeNodeFlow() {
   }, [nodes]);
 
   // Context menu node creation handlers
-  const createNodeFromMenu = useCallback((nodeType: CustomNodeType, x: number, y: number) => {
+  const createNodeFromMenu = useCallback((nodeType: CustomNodeType) => {
+    if (!contextMenu) return;
+
     const newId = `${nodeType}-${Date.now()}`;
 
     let position: { x: number; y: number };
@@ -464,20 +618,11 @@ function CreativeNodeFlow() {
         autoConnect = true;
       } else {
         // Fallback to menu position
-        position = { x: x - 100, y: y - 50 };
+        position = { x: contextMenu.flowX - 100, y: contextMenu.flowY - 50 };
       }
     } else {
-      // Right-click context menu positioning - use exact click location
-      // Use simple coordinate conversion for right-click positioning
-      const reactFlowBounds = document.querySelector('.react-flow__viewport')?.getBoundingClientRect();
-      if (reactFlowBounds) {
-        const flowX = x - reactFlowBounds.left;
-        const flowY = y - reactFlowBounds.top;
-        position = { x: flowX - 100, y: flowY - 50 };
-      } else {
-        // Fallback positioning
-        position = { x: x - 100, y: y - 50 };
-      }
+      // Use flow coordinates from context menu
+      position = { x: contextMenu.flowX - 100, y: contextMenu.flowY - 50 };
     }
 
     let nodeData: any = {
@@ -512,6 +657,13 @@ function CreativeNodeFlow() {
           context: undefined
         } as OutputNodeData;
         break;
+      case 'imagePanel':
+        nodeData = {
+          ...nodeData,
+          imageUrl: undefined,
+          imageFile: undefined
+        } as ImagePanelNodeData;
+        break;
       default:
         break;
     }
@@ -520,8 +672,8 @@ function CreativeNodeFlow() {
       id: newId,
       position,
       type: nodeType,
-      width: nodeType === 'customOutput' ? 480 : 320,
-      height: nodeType === 'customOutput' ? 320 : 240,
+      width: nodeType === 'customOutput' ? 480 : (nodeType === 'imagePanel' ? 280 : 320),
+      height: nodeType === 'customOutput' ? 320 : (nodeType === 'imagePanel' ? 200 : 240),
       zIndex: getHighestZIndex(),
       data: nodeData
     };
@@ -557,7 +709,7 @@ function CreativeNodeFlow() {
 
     closeContextMenu();
     setHandleContext(null); // Clear handle context
-  }, [setNodes, setEdges, registerNodeHandlers, closeContextMenu, handleContext, nodes, findNonOverlappingPosition, getHighestZIndex]);
+  }, [contextMenu, setNodes, setEdges, registerNodeHandlers, closeContextMenu, handleContext, nodes, findNonOverlappingPosition, getHighestZIndex]);
 
   // Reset function to clear all nodes and start fresh
   const resetToInitialState = useCallback(() => {
@@ -666,7 +818,9 @@ function CreativeNodeFlow() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onConnectEnd={onConnectEnd}
         onPaneContextMenu={handlePaneContextMenu}
+        onDoubleClick={onPaneDoubleClick}
         nodeTypes={nodeTypes}
         colorMode="dark"
         fitView
@@ -773,7 +927,7 @@ function CreativeNodeFlow() {
               cursor: 'pointer',
               fontSize: '14px'
             }}
-            onClick={() => createNodeFromMenu('startingPrompt', contextMenu.x, contextMenu.y)}
+            onClick={() => createNodeFromMenu('startingPrompt')}
             onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-accent-primary-alpha)'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
@@ -791,7 +945,7 @@ function CreativeNodeFlow() {
               cursor: 'pointer',
               fontSize: '14px'
             }}
-            onClick={() => createNodeFromMenu('agentPrompt', contextMenu.x, contextMenu.y)}
+            onClick={() => createNodeFromMenu('agentPrompt')}
             onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-accent-primary-alpha)'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
@@ -809,7 +963,7 @@ function CreativeNodeFlow() {
               cursor: 'pointer',
               fontSize: '14px'
             }}
-            onClick={() => createNodeFromMenu('imagePrompt', contextMenu.x, contextMenu.y)}
+            onClick={() => createNodeFromMenu('imagePrompt')}
             onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-accent-primary-alpha)'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
@@ -827,11 +981,29 @@ function CreativeNodeFlow() {
               cursor: 'pointer',
               fontSize: '14px'
             }}
-            onClick={() => createNodeFromMenu('customOutput', contextMenu.x, contextMenu.y)}
+            onClick={() => createNodeFromMenu('customOutput')}
             onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-accent-primary-alpha)'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
             Output
+          </button>
+          <button
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '8px 16px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--color-text-primary)',
+              textAlign: 'left',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+            onClick={() => createNodeFromMenu('imagePanel')}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-accent-primary-alpha)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
+            Image Panel
           </button>
           <div style={{ height: '1px', background: 'var(--node-border-color)', margin: '4px 0' }}></div>
           <button

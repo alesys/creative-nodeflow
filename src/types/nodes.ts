@@ -54,6 +54,11 @@ export interface OutputNodeData extends BaseNodeData {
   type?: 'text' | 'image';
 }
 
+export interface ImagePanelNodeData extends BaseNodeData {
+  imageUrl?: string;
+  imageFile?: File;
+}
+
 // ============================================================================
 // Union Types
 // ============================================================================
@@ -62,7 +67,8 @@ export type NodeData =
   | StartingPromptNodeData
   | AgentPromptNodeData
   | ImagePromptNodeData
-  | OutputNodeData;
+  | OutputNodeData
+  | ImagePanelNodeData;
 
 // ============================================================================
 // Service Interface (for type-safe service abstraction)
