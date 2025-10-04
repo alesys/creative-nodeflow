@@ -12,7 +12,6 @@ import {
   Connection,
   OnConnect,
   NodeTypes,
-  useReactFlow,
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
@@ -121,8 +120,8 @@ function CreativeNodeFlow() {
   // Using useRef for nodeInputHandlers to prevent state mutation
   const nodeInputHandlers = useRef<Map<string, InputHandlerCallback>>(new Map());
 
-  // Get ReactFlow instance for viewport coordinates
-  const { screenToFlowPosition } = useReactFlow();
+  // Ref for ReactFlow wrapper to access viewport conversion
+  const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
 
   // Update connection state colors based on edges
   useEffect(() => {
@@ -301,6 +300,40 @@ function CreativeNodeFlow() {
     [setEdges, nodes],
   );
 
+  // Helper to convert screen coordinates to flow coordinates
+  const screenToFlowPosition = useCallback((screenX: number, screenY: number): { x: number; y: number } => {
+    const reactFlowElement = reactFlowWrapperRef.current?.querySelector('.react-flow__viewport');
+    if (reactFlowElement) {
+      const bounds = reactFlowElement.getBoundingClientRect();
+      // Get the transform from the viewport
+      const transform = window.getComputedStyle(reactFlowElement).transform;
+
+      if (transform && transform !== 'none') {
+        // Parse the matrix values
+        const matrix = transform.match(/matrix\(([^)]+)\)/)?.[1].split(', ');
+        if (matrix && matrix.length === 6) {
+          const scale = parseFloat(matrix[0]);
+          const translateX = parseFloat(matrix[4]);
+          const translateY = parseFloat(matrix[5]);
+
+          return {
+            x: (screenX - bounds.left - translateX) / scale,
+            y: (screenY - bounds.top - translateY) / scale
+          };
+        }
+      }
+
+      // Fallback if no transform
+      return {
+        x: screenX - bounds.left,
+        y: screenY - bounds.top
+      };
+    }
+
+    // Final fallback
+    return { x: screenX, y: screenY };
+  }, []);
+
   // Handle connection end (when user releases connection without connecting)
   const onConnectEnd = useCallback(
     (event: MouseEvent | TouchEvent) => {
@@ -311,10 +344,7 @@ function CreativeNodeFlow() {
       // If not released on a handle, show the context menu to create a new node
       if (!isHandle) {
         const mouseEvent = event as MouseEvent;
-        const flowPosition = screenToFlowPosition({
-          x: mouseEvent.clientX,
-          y: mouseEvent.clientY
-        });
+        const flowPosition = screenToFlowPosition(mouseEvent.clientX, mouseEvent.clientY);
 
         setContextMenu({
           x: mouseEvent.clientX,
@@ -330,10 +360,7 @@ function CreativeNodeFlow() {
   // Handle double-click on pane to create node
   const onPaneDoubleClick = useCallback(
     (event: React.MouseEvent) => {
-      const flowPosition = screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY
-      });
+      const flowPosition = screenToFlowPosition(event.clientX, event.clientY);
 
       setContextMenu({
         x: event.clientX,
@@ -441,10 +468,10 @@ function CreativeNodeFlow() {
                       const centerX = bounds.width / 2;
                       const centerY = bounds.height / 2;
 
-                      const flowPosition = screenToFlowPosition({
-                        x: bounds.left + centerX,
-                        y: bounds.top + centerY
-                      });
+                      const flowPosition = screenToFlowPosition(
+                        bounds.left + centerX,
+                        bounds.top + centerY
+                      );
 
                       const newId = `imagePanel-${Date.now()}`;
                       const newNode: any = {
@@ -811,7 +838,7 @@ function CreativeNodeFlow() {
   }, [edges, setContextMenu, setHandleContext]);
 
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
+    <div ref={reactFlowWrapperRef} style={{ width: '100vw', height: '100vh' }}>
       <ReactFlow
         nodes={enhancedNodes}
         edges={edges}

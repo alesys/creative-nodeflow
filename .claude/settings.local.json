@@ -15,7 +15,10 @@
       "Bash(npx tsc:*)",
       "Bash(npm run build:*)",
       "Bash(del \"src\\CreativeNodeFlow.js\")",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "Bash(npm start)",
+      "Bash(taskkill:*)",
+      "Bash(netstat:*)"
     ],
     "deny": [],
     "ask": []
