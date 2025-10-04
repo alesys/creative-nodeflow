@@ -5,16 +5,24 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Handle, Position, NodeResizer, useReactFlow } from '@xyflow/react';
 import logger from '../utils/logger';
+import type { OutputNodeData } from '../types/nodes';
+import type { ConversationContext } from '../types/api';
 
-const OutputNode = ({ data, id }) => {
+interface OutputNodeProps {
+  data: OutputNodeData;
+  id: string;
+  isConnectable: boolean;
+}
+
+const OutputNode: React.FC<OutputNodeProps> = ({ data, id, isConnectable }) => {
   const [content, setContent] = useState(data.content || '');
-  const [context, setContext] = useState(data.context || null);
-  const [contentType, setContentType] = useState(data.type || 'text');
-  const [lastUpdated, setLastUpdated] = useState(null);
+  const [context, setContext] = useState<ConversationContext | null>(data.context || null);
+  const [contentType, setContentType] = useState<'text' | 'image'>(data.type || 'text');
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
   const { setNodes } = useReactFlow();
-  const imageRef = useRef(null);
+  const imageRef = useRef<HTMLImageElement>(null);
 
   // Listen for incoming data from connected nodes
   useEffect(() => {
@@ -23,7 +31,7 @@ const OutputNode = ({ data, id }) => {
         logger.debug('[OutputNode] Received input:', inputData);
         logger.debug('[OutputNode] Context has', inputData.context?.messages?.length, 'messages');
         setContent(inputData.content);
-        setContext(inputData.context);
+        setContext(inputData.context || null);
         setContentType(inputData.type || 'text');
         setLastUpdated(new Date());
 
@@ -76,7 +84,7 @@ const OutputNode = ({ data, id }) => {
             </div>
           );
         }
-        
+
         if (imageError) {
           return (
             <div className="image-error" style={{display: 'block'}}>
@@ -89,31 +97,31 @@ const OutputNode = ({ data, id }) => {
 
         return (
           <div>
-            <img 
+            <img
               ref={imageRef}
               src={content}
               alt="Generated content"
               className="output-image clickable"
               onClick={() => setLightboxOpen(true)}
               onError={(e) => {
-                logger.error('Image load error:', e.target.src);
+                logger.error('Image load error:', (e.target as HTMLImageElement).src);
                 setImageError(true);
               }}
               onLoad={(e) => {
                 logger.debug('Image loaded successfully:', content.substring(0, 50));
                 setImageError(false);
-                
+
                 // Auto-resize node to accommodate image
-                const img = e.target;
+                const img = e.target as HTMLImageElement;
                 if (img.naturalWidth && img.naturalHeight) {
                   const aspectRatio = img.naturalHeight / img.naturalWidth;
                   const maxWidth = 480; // Current node width
                   const imageHeight = Math.min(aspectRatio * maxWidth, 600); // Max height of 600px
                   const nodeHeight = imageHeight + 100; // Add padding for header and status
-                  
-                  setNodes((nodes) => 
-                    nodes.map((node) => 
-                      node.id === id 
+
+                  setNodes((nodes) =>
+                    nodes.map((node) =>
+                      node.id === id
                         ? { ...node, height: Math.max(nodeHeight, 320) } // Min height 320px
                         : node
                     )
@@ -124,7 +132,7 @@ const OutputNode = ({ data, id }) => {
             />
           </div>
         );
-      
+
       case 'text':
       default:
         return (
@@ -146,11 +154,11 @@ const OutputNode = ({ data, id }) => {
     <>
       <div className={`node-panel ${content ? 'has-content' : 'empty'}`}>
         {/* ReactFlow Native Resize Control */}
-        <NodeResizer 
+        <NodeResizer
           minWidth={480}
           minHeight={320}
         />
-        
+
         {/* Node Header with Design System Gradient */}
         <div className="node-header output">
           Output
@@ -199,29 +207,31 @@ const OutputNode = ({ data, id }) => {
           type="target"
           position={Position.Left}
           className="react-flow__handle"
+          isConnectable={isConnectable}
         />
-        
+
         {/* ReactFlow Output Handle */}
         <Handle
           type="source"
           position={Position.Right}
           className="react-flow__handle"
+          isConnectable={isConnectable}
         />
       </div>
-      
+
       {/* Render lightbox using portal to escape node positioning constraints */}
       {lightboxOpen && contentType === 'image' && ReactDOM.createPortal(
-        <div 
+        <div
           className="lightbox-overlay"
           onClick={() => setLightboxOpen(false)}
         >
           <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
-            <img 
-              src={content} 
-              alt="Generated content - Full size" 
+            <img
+              src={content}
+              alt="Generated content - Full size"
               className="lightbox-image"
             />
-            <button 
+            <button
               className="lightbox-close"
               onClick={() => setLightboxOpen(false)}
             >

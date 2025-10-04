@@ -5,8 +5,15 @@ import remarkGfm from 'remark-gfm';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import OpenAIService from '../services/OpenAIService';
 import { usePromptNode } from '../hooks/useNodeEditor';
+import type { StartingPromptNodeData } from '../types/nodes';
 
-const StartingPromptNode = ({ data, id, isConnectable }) => {
+interface StartingPromptNodeProps {
+  data: StartingPromptNodeData;
+  id: string;
+  isConnectable: boolean;
+}
+
+const StartingPromptNode: React.FC<StartingPromptNodeProps> = ({ data, id, isConnectable }) => {
   const {
     isEditing,
     prompt,
@@ -18,18 +25,18 @@ const StartingPromptNode = ({ data, id, isConnectable }) => {
     handleKeyDown: baseHandleKeyDown
   } = usePromptNode(data.prompt || '', data, id);
 
-  const handleKeyDown = useCallback(async (e) => {
+  const handleKeyDown = useCallback(async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     await baseHandleKeyDown(e, OpenAIService);
   }, [baseHandleKeyDown]);
 
   return (
     <div className={`node-panel ${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}>
       {/* ReactFlow Native Resize Control */}
-      <NodeResizer 
+      <NodeResizer
         minWidth={320}
         minHeight={240}
       />
-      
+
       {/* Node Header with Design System Gradient */}
       <div className="node-header text-positive">
         Starting Prompt
@@ -66,7 +73,7 @@ const StartingPromptNode = ({ data, id, isConnectable }) => {
 
       {/* Node Body */}
       <div className="node-body">
-        
+
         {/* Text Area Control */}
         {isEditing ? (
           <div>
@@ -85,7 +92,7 @@ const StartingPromptNode = ({ data, id, isConnectable }) => {
             </div>
           </div>
         ) : (
-          <div 
+          <div
             onClick={handleEditClick}
             className="textarea-control positive"
             style={{ cursor: 'pointer', minHeight: 'var(--textarea-min-height)' }}
@@ -111,6 +118,7 @@ const StartingPromptNode = ({ data, id, isConnectable }) => {
         type="source"
         position={Position.Right}
         className="react-flow__handle"
+        isConnectable={isConnectable}
       />
     </div>
   );

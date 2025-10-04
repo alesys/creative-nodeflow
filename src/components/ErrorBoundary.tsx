@@ -1,18 +1,28 @@
-import React from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 import logger from '../utils/logger';
 
-class ErrorBoundary extends React.Component {
-  constructor(props) {
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(_error: Error): Partial<ErrorBoundaryState> {
     // Update state so the next render will show the fallback UI
     return { hasError: true };
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // Suppress ResizeObserver errors as they're harmless
     if (error.message && error.message.includes('ResizeObserver')) {
       logger.warn('ResizeObserver error suppressed:', error.message);
@@ -27,20 +37,20 @@ class ErrorBoundary extends React.Component {
     });
   }
 
-  render() {
+  render(): ReactNode {
     if (this.state.hasError) {
       // Fallback UI
       return (
-        <div style={{ 
-          padding: '20px', 
-          border: '1px solid #ff6b6b', 
+        <div style={{
+          padding: '20px',
+          border: '1px solid #ff6b6b',
           borderRadius: '8px',
           backgroundColor: '#ffe0e0',
           color: '#d63031'
         }}>
           <h2>Something went wrong</h2>
           <p>{this.state.error && this.state.error.toString()}</p>
-          <button 
+          <button
             onClick={() => this.setState({ hasError: false, error: null, errorInfo: null })}
             style={{
               padding: '8px 16px',

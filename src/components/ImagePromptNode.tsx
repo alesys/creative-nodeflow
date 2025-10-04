@@ -5,8 +5,15 @@ import remarkGfm from 'remark-gfm';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import GoogleAIService from '../services/GoogleAIService';
 import { usePromptNode } from '../hooks/useNodeEditor';
+import type { ImagePromptNodeData } from '../types/nodes';
 
-const ImagePromptNode = ({ data, id, isConnectable }) => {
+interface ImagePromptNodeProps {
+  data: ImagePromptNodeData;
+  id: string;
+  isConnectable: boolean;
+}
+
+const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectable }) => {
   const {
     isEditing,
     setIsEditing,
@@ -34,7 +41,7 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
     }
 
     const response = await GoogleAIService.generateImage(prompt, inputContext);
-    
+
     // Emit the response through the output
     if (onOutput) {
       onOutput({
@@ -48,20 +55,22 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
     return response;
   }, [prompt, inputContext, onOutput, id]);
 
-  const handleKeyDown = useCallback(async (e) => {
+  const handleKeyDown = useCallback(async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.ctrlKey && e.key === 'Enter') {
       e.preventDefault();
-      
+
       // Switch from editing to render mode
       setIsEditing(false);
-      
+
       if (!prompt.trim()) {
         setError('Please enter art direction first');
         return;
       }
 
       // Use the optimized handleProcess from the hook
-      await handleProcess(generateImage);
+      await handleProcess(async () => {
+        await generateImage();
+      });
     }
   }, [prompt, setIsEditing, setError, handleProcess, generateImage]);
 
@@ -83,7 +92,7 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
   return (
     <div className={`node-panel ${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}>
         {/* ReactFlow Native Resize Control */}
-        <NodeResizer 
+        <NodeResizer
           minWidth={320}
           minHeight={240}
         />      {/* Node Header with Design System Gradient */}
@@ -118,11 +127,11 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
             </div>
           </div>
         ) : (
-          <div 
+          <div
             onClick={handleEditClick}
             className="textarea-control"
-            style={{ 
-              cursor: 'pointer', 
+            style={{
+              cursor: 'pointer',
               minHeight: 'var(--textarea-min-height)',
               marginTop: 'var(--spacing-sm)'
             }}
@@ -165,7 +174,7 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
         </details>
 
         {/* Model Info - Hidden */}
-        {/* 
+        {/*
         <div className="parameter-control" style={{ borderBottom: 'none', marginTop: 'var(--spacing-sm)' }}>
           <span className="control-label">Model</span>
           <span className="control-value control-value monospace">
@@ -200,13 +209,15 @@ const ImagePromptNode = ({ data, id, isConnectable }) => {
         type="target"
         position={Position.Left}
         className="react-flow__handle"
+        isConnectable={isConnectable}
       />
-      
+
       {/* ReactFlow Output Handle */}
       <Handle
         type="source"
         position={Position.Right}
         className="react-flow__handle"
+        isConnectable={isConnectable}
       />
     </div>
   );

@@ -6,8 +6,15 @@ import { Handle, Position, NodeResizer } from '@xyflow/react';
 import OpenAIService from '../services/OpenAIService';
 import { usePromptNode } from '../hooks/useNodeEditor';
 import logger from '../utils/logger';
+import type { AgentPromptNodeData } from '../types/nodes';
 
-const AgentPromptNode = ({ data, id, isConnectable }) => {
+interface AgentPromptNodeProps {
+  data: AgentPromptNodeData;
+  id: string;
+  isConnectable: boolean;
+}
+
+const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectable }) => {
   const {
     isEditing,
     prompt,
@@ -23,7 +30,7 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
 
   // Input listener is now set up automatically by useNodeInput hook
 
-  const handleKeyDown = useCallback(async (e) => {
+  const handleKeyDown = useCallback(async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     logger.debug('[AgentPromptNode] handleKeyDown called');
     logger.debug('[AgentPromptNode] hasReceivedInput:', hasReceivedInput);
     logger.debug('[AgentPromptNode] inputContext:', inputContext);
@@ -48,11 +55,11 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
   return (
     <div className={`node-panel ${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}>
       {/* ReactFlow Native Resize Control */}
-      <NodeResizer 
+      <NodeResizer
         minWidth={320}
         minHeight={240}
       />
-      
+
       {/* Node Header with Design System Gradient */}
       <div className="node-header text-positive">
         Agent Prompt
@@ -95,11 +102,11 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
             </div>
           </div>
         ) : (
-          <div 
+          <div
             onClick={handleEditClick}
             className="textarea-control"
-            style={{ 
-              cursor: 'pointer', 
+            style={{
+              cursor: 'pointer',
               minHeight: 'var(--textarea-min-height)',
               marginTop: 'var(--spacing-sm)'
             }}
@@ -167,13 +174,15 @@ const AgentPromptNode = ({ data, id, isConnectable }) => {
         type="target"
         position={Position.Left}
         className="react-flow__handle"
+        isConnectable={isConnectable}
       />
-      
+
       {/* ReactFlow Output Handle */}
       <Handle
         type="source"
         position={Position.Right}
         className="react-flow__handle"
+        isConnectable={isConnectable}
       />
     </div>
   );
