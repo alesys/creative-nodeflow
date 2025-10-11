@@ -10,7 +10,7 @@
 .react-flow__node-imagePrompt,
 .react-flow__node-customOutput {
   min-width: var(--node-min-width);
-  min-height: 240px;
+  min-height: var(--node-min-height);
   max-width: none;
   padding: 0; /* Remove default padding, let .node-panel handle it */
   width: 100%;
@@ -99,17 +99,21 @@
   background: linear-gradient(to bottom, var(--color-header-output-from), var(--color-header-output-to));
 }
 
-/* Map our node types to header styles */
+/* Map our node types to header styles - All panels now use gray (utility) colors */
 .react-flow__node-startingPrompt .node-header {
-  background: linear-gradient(to bottom, var(--color-header-text-positive-from), var(--color-header-text-positive-to));
+  background: linear-gradient(to bottom, var(--color-header-utility-from), var(--color-header-utility-to));
 }
 
 .react-flow__node-agentPrompt .node-header {
-  background: linear-gradient(to bottom, var(--color-header-text-positive-from), var(--color-header-text-positive-to));
+  background: linear-gradient(to bottom, var(--color-header-utility-from), var(--color-header-utility-to));
 }
 
 .react-flow__node-imagePrompt .node-header {
-  background: linear-gradient(to bottom, var(--color-header-model-loader-from), var(--color-header-model-loader-to));
+  background: linear-gradient(to bottom, var(--color-header-utility-from), var(--color-header-utility-to));
+}
+
+.react-flow__node-videoPrompt .node-header {
+  background: linear-gradient(to bottom, var(--color-header-utility-from), var(--color-header-utility-to));
 }
 
 .react-flow__node-customOutput .node-header {
@@ -127,7 +131,7 @@
   background: linear-gradient(to bottom, var(--color-header-output-from), var(--color-header-output-to));
 }
 
-/* Node Body */
+/* Node Body - Complete definition */
 .node-body {
   padding: var(--node-body-padding);
   width: 100%;
@@ -139,6 +143,8 @@
   word-wrap: break-word;
   overflow-wrap: break-word;
   border-radius: 0 0 var(--node-border-radius) var(--node-border-radius); /* Match panel corners */
+  min-height: 0; /* Important: allows flex child to shrink below content size */
+  gap: var(--spacing-xs); /* Add consistent spacing between child elements */
 }
 
 /* ============================================
@@ -236,16 +242,23 @@
    PARAMETER CONTROLS
    ============================================ */
 
-/* Parameter Control Base */
+/* Parameter Control Base - should be compact */
 .parameter-control {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  justify-content: space-between;
-  padding: var(--control-padding);
+  justify-content: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) 0;
   font-size: var(--control-font-size);
   border-bottom: var(--control-border-bottom);
   margin-bottom: var(--control-spacing);
   transition: background-color var(--duration-fast) var(--easing-default);
+  /* Ensure minimal height and compact layout */
+  min-height: auto;
+  height: auto;
+  line-height: 1.2;
+  flex: none; /* Don't expand to fill parent container */
 }
 
 .parameter-control:hover {
@@ -259,7 +272,8 @@
 
 .control-label {
   color: var(--control-label-color);
-  flex: 1;
+  flex: none;
+  line-height: 1.2;
 }
 
 .control-value {
@@ -276,6 +290,19 @@
 
 .control-value.toggle-disabled {
   color: var(--color-control-toggle-disabled);
+}
+
+/* Select elements in parameter controls should be compact and align properly */
+.parameter-control select {
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--node-border-color);
+  background: var(--node-body-background);
+  color: var(--color-text-primary);
+  font-size: 12px;
+  line-height: 1.2;
+  min-height: auto;
+  height: auto;
 }
 
 /* Slider Control */
@@ -312,37 +339,50 @@
   font-size: var(--textarea-font-size);
   line-height: var(--textarea-line-height);
   color: var(--textarea-text-color);
+  background: #000000;
+  border: 1px solid #333333;
   border-radius: var(--textarea-border-radius);
   min-height: var(--textarea-min-height);
   margin-top: var(--spacing-xs);
   resize: none; /* Disable textarea resizing */
 }
 
-/* Textarea wrapper should also expand */
-.node-body > div {
+/* Node body flex container properties are now defined above */
+
+/* Textarea wrapper should be flex container but not expand */
+/* Only apply to divs that contain textarea controls, not parameter controls */
+.node-body > div:not(.parameter-control):not(.helper-text):not(.details-section):not(.status-area) {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 1; /* Take available space */
   min-height: 0; /* Important: allows flex child to shrink below content size */
+  margin-bottom: var(--spacing-xs); /* Ensure spacing between sections */
 }
 
-/* Ensure textarea takes all available space except helper text */
-.node-body > div > .textarea-control {
+/* 4.A: Textarea control should take maximum available space within its container */
+.node-body > div > .textarea-control,
+.node-body > .textarea-control {
   flex: 1;
   min-height: var(--textarea-min-height);
   height: auto; /* Let flex handle the height */
+  margin-top: 0; /* Remove top margin since node-body has gap */
+  margin-bottom: 0; /* Remove bottom margin since node-body has gap */
 }
 
-/* Helper text and status indicators should not flex, just take needed space */
+/* 4.B, 4.C, 4.D: Helper text, parameter controls, and details should take minimal space */
 .helper-text,
-.parameter-control {
+.parameter-control,
+.details-section {
   flex-shrink: 0;
+  flex-grow: 0;
+  /* Take only the space needed for content */
 }
 
 /* Status Bar - Base styles for all node types */
 .output-status-bar,
 .agent-status-bar,
-.image-status-bar {
+.image-status-bar,
+.video-status-bar {
   display: flex;
   justify-content: flex-start;
   align-items: center;
@@ -362,22 +402,28 @@
   justify-content: space-between;
 }
 
-/* Starting Status Bar - Blue theme */
+/* Starting Status Bar - Neutral theme (same as output) */
 .starting-status-bar {
-  background: rgba(59, 130, 246, 0.1);
-  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  background: rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Agent Status Bar - Green theme */
+/* Agent Status Bar - Neutral theme (same as output) */
 .agent-status-bar {
-  background: rgba(21, 128, 61, 0.1);
-  border-bottom: 1px solid rgba(21, 128, 61, 0.2);
+  background: rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Image Status Bar - Purple theme */
+/* Image Status Bar - Neutral theme (same as output) */
 .image-status-bar {
-  background: rgba(147, 51, 234, 0.1);
-  border-bottom: 1px solid rgba(147, 51, 234, 0.2);
+  background: rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Video Status Bar - Neutral theme (same as output) */
+.video-status-bar {
+  background: rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Generic status item styles for all status bars */
@@ -395,11 +441,26 @@
 }
 
 .status-text {
-  color: var(--control-value-color);
+  color: var(--color-accent-warning);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: var(--font-size-sm);
+}
+
+/* Status Area - Should hug content height, not expand. Collapse when empty */
+.status-area {
+  flex: none;
+  flex-shrink: 0;
+  min-height: 0;
+  height: auto;
+}
+
+/* Only show status area content when it has children */
+.status-area:empty {
+  height: 0;
+  margin: 0;
+  padding: 0;
 }
 
 /* Status Display - Compact version for output panels */
@@ -433,29 +494,30 @@
 }
 
 .textarea-control.positive {
-  background: var(--color-textarea-positive-bg);
-  border: 1px solid var(--color-textarea-positive-border);
+  background: #000000;
+  border: 1px solid #333333;
 }
 
 .textarea-control.negative {
-  background: var(--color-textarea-negative-bg);
-  border: 1px solid var(--color-textarea-negative-border);
+  background: #000000;
+  border: 1px solid #333333;
 }
 
 .textarea-control.purple {
-  background: rgba(147, 51, 234, 0.15);
-  border: 1px solid rgba(147, 51, 234, 0.4);
+  background: #000000;
+  border: 1px solid #333333;
 }
 
-/* Node-specific textarea styling */
+/* Node-specific textarea styling - All now use black backgrounds */
 .react-flow__node-agentPrompt .textarea-control {
-  background: var(--color-textarea-positive-bg);
-  border: 1px solid var(--color-textarea-positive-border);
+  background: #000000;
+  border: 1px solid #333333;
 }
 
-.react-flow__node-imagePrompt .textarea-control {
-  background: rgba(147, 51, 234, 0.15);
-  border: 1px solid rgba(147, 51, 234, 0.4);
+.react-flow__node-imagePrompt .textarea-control,
+.react-flow__node-videoPrompt .textarea-control {
+  background: #000000;
+  border: 1px solid #333333;
 }
 
 /* Textarea styling - Legacy */
@@ -484,8 +546,8 @@
 .custom-node textarea:focus,
 .node-text-area:focus {
   outline: none;
-  border-color: var(--color-accent-primary);
-  box-shadow: 0 0 0 var(--focus-outline-width) rgba(59, 130, 246, 0.2);
+  border-color: var(--color-accent-warning);
+  box-shadow: 0 0 0 var(--focus-outline-width) rgba(245, 158, 11, 0.2);
 }
 
 /* Preview content */
@@ -505,19 +567,23 @@
   margin: var(--spacing-xs);
 }
 
-/* Helper text styles */
+/* Helper text styles - should be compact */
 .helper-text {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+  /* Ensure minimal height */
+  line-height: 1.2;
+  margin: 0; /* Remove default margins - node-body gap handles spacing */
+  padding: var(--spacing-xs) 0 0 0; /* Add top padding for better visual spacing */
 }
 
 .helper-text-spaced {
   padding: 0 var(--spacing-xs);
-  margin-top: var(--spacing-sm);
+  margin-top: 0; /* Remove margin - gap handles spacing */
 }
 
 .helper-text-margined {
-  margin-top: var(--spacing-xs);
+  margin-top: 0; /* Remove margin - gap handles spacing */
 }
 
 .helper-text-italic {
@@ -632,13 +698,19 @@
   white-space: pre-wrap;
 }
 
-/* Details and summary */
+/* Details and summary - should be compact */
 .details-section {
-  margin-top: var(--spacing-sm);
+  margin-top: 0; /* Remove top margin - node-body gap handles spacing */
+  margin-bottom: 0; /* Remove bottom margin */
   max-width: 100%;
   overflow: hidden;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  /* Ensure minimal height - only expand when opened */
+  min-height: auto;
+  height: auto;
+  /* Ensure proper spacing within the section */
+  padding: 0;
 }
 
 .details-section-large {
@@ -666,10 +738,25 @@
 /* Content overflow fixes for all node types */
 .react-flow__node-startingPrompt .node-body,
 .react-flow__node-agentPrompt .node-body,
-.react-flow__node-imagePrompt .node-body {
+.react-flow__node-imagePrompt .node-body,
+.react-flow__node-videoPrompt .node-body {
   overflow: hidden;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  /* Ensure proper flexbox layout */
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+/* Ensure VideoPromptNode gets proper ReactFlow node styling */
+.react-flow__node-videoPrompt {
+  min-width: var(--node-min-width);
+  min-height: var(--node-min-height);
+  max-width: none;
+  padding: 0;
+  width: 100%;
+  height: 100%;
 }
 
 /* Output node body specific styling to prevent extra space */
@@ -706,7 +793,8 @@
 
 .react-flow__node-startingPrompt .textarea-control,
 .react-flow__node-agentPrompt .textarea-control,
-.react-flow__node-imagePrompt .textarea-control {
+.react-flow__node-imagePrompt .textarea-control,
+.react-flow__node-videoPrompt .textarea-control {
   word-wrap: break-word;
   overflow-wrap: break-word;
   white-space: pre-wrap;
@@ -715,7 +803,8 @@
 /* Helper text containment */
 .react-flow__node-startingPrompt .helper-text,
 .react-flow__node-agentPrompt .helper-text,
-.react-flow__node-imagePrompt .helper-text {
+.react-flow__node-imagePrompt .helper-text,
+.react-flow__node-videoPrompt .helper-text {
   word-wrap: break-word;
   overflow-wrap: break-word;
   max-width: 100%;
@@ -940,6 +1029,22 @@ textarea:focus-visible {
   position: absolute;
   pointer-events: auto;
   z-index: 10;
+}
+
+/* ============================================
+   PROGRESS BAR ANIMATION
+   ============================================ */
+
+@keyframes progress-bar {
+  0% {
+    transform: scaleX(0);
+  }
+  50% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(0);
+  }
 }
 
 /* ============================================

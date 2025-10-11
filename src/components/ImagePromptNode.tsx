@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import GoogleAIService from '../services/GoogleAIService';
 import { usePromptNode } from '../hooks/useNodeEditor';
+import { UI_DIMENSIONS } from '../constants/app';
 import type { ImagePromptNodeData } from '../types/nodes';
 
 interface ImagePromptNodeProps {
@@ -29,6 +30,8 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
     setError
   } = usePromptNode(data.prompt || '', data, id);
 
+  const [aspectRatio, setAspectRatio] = React.useState<string>(data.aspectRatio || '1:1');
+
   // Input listener is now set up automatically by useNodeInput hook
 
   // Destructure onOutput from data to optimize dependency array
@@ -40,7 +43,7 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
       throw new Error('Google API key not configured. Please check your .env file.');
     }
 
-    const response = await GoogleAIService.generateImage(prompt, inputContext);
+    const response = await GoogleAIService.generateImage(prompt, inputContext, aspectRatio);
 
     // Emit the response through the output
     if (onOutput) {
@@ -53,7 +56,7 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
     }
 
     return response;
-  }, [prompt, inputContext, onOutput, id]);
+  }, [prompt, inputContext, aspectRatio, onOutput, id]);
 
   const handleKeyDown = useCallback(async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.ctrlKey && e.key === 'Enter') {
@@ -93,8 +96,8 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
     <div className={`node-panel ${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}>
         {/* ReactFlow Native Resize Control */}
         <NodeResizer
-          minWidth={320}
-          minHeight={240}
+          minWidth={UI_DIMENSIONS.NODE_MIN_WIDTH}
+          minHeight={UI_DIMENSIONS.NODE_MIN_HEIGHT}
         />      {/* Node Header with Design System Gradient */}
       <div className="node-header model-loader">
         Art Director
@@ -104,6 +107,24 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
       <div className="image-status-bar">
         <div className="status-item">
           <span className="status-text" style={{ color: connectionStatus.color }}>{connectionStatus.text}</span>
+          {isProcessing && (
+            <div style={{
+              width: '100%',
+              height: '4px',
+              background: 'var(--node-border-color)',
+              borderRadius: '2px',
+              marginTop: '4px',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                width: '100%',
+                height: '100%',
+                background: 'var(--color-accent-primary)',
+                animation: 'progress-bar 1.5s ease-in-out infinite',
+                transformOrigin: 'left'
+              }} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -111,7 +132,7 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
       <div className="node-body">
         {/* Text Area Control */}
         {isEditing ? (
-          <div style={{ marginTop: 'var(--spacing-sm)' }}>
+          <div>
             <textarea
               ref={textareaRef}
               value={prompt}
@@ -132,8 +153,7 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
             className="textarea-control"
             style={{
               cursor: 'pointer',
-              minHeight: 'var(--textarea-min-height)',
-              marginTop: 'var(--spacing-sm)'
+              minHeight: 'var(--textarea-min-height)'
             }}
           >
             {prompt ? (
@@ -149,7 +169,7 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
         )}
 
         {/* Context Display - Always show to indicate connection status */}
-        <details className="details-section" style={{ marginTop: 'var(--spacing-sm)' }}>
+        <details className="details-section">
           <summary className="helper-text summary-clickable">
             {hasReceivedInput ? (
               'Input Context (will influence generation)'
@@ -159,12 +179,37 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
           </summary>
           <div style={{ marginTop: 'var(--spacing-xs)' }}>
             {hasReceivedInput && inputContext?.messages ? (
-              inputContext.messages.slice(-2).map((msg, idx) => (
-                <div key={idx} className="helper-text helper-text-small" style={{ marginBottom: 'var(--spacing-xs)' }}>
-                  <strong>{msg.role}:</strong> {msg.content.substring(0, 80)}
-                  {msg.content.length > 80 && '...'}
-                </div>
-              ))
+              inputContext.messages.slice(-2).map((msg, idx) => {
+                // Handle multimodal content
+                if (Array.isArray(msg.content)) {
+                  return (
+                    <div key={idx} className="helper-text helper-text-small" style={{ marginBottom: 'var(--spacing-xs)' }}>
+                      <strong>{msg.role}:</strong>
+                      {msg.content.map((part, partIdx) => {
+                        if (part.type === 'text') {
+                          return (
+                            <span key={partIdx}>
+                              {' '}{part.text.substring(0, 80)}
+                              {part.text.length > 80 && '...'}
+                            </span>
+                          );
+                        } else if (part.type === 'image') {
+                          return <span key={partIdx}> [Image]</span>;
+                        }
+                        return null;
+                      })}
+                    </div>
+                  );
+                } else {
+                  // Handle simple text content
+                  return (
+                    <div key={idx} className="helper-text helper-text-small" style={{ marginBottom: 'var(--spacing-xs)' }}>
+                      <strong>{msg.role}:</strong> {msg.content.substring(0, 80)}
+                      {msg.content.length > 80 && '...'}
+                    </div>
+                  );
+                }
+              })
             ) : (
               <div className="helper-text helper-text-small">
                 {hasReceivedInput ? 'No context messages available' : 'Connect an input node to see context here'}
@@ -173,15 +218,34 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
           </div>
         </details>
 
-        {/* Model Info - Hidden */}
-        {/*
-        <div className="parameter-control" style={{ borderBottom: 'none', marginTop: 'var(--spacing-sm)' }}>
-          <span className="control-label">Model</span>
-          <span className="control-value control-value monospace">
-            Gemini 2.5 Flash
-          </span>
+        {/* Aspect Ratio Selector */}
+        <div className="parameter-control" style={{ borderBottom: 'none', minHeight: 'auto' }}>
+          <span className="control-label">Aspect Ratio</span>
+          <select
+            value={aspectRatio}
+            onChange={(e) => setAspectRatio(e.target.value)}
+            className="nodrag"
+            style={{
+              padding: '4px 8px',
+              borderRadius: '4px',
+              border: '1px solid var(--node-border-color)',
+              background: 'var(--node-body-background)',
+              color: 'var(--color-text-primary)',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="9:16">9:16 (Portrait)</option>
+            <option value="1:1">1:1 (Square)</option>
+            <option value="4:5">4:5</option>
+            <option value="16:9">16:9 (Landscape)</option>
+            <option value="4:3">4:3</option>
+            <option value="3:4">3:4</option>
+            <option value="3:2">3:2</option>
+            <option value="2:3">2:3</option>
+            <option value="5:4">5:4</option>
+          </select>
         </div>
-        */}
 
         {/* Status Area - Always present to prevent layout shifts */}
         <div className="status-area" style={{ marginTop: 'var(--spacing-sm)', minHeight: '24px' }}>

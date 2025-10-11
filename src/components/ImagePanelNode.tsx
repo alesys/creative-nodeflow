@@ -4,7 +4,9 @@
  */
 
 import React, { useState, useCallback, useRef } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import ReactDOM from 'react-dom';
+import { Handle, Position, NodeResizer, useReactFlow } from '@xyflow/react';
+import { UI_DIMENSIONS } from '../constants/app';
 import type { ImagePanelNodeData } from '../types/nodes';
 import logger from '../utils/logger';
 
@@ -12,13 +14,21 @@ interface ImagePanelNodeProps {
   data: ImagePanelNodeData;
   id: string;
   isConnectable: boolean;
-  selected?: boolean;
 }
 
-const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable, selected }) => {
+const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable }) => {
   const [imageUrl, setImageUrl] = useState<string | undefined>(data.imageUrl);
   const [isDragging, setIsDragging] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { setNodes } = useReactFlow();
+
+  // Sync with external updates (e.g., from clipboard paste)
+  React.useEffect(() => {
+    if (data.imageUrl && data.imageUrl !== imageUrl) {
+      setImageUrl(data.imageUrl);
+    }
+  }, [data.imageUrl, imageUrl]);
 
   // Handle file selection
   const handleFileSelect = useCallback((file: File) => {
@@ -32,17 +42,59 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
       const url = e.target?.result as string;
       setImageUrl(url);
 
-      // Output the image data
+      // Extract mime type from data URL
+      const mimeType = url.split(';')[0].split(':')[1] || 'image/png';
+
+      // Build context for the image
+      const imageContext = {
+        messages: [
+          {
+            role: 'user' as const,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'User uploaded an image'
+              },
+              {
+                type: 'image' as const,
+                imageUrl: url,
+                mimeType: mimeType
+              }
+            ]
+          }
+        ]
+      };
+
+      // Update this node's data so it's available when connections are made
+      setNodes((nodes) =>
+        nodes.map((node) =>
+          node.id === id
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  imageUrl: url,
+                  content: url,
+                  type: 'image',
+                  context: imageContext
+                }
+              }
+            : node
+        )
+      );
+
+      // Output the image data with context (will trigger for existing connections)
       if (data.onOutput) {
         data.onOutput({
           nodeId: id,
           content: url,
-          type: 'image'
+          type: 'image',
+          context: imageContext
         });
       }
     };
     reader.readAsDataURL(file);
-  }, [data, id]);
+  }, [data, id, setNodes]);
 
   // Handle file input change
   const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,45 +128,50 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
     }
   }, [handleFileSelect]);
 
-  // Handle click to upload
+  // Handle click - open lightbox if image exists, otherwise upload
   const handleClick = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
+    if (imageUrl) {
+      setLightboxOpen(true);
+    } else {
+      fileInputRef.current?.click();
+    }
+  }, [imageUrl]);
 
-  // Handle paste event (will be handled at parent level)
-  // This component will expose a method to receive pasted images
+  // Handle delete image
+  const handleDeleteImage = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering parent click (lightbox)
+
+    setImageUrl(undefined);
+
+    // Clear the node data
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                imageUrl: undefined,
+                content: undefined,
+                type: undefined,
+                context: undefined
+              }
+            }
+          : node
+      )
+    );
+
+    logger.debug('[ImagePanelNode] Image deleted');
+  }, [id, setNodes]);
 
   return (
-    <div
-      style={{
-        background: 'var(--node-body-background)',
-        border: selected
-          ? '2px solid var(--color-accent-primary)'
-          : '1px solid var(--node-border-color)',
-        borderRadius: '8px',
-        width: '280px',
-        minHeight: '200px',
-        display: 'flex',
-        flexDirection: 'column',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          background: 'var(--node-header-background)',
-          padding: '12px',
-          borderTopLeftRadius: '8px',
-          borderTopRightRadius: '8px',
-          borderBottom: '1px solid var(--node-border-color)',
-          fontWeight: 600,
-          fontSize: '14px',
-          color: 'var(--color-text-primary)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}
-      >
+    <div className="node-panel">
+      <NodeResizer 
+        minWidth={UI_DIMENSIONS.NODE_MIN_WIDTH}
+        minHeight={UI_DIMENSIONS.NODE_MIN_HEIGHT}
+      />
+      {/* Node Header with Design System Gradient */}
+      <div className="node-header">
         <span>🖼️</span>
         <span>Image Panel</span>
       </div>
@@ -132,26 +189,64 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
           alignItems: 'center',
           justifyContent: 'center',
           padding: '16px',
-          cursor: 'pointer',
+          cursor: imageUrl ? 'zoom-in' : 'pointer',
           background: isDragging ? 'var(--color-accent-primary-alpha)' : 'transparent',
           border: isDragging ? '2px dashed var(--color-accent-primary)' : 'none',
           borderRadius: '4px',
           margin: '8px',
           minHeight: '150px',
-          transition: 'all 0.2s ease'
+          transition: 'all 0.2s ease',
+          position: 'relative'
         }}
       >
         {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt="Uploaded preview"
-            style={{
-              maxWidth: '100%',
-              maxHeight: '200px',
-              objectFit: 'contain',
-              borderRadius: '4px'
-            }}
-          />
+          <>
+            <img
+              src={imageUrl}
+              alt="Uploaded preview"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                borderRadius: '4px'
+              }}
+            />
+            {/* Delete/Trash Icon - appears when image exists */}
+            <button
+              onClick={handleDeleteImage}
+              className="nodrag"
+              style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                background: 'rgba(0, 0, 0, 0.5)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                width: '28px',
+                height: '28px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '16px',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+                transition: 'all 0.2s ease',
+                zIndex: 10
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)';
+                e.currentTarget.style.transform = 'scale(1.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+              title="Delete image"
+            >
+              🗑️
+            </button>
+          </>
         ) : (
           <div
             style={{
@@ -195,6 +290,29 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
           border: '2px solid var(--node-body-background)',
         }}
       />
+
+      {/* Lightbox Portal - Same as OutputNode */}
+      {lightboxOpen && imageUrl && ReactDOM.createPortal(
+        <div
+          className="lightbox-overlay"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={imageUrl}
+              alt="Full size preview"
+              className="lightbox-image"
+            />
+            <button
+              className="lightbox-close"
+              onClick={() => setLightboxOpen(false)}
+            >
+              ✕
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

@@ -1,11 +1,13 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   ReactFlow,
+  ReactFlowProvider,
   MiniMap,
   Controls,
   Background,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   addEdge,
   Node,
   Edge,
@@ -20,10 +22,12 @@ import '@xyflow/react/dist/style.css';
 import StartingPromptNode from './components/StartingPromptNode';
 import AgentPromptNode from './components/AgentPromptNode';
 import ImagePromptNode from './components/ImagePromptNode';
+import VideoPromptNode from './components/VideoPromptNode';
 import OutputNode from './components/OutputNode';
 import ImagePanelNode from './components/ImagePanelNode';
 import FilePanel from './components/FilePanel';
 import { alertService } from './components/Alert';
+import { UI_DIMENSIONS } from './constants/app';
 import logger from './utils/logger';
 
 // Import types
@@ -31,6 +35,7 @@ import type {
   StartingPromptNodeData,
   AgentPromptNodeData,
   ImagePromptNodeData,
+  VideoPromptNodeData,
   OutputNodeData,
   ImagePanelNodeData
 } from './types/nodes';
@@ -57,9 +62,9 @@ interface HandleContextState {
   isSource: boolean;
 }
 
-type CustomNodeType = 'startingPrompt' | 'agentPrompt' | 'imagePrompt' | 'customOutput' | 'imagePanel';
+type CustomNodeType = 'startingPrompt' | 'agentPrompt' | 'imagePrompt' | 'videoPrompt' | 'customOutput' | 'imagePanel';
 
-type InputHandlerCallback = (data: { content: string; context?: ConversationContext; type: 'text' | 'image'; nodeId?: string }) => void;
+type InputHandlerCallback = (data: { content: string; context?: ConversationContext; type: 'text' | 'image' | 'video'; nodeId?: string; videoUrl?: string }) => void;
 
 // ============================================================================
 // Initial State
@@ -70,8 +75,8 @@ const initialNodes: Node[] = [
     id: 'starting-1',
     position: { x: 100, y: 100 },
     type: 'startingPrompt',
-    width: 320,
-    height: 240,
+    width: UI_DIMENSIONS.NODE_MIN_WIDTH,
+    height: UI_DIMENSIONS.NODE_MIN_HEIGHT,
     zIndex: 1,
     data: {
       prompt: '',
@@ -109,13 +114,17 @@ const initialEdges: Edge[] = [
 // Main Component
 // ============================================================================
 
-function CreativeNodeFlow() {
+function CreativeNodeFlowInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [handleContext, setHandleContext] = useState<HandleContextState | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [filePanelVisible] = useState<boolean>(true);
   const [, setSelectedFileContexts] = useState<FileContext[]>([]);
+
+  // ReactFlow instance for proper coordinate transformations
+  const { screenToFlowPosition: reactFlowScreenToFlowPosition } = useReactFlow();
 
   // Using useRef for nodeInputHandlers to prevent state mutation
   const nodeInputHandlers = useRef<Map<string, InputHandlerCallback>>(new Map());
@@ -160,6 +169,7 @@ function CreativeNodeFlow() {
     startingPrompt: StartingPromptNode,
     agentPrompt: AgentPromptNode,
     imagePrompt: ImagePromptNode,
+    videoPrompt: VideoPromptNode,
     customOutput: OutputNode,
     imagePanel: ImagePanelNode,
   }), []);
@@ -270,6 +280,8 @@ function CreativeNodeFlow() {
 
   const onConnect: OnConnect = useCallback(
     (params: Connection) => {
+      console.log('[CreativeNodeFlow] Connection successful:', params);
+      setIsConnecting(false); // Connection was successful
       setEdges((eds) => addEdge({
         ...params,
         animated: true,
@@ -300,77 +312,70 @@ function CreativeNodeFlow() {
     [setEdges, nodes],
   );
 
-  // Helper to convert screen coordinates to flow coordinates
+  // Use ReactFlow's built-in coordinate transformation (more reliable)
   const screenToFlowPosition = useCallback((screenX: number, screenY: number): { x: number; y: number } => {
-    const reactFlowElement = reactFlowWrapperRef.current?.querySelector('.react-flow__viewport');
-    if (reactFlowElement) {
-      const bounds = reactFlowElement.getBoundingClientRect();
-      // Get the transform from the viewport
-      const transform = window.getComputedStyle(reactFlowElement).transform;
+    return reactFlowScreenToFlowPosition({ x: screenX, y: screenY });
+  }, [reactFlowScreenToFlowPosition]);
 
-      if (transform && transform !== 'none') {
-        // Parse the matrix values
-        const matrix = transform.match(/matrix\(([^)]+)\)/)?.[1].split(', ');
-        if (matrix && matrix.length === 6) {
-          const scale = parseFloat(matrix[0]);
-          const translateX = parseFloat(matrix[4]);
-          const translateY = parseFloat(matrix[5]);
-
-          return {
-            x: (screenX - bounds.left - translateX) / scale,
-            y: (screenY - bounds.top - translateY) / scale
-          };
-        }
-      }
-
-      // Fallback if no transform
-      return {
-        x: screenX - bounds.left,
-        y: screenY - bounds.top
-      };
-    }
-
-    // Final fallback
-    return { x: screenX, y: screenY };
-  }, []);
+  // Handle connection start (when user starts dragging from a handle)
+  const onConnectStart = useCallback(
+    (event: MouseEvent | TouchEvent, { nodeId, handleId, handleType }: any) => {
+      console.log('[CreativeNodeFlow] onConnectStart', {
+        nodeId,
+        handleId,
+        handleType,
+        eventType: event.type
+      });
+      setIsConnecting(true);
+    },
+    []
+  );
 
   // Handle connection end (when user releases connection without connecting)
   const onConnectEnd = useCallback(
-    (event: MouseEvent | TouchEvent) => {
-      // Check if the connection was actually made
-      const target = event.target as HTMLElement;
-      const isHandle = target.classList.contains('react-flow__handle');
-
-      // If not released on a handle, show the context menu to create a new node
-      if (!isHandle) {
-        const mouseEvent = event as MouseEvent;
-        const flowPosition = screenToFlowPosition(mouseEvent.clientX, mouseEvent.clientY);
-
-        setContextMenu({
-          x: mouseEvent.clientX,
-          y: mouseEvent.clientY,
-          flowX: flowPosition.x,
-          flowY: flowPosition.y,
-        });
-      }
-    },
-    [screenToFlowPosition]
-  );
-
-  // Handle double-click on pane to create node
-  const onPaneDoubleClick = useCallback(
-    (event: React.MouseEvent) => {
-      const flowPosition = screenToFlowPosition(event.clientX, event.clientY);
-
-      setContextMenu({
-        x: event.clientX,
-        y: event.clientY,
-        flowX: flowPosition.x,
-        flowY: flowPosition.y,
+    (event: MouseEvent | TouchEvent, connectionState?: any) => {
+      console.log('[CreativeNodeFlow] onConnectEnd triggered', {
+        target: event.target,
+        connectionState,
+        eventType: event.type,
+        isConnecting
       });
+
+      // Handle both mouse and touch events
+      let clientX: number, clientY: number;
+      if (event instanceof MouseEvent) {
+        clientX = event.clientX;
+        clientY = event.clientY;
+      } else {
+        // TouchEvent
+        const touch = event.changedTouches[0];
+        clientX = touch.clientX;
+        clientY = touch.clientY;
+      }
+
+      // Use a small delay to check if a connection was actually made
+      setTimeout(() => {
+        if (isConnecting) {
+          // Connection was started but not completed - show menu
+          console.log('[CreativeNodeFlow] Connection failed, showing context menu');
+          
+          const flowPosition = screenToFlowPosition(clientX, clientY);
+
+          setContextMenu({
+            x: clientX,
+            y: clientY,
+            flowX: flowPosition.x,
+            flowY: flowPosition.y,
+          });
+          
+          setIsConnecting(false); // Reset the state
+        }
+      }, 50); // Small delay to allow onConnect to fire first if connection is successful
     },
-    [screenToFlowPosition]
+    [screenToFlowPosition, isConnecting]
   );
+
+
 
   // Handle keyboard events for deletion and paste
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
@@ -437,6 +442,27 @@ function CreativeNodeFlow() {
                   if (selectedImagePanels.length > 0) {
                     // Update the first selected Image Panel
                     const targetNodeId = selectedImagePanels[0].id;
+
+                    // Build context for the image
+                    const imageContext = {
+                      messages: [
+                        {
+                          role: 'user' as const,
+                          content: [
+                            {
+                              type: 'text' as const,
+                              text: 'User uploaded an image'
+                            },
+                            {
+                              type: 'image' as const,
+                              imageUrl: imageUrl,
+                              mimeType: imageUrl.split(';')[0].split(':')[1] || 'image/png'
+                            }
+                          ]
+                        }
+                      ]
+                    };
+
                     setNodes(currentNodes =>
                       currentNodes.map(node =>
                         node.id === targetNodeId
@@ -444,21 +470,28 @@ function CreativeNodeFlow() {
                               ...node,
                               data: {
                                 ...node.data,
-                                imageUrl
+                                imageUrl,
+                                content: imageUrl,
+                                type: 'image',
+                                context: imageContext
                               }
                             }
                           : node
                       )
                     );
 
-                    // Trigger output
-                    const onOutput = (selectedImagePanels[0].data as any).onOutput;
-                    if (onOutput && typeof onOutput === 'function') {
-                      onOutput({
-                        nodeId: targetNodeId,
-                        content: imageUrl,
-                        type: 'image'
-                      });
+                    // Trigger output only if the Image Panel has outgoing connections
+                    const hasConnections = edgesRef.current.some(edge => edge.source === targetNodeId);
+                    if (hasConnections) {
+                      const onOutput = (selectedImagePanels[0].data as any).onOutput;
+                      if (onOutput && typeof onOutput === 'function') {
+                        onOutput({
+                          nodeId: targetNodeId,
+                          content: imageUrl,
+                          type: 'image',
+                          context: imageContext
+                        });
+                      }
                     }
                   } else {
                     // Create a new Image Panel in the center of viewport
@@ -474,6 +507,27 @@ function CreativeNodeFlow() {
                       );
 
                       const newId = `imagePanel-${Date.now()}`;
+
+                      // Build context for the image
+                      const imageContext = {
+                        messages: [
+                          {
+                            role: 'user' as const,
+                            content: [
+                              {
+                                type: 'text' as const,
+                                text: 'User uploaded an image'
+                              },
+                              {
+                                type: 'image' as const,
+                                imageUrl: imageUrl,
+                                mimeType: imageUrl.split(';')[0].split(':')[1] || 'image/png'
+                              }
+                            ]
+                          }
+                        ]
+                      };
+
                       const newNode: any = {
                         id: newId,
                         position: { x: flowPosition.x - 140, y: flowPosition.y - 100 },
@@ -483,19 +537,17 @@ function CreativeNodeFlow() {
                         zIndex: getHighestZIndex(),
                         data: {
                           imageUrl,
+                          content: imageUrl,
+                          type: 'image',
+                          context: imageContext,
                           ...registerNodeHandlers(newId)
                         }
                       };
 
                       setNodes(nodes => [...nodes, newNode]);
 
-                      // Trigger output
-                      setTimeout(() => {
-                        const handler = nodeInputHandlers.current.get(newId);
-                        if (handler) {
-                          handler({ content: imageUrl, type: 'image', nodeId: newId });
-                        }
-                      }, 100);
+                      // Don't trigger output for newly created panels -
+                      // they won't have connections yet, so no need to auto-create output nodes
                     }
                   }
                 };
@@ -514,13 +566,14 @@ function CreativeNodeFlow() {
   // Right-click context menu handler
   const handlePaneContextMenu = useCallback((event: React.MouseEvent | MouseEvent) => {
     event.preventDefault();
+    const flowPosition = screenToFlowPosition(event.clientX, event.clientY);
     setContextMenu({
       x: event.clientX, // Screen coordinates for menu positioning
       y: event.clientY,
-      flowX: event.clientX, // Will be converted to flow coordinates in createNodeFromMenu
-      flowY: event.clientY,
+      flowX: flowPosition.x, // Flow coordinates for node creation
+      flowY: flowPosition.y,
     });
-  }, []);
+  }, [screenToFlowPosition]);
 
   // Handle file context from FilePanel
   const handleFileContext = useCallback((contexts: any) => {
@@ -644,12 +697,12 @@ function CreativeNodeFlow() {
         );
         autoConnect = true;
       } else {
-        // Fallback to menu position
-        position = { x: contextMenu.flowX - 100, y: contextMenu.flowY - 50 };
+        // Fallback to menu position - center the node at cursor
+        position = { x: contextMenu.flowX - 160, y: contextMenu.flowY - 120 };
       }
     } else {
-      // Use flow coordinates from context menu
-      position = { x: contextMenu.flowX - 100, y: contextMenu.flowY - 50 };
+      // Use flow coordinates from context menu - center the node at cursor
+      position = { x: contextMenu.flowX - 160, y: contextMenu.flowY - 120 };
     }
 
     let nodeData: any = {
@@ -677,6 +730,12 @@ function CreativeNodeFlow() {
           prompt: ''
         } as ImagePromptNodeData;
         break;
+      case 'videoPrompt':
+        nodeData = {
+          ...nodeData,
+          prompt: ''
+        } as VideoPromptNodeData;
+        break;
       case 'customOutput':
         nodeData = {
           ...nodeData,
@@ -699,8 +758,8 @@ function CreativeNodeFlow() {
       id: newId,
       position,
       type: nodeType,
-      width: nodeType === 'customOutput' ? 480 : (nodeType === 'imagePanel' ? 280 : 320),
-      height: nodeType === 'customOutput' ? 320 : (nodeType === 'imagePanel' ? 200 : 240),
+      width: nodeType === 'customOutput' ? 480 : (nodeType === 'imagePanel' ? 280 : UI_DIMENSIONS.NODE_MIN_WIDTH),
+      height: nodeType === 'customOutput' ? 320 : (nodeType === 'imagePanel' ? 200 : UI_DIMENSIONS.NODE_MIN_HEIGHT),
       zIndex: getHighestZIndex(),
       data: nodeData
     };
@@ -845,9 +904,9 @@ function CreativeNodeFlow() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onConnectStart={onConnectStart}
         onConnectEnd={onConnectEnd}
         onPaneContextMenu={handlePaneContextMenu}
-        onDoubleClick={onPaneDoubleClick}
         nodeTypes={nodeTypes}
         colorMode="dark"
         fitView
@@ -1008,6 +1067,24 @@ function CreativeNodeFlow() {
               cursor: 'pointer',
               fontSize: '14px'
             }}
+            onClick={() => createNodeFromMenu('videoPrompt')}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-accent-primary-alpha)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
+            Motion Director
+          </button>
+          <button
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '8px 16px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--color-text-primary)',
+              textAlign: 'left',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
             onClick={() => createNodeFromMenu('customOutput')}
             onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-accent-primary-alpha)'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
@@ -1054,6 +1131,15 @@ function CreativeNodeFlow() {
         </div>
       )}
     </div>
+  );
+}
+
+// Wrapper component that provides ReactFlow context
+function CreativeNodeFlow() {
+  return (
+    <ReactFlowProvider>
+      <CreativeNodeFlowInner />
+    </ReactFlowProvider>
   );
 }
 

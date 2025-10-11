@@ -123,6 +123,7 @@ export const useNodeProcessing = (): UseNodeProcessingReturn => {
 
 /**
  * Hook for managing input context from connected nodes
+ * Accumulates context from multiple inputs by merging messages
  */
 export const useNodeInput = (data: Pick<PromptNodeData, 'onReceiveInput'>): UseNodeInputReturn => {
   const [inputContext, setInputContext] = useState<ConversationContext | null>(null);
@@ -139,7 +140,29 @@ export const useNodeInput = (data: Pick<PromptNodeData, 'onReceiveInput'>): UseN
         logger.debug('[useNodeInput] Received input:', inputData);
         logger.debug('[useNodeInput] Context:', inputData.context);
         logger.debug('[useNodeInput] Context messages:', inputData.context?.messages?.length);
-        setInputContext(inputData.context || null);
+
+        // Merge new context with existing context
+        setInputContext(prevContext => {
+          if (!inputData.context) {
+            return prevContext;
+          }
+
+          if (!prevContext) {
+            // No previous context, use new context
+            return inputData.context;
+          }
+
+          // Merge messages from both contexts
+          const existingMessages = prevContext.messages || [];
+          const newMessages = inputData.context.messages || [];
+
+          logger.debug('[useNodeInput] Merging contexts - existing:', existingMessages.length, 'new:', newMessages.length);
+
+          return {
+            messages: [...existingMessages, ...newMessages]
+          };
+        });
+
         setHasReceivedInput(true);
       });
     }

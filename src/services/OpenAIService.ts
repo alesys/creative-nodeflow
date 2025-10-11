@@ -58,7 +58,7 @@ class OpenAIService {
       throw new Error('Prompt cannot be empty');
     }
 
-    const messages: ChatMessage[] = [];
+    const messages: Array<OpenAI.Chat.ChatCompletionMessageParam> = [];
 
     // Add system prompt if provided
     if (systemPrompt) {
@@ -71,7 +71,41 @@ class OpenAIService {
     // Add context if provided (with windowing to prevent memory leak)
     if (context && context.messages) {
       const recentMessages = context.messages.slice(-LIMITS.MAX_CONTEXT_MESSAGES);
-      messages.push(...recentMessages);
+
+      for (const msg of recentMessages) {
+        if (typeof msg.content === 'string') {
+          // Simple text message
+          messages.push({
+            role: msg.role,
+            content: msg.content
+          } as OpenAI.Chat.ChatCompletionMessageParam);
+        } else if (Array.isArray(msg.content)) {
+          // Multimodal message with text and images
+          const contentParts: Array<OpenAI.Chat.ChatCompletionContentPart> = [];
+
+          for (const part of msg.content) {
+            if (part.type === 'text') {
+              contentParts.push({
+                type: 'text',
+                text: part.text
+              });
+            } else if (part.type === 'image') {
+              contentParts.push({
+                type: 'image_url',
+                image_url: {
+                  url: part.imageUrl,
+                  detail: 'auto'
+                }
+              });
+            }
+          }
+
+          messages.push({
+            role: msg.role,
+            content: contentParts
+          } as OpenAI.Chat.ChatCompletionMessageParam);
+        }
+      }
     }
 
     // Add current user prompt
@@ -84,7 +118,7 @@ class OpenAIService {
       // GPT-5-nano has strict parameter limitations
       const apiParams: OpenAI.Chat.ChatCompletionCreateParams = {
         model: MODELS.OPENAI,
-        messages: messages as OpenAI.Chat.ChatCompletionMessageParam[]
+        messages: messages
       };
 
       // Only add optional parameters for non-GPT-5-nano models
@@ -98,8 +132,14 @@ class OpenAIService {
       const responseContent = response.choices[0].message.content || '';
 
       // Return response with updated context (windowed to prevent memory leak)
+      // Rebuild messages from context (excluding system message) + new assistant response
+      const contextMessages: ChatMessage[] = context?.messages || [];
       const updatedMessages: ChatMessage[] = [
-        ...messages,
+        ...contextMessages.slice(-LIMITS.MAX_CONTEXT_MESSAGES),
+        {
+          role: 'user' as const,
+          content: prompt
+        },
         {
           role: 'assistant' as const,
           content: responseContent

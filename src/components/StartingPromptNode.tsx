@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import OpenAIService from '../services/OpenAIService';
 import { usePromptNode } from '../hooks/useNodeEditor';
+import { UI_DIMENSIONS } from '../constants/app';
 import type { StartingPromptNodeData } from '../types/nodes';
 
 interface StartingPromptNodeProps {
@@ -33,8 +34,8 @@ const StartingPromptNode: React.FC<StartingPromptNodeProps> = ({ data, id, isCon
     <div className={`node-panel ${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}>
       {/* ReactFlow Native Resize Control */}
       <NodeResizer
-        minWidth={320}
-        minHeight={240}
+        minWidth={UI_DIMENSIONS.NODE_MIN_WIDTH}
+        minHeight={UI_DIMENSIONS.NODE_MIN_HEIGHT}
       />
 
       {/* Node Header with Design System Gradient */}
@@ -48,6 +49,22 @@ const StartingPromptNode: React.FC<StartingPromptNodeProps> = ({ data, id, isCon
           {isProcessing ? (
             <>
               <span className="status-text">Processing with OpenAI...</span>
+              <div style={{
+                width: '100%',
+                height: '4px',
+                background: 'var(--node-border-color)',
+                borderRadius: '2px',
+                marginTop: '4px',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  width: '100%',
+                  height: '100%',
+                  background: 'var(--color-accent-primary)',
+                  animation: 'progress-bar 1.5s ease-in-out infinite',
+                  transformOrigin: 'left'
+                }} />
+              </div>
             </>
           ) : error ? (
             <>

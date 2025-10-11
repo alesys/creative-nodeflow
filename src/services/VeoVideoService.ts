@@ -95,33 +95,68 @@ class VeoVideoService {
       };
 
       // Check if context contains images and add them to the request
+      // Handle multiple images: incorporate all in prompt, use most recent as primary
       if (context && context.messages) {
-        for (const msg of context.messages) {
+        const allImages: Array<{part: any, messageIndex: number, description?: string}> = [];
+        let primaryImagePart = null;
+        let primaryImageIndex = -1;
+
+        // Collect all images from context messages
+        for (let msgIndex = 0; msgIndex < context.messages.length; msgIndex++) {
+          const msg = context.messages[msgIndex];
           if (Array.isArray(msg.content)) {
             for (const part of msg.content) {
               if (part.type === 'image' && part.imageUrl) {
-                // VEO-3 supports image-to-video generation
-                logger.debug('Adding image context to video generation');
-
-                // Parse data URL to extract base64 and MIME type
-                const dataUrl = part.imageUrl;
-                if (dataUrl.startsWith('data:')) {
-                  const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-                  if (matches) {
-                    videoRequest.image = {
-                      imageBytes: matches[2],
-                      mimeType: matches[1]
-                    };
-                    logger.debug('Image parsed:', { mimeType: matches[1], base64Length: matches[2].length });
-                  } else {
-                    logger.warn('Could not parse image data URL');
-                  }
-                }
-                // Only use the first image found
-                break;
+                allImages.push({
+                  part,
+                  messageIndex: msgIndex,
+                  description: `Image from step ${msgIndex + 1}`
+                });
+                // Keep track of the most recent image as primary
+                primaryImagePart = part;
+                primaryImageIndex = msgIndex;
               }
             }
-            if (videoRequest.image) break;
+          }
+        }
+
+        if (allImages.length > 0) {
+          logger.debug(`Found ${allImages.length} images in context. Using most recent (message ${primaryImageIndex}) as primary image.`);
+
+          // If multiple images, enhance the prompt with descriptions of all images
+          if (allImages.length > 1) {
+            const imageDescriptions = allImages.map((img, idx) => 
+              `Image ${idx + 1} (from step ${img.messageIndex + 1}): ${img.description || 'Visual content'}`
+            ).join('. ');
+            
+            fullPrompt = `Multiple visual references available: ${imageDescriptions}. 
+
+Primary image for animation: Image ${allImages.length} (most recent).
+
+${fullPrompt}`;
+            
+            logger.debug('Enhanced prompt with multiple image context');
+          }
+
+          // Use the most recent (primary) image for actual video generation
+          if (primaryImagePart) {
+            const dataUrl = primaryImagePart.imageUrl;
+            if (dataUrl.startsWith('data:')) {
+              const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+              if (matches) {
+                videoRequest.image = {
+                  imageBytes: matches[2],
+                  mimeType: matches[1]
+                };
+                logger.debug('Primary image parsed:', { 
+                  mimeType: matches[1], 
+                  base64Length: matches[2].length,
+                  totalImages: allImages.length 
+                });
+              } else {
+                logger.warn('Could not parse primary image data URL');
+              }
+            }
           }
         }
       }

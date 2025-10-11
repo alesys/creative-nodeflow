@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import OpenAIService from '../services/OpenAIService';
 import { usePromptNode } from '../hooks/useNodeEditor';
+import { UI_DIMENSIONS } from '../constants/app';
 import logger from '../utils/logger';
 import type { AgentPromptNodeData } from '../types/nodes';
 
@@ -56,19 +57,37 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
     <div className={`node-panel ${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}>
       {/* ReactFlow Native Resize Control */}
       <NodeResizer
-        minWidth={320}
-        minHeight={240}
+        minWidth={UI_DIMENSIONS.NODE_MIN_WIDTH}
+        minHeight={UI_DIMENSIONS.NODE_MIN_HEIGHT}
       />
 
       {/* Node Header with Design System Gradient */}
       <div className="node-header text-positive">
-        Agent Prompt
+        Creative Director
       </div>
 
       {/* Compact Status Bar */}
       <div className="agent-status-bar">
         <div className="status-item">
           <span className="status-text" style={{ color: connectionStatus.color }}>{connectionStatus.text}</span>
+          {isProcessing && (
+            <div style={{
+              width: '100%',
+              height: '4px',
+              background: 'var(--node-border-color)',
+              borderRadius: '2px',
+              marginTop: '4px',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                width: '100%',
+                height: '100%',
+                background: 'var(--color-accent-primary)',
+                animation: 'progress-bar 1.5s ease-in-out infinite',
+                transformOrigin: 'left'
+              }} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -86,7 +105,7 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
       <div className="node-body">
         {/* Text Area Control */}
         {isEditing ? (
-          <div style={{ marginTop: 'var(--spacing-sm)' }}>
+          <div>
             <textarea
               ref={textareaRef}
               value={prompt}
@@ -107,8 +126,7 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
             className="textarea-control"
             style={{
               cursor: 'pointer',
-              minHeight: 'var(--textarea-min-height)',
-              marginTop: 'var(--spacing-sm)'
+              minHeight: 'var(--textarea-min-height)'
             }}
           >
             {prompt ? (
@@ -124,7 +142,7 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
         )}
 
         {/* Context Display - Always show to indicate connection status */}
-        <details className="details-section" style={{ marginTop: 'var(--spacing-sm)' }}>
+        <details className="details-section">
           <summary className="helper-text summary-clickable">
             {hasReceivedInput ? (
               `Input Context (${inputContext?.messages?.length || 0} messages)`
@@ -134,12 +152,37 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
           </summary>
           <div style={{ marginTop: 'var(--spacing-xs)' }}>
             {hasReceivedInput && inputContext?.messages ? (
-              inputContext.messages.slice(-2).map((msg, idx) => (
-                <div key={idx} className="helper-text helper-text-small" style={{ marginBottom: 'var(--spacing-xs)' }}>
-                  <strong>{msg.role}:</strong> {msg.content.substring(0, 80)}
-                  {msg.content.length > 80 && '...'}
-                </div>
-              ))
+              inputContext.messages.slice(-2).map((msg, idx) => {
+                // Handle multimodal content
+                if (Array.isArray(msg.content)) {
+                  return (
+                    <div key={idx} className="helper-text helper-text-small" style={{ marginBottom: 'var(--spacing-xs)' }}>
+                      <strong>{msg.role}:</strong>
+                      {msg.content.map((part, partIdx) => {
+                        if (part.type === 'text') {
+                          return (
+                            <span key={partIdx}>
+                              {' '}{part.text.substring(0, 80)}
+                              {part.text.length > 80 && '...'}
+                            </span>
+                          );
+                        } else if (part.type === 'image') {
+                          return <span key={partIdx}> [Image]</span>;
+                        }
+                        return null;
+                      })}
+                    </div>
+                  );
+                } else {
+                  // Handle simple text content
+                  return (
+                    <div key={idx} className="helper-text helper-text-small" style={{ marginBottom: 'var(--spacing-xs)' }}>
+                      <strong>{msg.role}:</strong> {msg.content.substring(0, 80)}
+                      {msg.content.length > 80 && '...'}
+                    </div>
+                  );
+                }
+              })
             ) : (
               <div className="helper-text helper-text-small">
                 {hasReceivedInput ? 'No context messages available' : 'Connect an input node to see context here'}

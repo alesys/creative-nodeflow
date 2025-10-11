@@ -54,8 +54,8 @@
   --color-header-utility-from: #3F3F46;
   --color-header-utility-to: #27272A;
   
-  --color-header-output-from: #B45309;
-  --color-header-output-to: #78350F;
+  --color-header-output-from: #1E3A8A;
+  --color-header-output-to: #01113d;
 
   /* ============================================
      COLORS - Connection Wires
@@ -184,6 +184,7 @@
      COMPONENT - Node
      ============================================ */
   --node-min-width: 320px;
+  --node-min-height: 320px;
   --node-max-width: 400px;
   --node-border-width: 1px;
   --node-border-radius: var(--radius-md);
@@ -202,9 +203,9 @@
   --node-state-default-border: var(--color-bg-control);
   --node-state-default-opacity: 1;
   --node-state-hover-border: var(--color-bg-hover);
-  --node-state-selected-border: var(--color-accent-primary);
+  --node-state-selected-border: var(--color-accent-warning);
   --node-state-selected-border-width: 2px;
-  --node-state-selected-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  --node-state-selected-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
   --node-state-disabled-opacity: 0.5;
 
   /* ============================================

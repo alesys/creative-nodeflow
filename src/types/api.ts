@@ -9,9 +9,28 @@
 
 export type MessageRole = 'user' | 'assistant' | 'system';
 
+export interface ImageContent {
+  type: 'image';
+  imageUrl: string;
+  mimeType?: string;
+}
+
+export interface VideoContent {
+  type: 'video';
+  videoUrl: string;
+  mimeType?: string;
+}
+
+export interface TextContent {
+  type: 'text';
+  text: string;
+}
+
+export type MessageContent = string | Array<TextContent | ImageContent | VideoContent>;
+
 export interface ChatMessage {
   role: MessageRole;
-  content: string;
+  content: MessageContent;
 }
 
 // ============================================================================
@@ -110,7 +129,8 @@ export interface OutputData {
   nodeId: string;
   content: string;
   context?: ConversationContext;
-  type: 'text' | 'image';
+  type: 'text' | 'image' | 'video';
+  videoUrl?: string;
 }
 
 // ============================================================================

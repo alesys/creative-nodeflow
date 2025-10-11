@@ -42,6 +42,12 @@ export interface AgentPromptNodeData extends PromptNodeData {
 export interface ImagePromptNodeData extends BaseNodeData {
   prompt: string;
   fileContexts?: FileContext[];
+  aspectRatio?: string;
+}
+
+export interface VideoPromptNodeData extends BaseNodeData {
+  prompt: string;
+  fileContexts?: FileContext[];
 }
 
 // ============================================================================
@@ -51,7 +57,8 @@ export interface ImagePromptNodeData extends BaseNodeData {
 export interface OutputNodeData extends BaseNodeData {
   content: string;
   context?: ConversationContext;
-  type?: 'text' | 'image';
+  type?: 'text' | 'image' | 'video';
+  videoUrl?: string;
 }
 
 export interface ImagePanelNodeData extends BaseNodeData {
@@ -67,6 +74,7 @@ export type NodeData =
   | StartingPromptNodeData
   | AgentPromptNodeData
   | ImagePromptNodeData
+  | VideoPromptNodeData
   | OutputNodeData
   | ImagePanelNodeData;
 

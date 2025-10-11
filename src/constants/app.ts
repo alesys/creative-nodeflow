@@ -23,6 +23,7 @@ export const MODELS = {
   OPENAI_VISION: 'gpt-5-nano', // GPT-5-nano supports both text and vision
   GOOGLE_IMAGE: 'gemini-2.5-flash-image-preview', // "Nano Banana"
   GOOGLE_TEXT: 'gemini-2.5-flash',
+  GOOGLE_VIDEO: 'veo-3.0-fast-generate-001', // VEO-3 Fast for video generation (cheaper and faster)
 } as const;
 
 // API Error Messages
@@ -78,6 +79,12 @@ export const VALIDATION = {
   MAX_NODE_NAME_LENGTH: 50,
 } as const;
 
+// UI Dimensions (keep in sync with CSS variables)
+export const UI_DIMENSIONS = {
+  NODE_MIN_WIDTH: 320, // Must match --node-min-width in CSS
+  NODE_MIN_HEIGHT: 320, // Must match --node-min-height in CSS (now same as width for square nodes)
+} as const;
+
 // Default values
 export const DEFAULTS = {
   TEMPERATURE: 0.7,
@@ -96,6 +103,7 @@ const constants = {
   CSS_CLASSES,
   SYSTEM_PROMPTS,
   VALIDATION,
+  UI_DIMENSIONS,
   DEFAULTS,
 } as const;
 

@@ -18,7 +18,10 @@
       "Bash(del:*)",
       "Bash(npm start)",
       "Bash(taskkill:*)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(cmd /c:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

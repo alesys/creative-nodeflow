@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import VeoVideoService from '../services/VeoVideoService';
 import { usePromptNode } from '../hooks/useNodeEditor';
+import { UI_DIMENSIONS } from '../constants/app';
 import type { VideoPromptNodeData } from '../types/nodes';
 
 interface VideoPromptNodeProps {
@@ -48,7 +49,7 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
     if (onOutput) {
       onOutput({
         nodeId: id,
-        content: response.content,
+        content: response.videoUrl || response.content, // Prioritize video URL for content
         context: response.context,
         type: 'video',
         videoUrl: response.videoUrl
@@ -96,15 +97,15 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
     <div className={`node-panel ${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}>
         {/* ReactFlow Native Resize Control */}
         <NodeResizer
-          minWidth={320}
-          minHeight={240}
+          minWidth={UI_DIMENSIONS.NODE_MIN_WIDTH}
+          minHeight={UI_DIMENSIONS.NODE_MIN_HEIGHT}
         />      {/* Node Header with Design System Gradient */}
       <div className="node-header model-loader">
         Motion Director
       </div>
 
       {/* Compact Status Bar */}
-      <div className="image-status-bar">
+      <div className="video-status-bar">
         <div className="status-item">
           <span className="status-text" style={{ color: connectionStatus.color }}>{connectionStatus.text}</span>
           {isProcessing && (
@@ -132,7 +133,7 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
       <div className="node-body">
         {/* Text Area Control */}
         {isEditing ? (
-          <div style={{ marginTop: 'var(--spacing-sm)' }}>
+          <div>
             <textarea
               ref={textareaRef}
               value={prompt}
@@ -153,8 +154,7 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
             className="textarea-control"
             style={{
               cursor: 'pointer',
-              minHeight: 'var(--textarea-min-height)',
-              marginTop: 'var(--spacing-sm)'
+              minHeight: 'var(--textarea-min-height)'
             }}
           >
             {prompt ? (
@@ -170,7 +170,7 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
         )}
 
         {/* Context Display - Always show to indicate connection status */}
-        <details className="details-section" style={{ marginTop: 'var(--spacing-sm)' }}>
+        <details className="details-section">
           <summary className="helper-text summary-clickable">
             {hasReceivedInput ? (
               'Input Context (will influence generation)'
@@ -178,7 +178,7 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
               'Input Context (waiting for connection)'
             )}
           </summary>
-          <div style={{ marginTop: 'var(--spacing-xs)' }}>
+          <div>
             {hasReceivedInput && inputContext?.messages ? (
               inputContext.messages.slice(-2).map((msg, idx) => {
                 // Handle multimodal content
@@ -220,7 +220,7 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
         </details>
 
         {/* Aspect Ratio Selector */}
-        <div className="parameter-control" style={{ marginTop: 'var(--spacing-sm)', borderBottom: 'none', minHeight: 'auto' }}>
+        <div className="parameter-control" style={{ borderBottom: 'none', minHeight: 'auto' }}>
           <span className="control-label">Aspect Ratio</span>
           <select
             value={aspectRatio}
@@ -242,7 +242,7 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
         </div>
 
         {/* Status Area - Always present to prevent layout shifts */}
-        <div style={{ marginTop: 'var(--spacing-sm)', minHeight: '24px' }}>
+        <div className="status-area" style={{ marginTop: 'var(--spacing-sm)', minHeight: '24px' }}>
           {isProcessing && (
             <div className="parameter-control" style={{ borderBottom: 'none', margin: 0 }}>
               <span className="control-label" style={{ color: 'var(--color-accent-primary)' }}>
