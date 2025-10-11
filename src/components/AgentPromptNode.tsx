@@ -2,12 +2,12 @@
 import React, { useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Handle, Position, NodeResizer } from '@xyflow/react';
 import OpenAIService from '../services/OpenAIService';
 import { usePromptNode } from '../hooks/useNodeEditor';
-import { UI_DIMENSIONS } from '../constants/app';
+import { BaseNode } from './base';
 import logger from '../utils/logger';
 import type { AgentPromptNodeData } from '../types/nodes';
+import type { NodeConfig } from '../types/nodeConfig';
 
 interface AgentPromptNodeProps {
   data: AgentPromptNodeData;
@@ -42,55 +42,54 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
     if (!hasReceivedInput) {
       return {
         text: 'Waiting for input context',
-        color: '#d97706'
+        status: 'idle' as const
       };
     }
     return {
       text: 'Context received',
-      color: '#059669'
+      status: 'success' as const
     };
   };
 
   const connectionStatus = getConnectionStatus();
 
+  // Configure node using BaseNode architecture
+  const nodeConfig: NodeConfig = {
+    header: {
+      title: 'Creative Director',
+      variant: 'positive',
+      icon: '🎨'
+    },
+    statusBar: {
+      show: true,
+      status: isProcessing ? 'processing' : connectionStatus.status,
+      message: isProcessing ? 'Processing with context...' : connectionStatus.text,
+      showProgress: isProcessing
+    },
+    connectors: {
+      inputs: [
+        {
+          id: 'input-text',
+          type: 'text',
+          label: 'Input',
+          position: 'middle'
+        }
+      ],
+      outputs: [
+        {
+          id: 'output-text',
+          type: 'text',
+          label: 'Output',
+          position: 'middle'
+        }
+      ]
+    },
+    resizable: true,
+    error: error
+  };
+
   return (
-    <div className={`node-panel ${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}>
-      {/* ReactFlow Native Resize Control */}
-      <NodeResizer
-        minWidth={UI_DIMENSIONS.NODE_MIN_WIDTH}
-        minHeight={UI_DIMENSIONS.NODE_MIN_HEIGHT}
-      />
-
-      {/* Node Header with Design System Gradient */}
-      <div className="node-header text-positive">
-        Creative Director
-      </div>
-
-      {/* Compact Status Bar */}
-      <div className="agent-status-bar">
-        <div className="status-item">
-          <span className="status-text" style={{ color: connectionStatus.color }}>{connectionStatus.text}</span>
-          {isProcessing && (
-            <div style={{
-              width: '100%',
-              height: '4px',
-              background: 'var(--node-border-color)',
-              borderRadius: '2px',
-              marginTop: '4px',
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                width: '100%',
-                height: '100%',
-                background: 'var(--color-accent-primary)',
-                animation: 'progress-bar 1.5s ease-in-out infinite',
-                transformOrigin: 'left'
-              }} />
-            </div>
-          )}
-        </div>
-      </div>
-
+    <BaseNode id={id} isConnectable={isConnectable} config={nodeConfig}>
       {/* File Context Indicator */}
       {data.fileContexts && data.fileContexts.length > 0 && (
         <div className="file-context-indicator">
@@ -100,9 +99,6 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
           </span>
         </div>
       )}
-
-      {/* Node Body */}
-      <div className="node-body">
         {/* Text Area Control */}
         {isEditing ? (
           <div>
@@ -209,25 +205,7 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
             </div>
           )}
         </div>
-
-      </div>
-
-      {/* ReactFlow Input Handle */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="react-flow__handle"
-        isConnectable={isConnectable}
-      />
-
-      {/* ReactFlow Output Handle */}
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="react-flow__handle"
-        isConnectable={isConnectable}
-      />
-    </div>
+    </BaseNode>
   );
 };
 

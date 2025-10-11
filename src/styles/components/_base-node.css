@@ -1,0 +1,246 @@
+/**
+ * Base Node Components Styling
+ * Unified styles for BaseNode, NodeHeader, NodeStatusBar, NodeConnectors, NodeBody
+ */
+
+/* ============================================
+   NODE HEADER - UNIFIED COMPONENT
+   ============================================ */
+
+.node-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--node-border-color);
+  border-radius: var(--node-header-border-radius) var(--node-header-border-radius) 0 0;
+  color: var(--color-text-primary);
+}
+
+/* Header variants with data attributes */
+.node-header[data-variant="positive"] {
+  background: linear-gradient(to bottom, var(--color-header-text-positive-from), var(--color-header-text-positive-to));
+}
+
+.node-header[data-variant="loader"] {
+  background: linear-gradient(to bottom, var(--color-header-model-loader-from), var(--color-header-model-loader-to));
+}
+
+.node-header[data-variant="output"] {
+  background: linear-gradient(to bottom, var(--color-header-output-from), var(--color-header-output-to));
+}
+
+.node-header[data-variant="panel"] {
+  background: linear-gradient(to bottom, var(--color-header-utility-from), var(--color-header-utility-to));
+}
+
+.node-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.node-title {
+  flex: 1;
+}
+
+.node-header-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/* ============================================
+   NODE STATUS BAR - UNIFIED COMPONENT
+   ============================================ */
+
+.node-status-bar {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--node-border-color);
+  background: var(--color-background-secondary);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.status-primary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.status-text {
+  color: var(--color-accent-warning);
+  flex: 1;
+}
+
+/* Status variants */
+.node-status-bar[data-status="processing"] .status-text {
+  color: var(--color-accent-primary);
+}
+
+.node-status-bar[data-status="error"] .status-text {
+  color: var(--color-accent-error);
+}
+
+.node-status-bar[data-status="success"] .status-text {
+  color: var(--color-accent-success);
+}
+
+.node-status-bar[data-status="idle"] .status-text {
+  color: var(--color-text-secondary);
+}
+
+/* Progress bar */
+.status-secondary {
+  margin-top: 4px;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 4px;
+  background: var(--node-border-color);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--color-accent-primary);
+  transition: width 0.3s ease;
+  animation: progress-bar 1.5s ease-in-out infinite;
+  transform-origin: left;
+}
+
+@keyframes progress-bar {
+  0% {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  50% {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+  50.1% {
+    transform: scaleX(1);
+    transform-origin: right;
+  }
+  100% {
+    transform: scaleX(0);
+    transform-origin: right;
+  }
+}
+
+/* ============================================
+   NODE CONNECTORS - MULTI-CONNECTOR SYSTEM
+   ============================================ */
+
+.connector-wrapper {
+  position: absolute;
+  z-index: 10;
+}
+
+.connector-label {
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.node-panel:hover .connector-label {
+  opacity: 1;
+}
+
+/* Connector hover effects */
+.connector-wrapper:hover .connector-label {
+  opacity: 1 !important;
+}
+
+/* ============================================
+   NODE BODY - CONTENT SECTIONS
+   ============================================ */
+
+.node-body {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.node-body-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.5px;
+  padding: 4px 0;
+}
+
+.section-label {
+  flex: 1;
+}
+
+.section-toggle {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  transition: transform 0.2s ease;
+}
+
+.section-header:hover .section-toggle {
+  color: var(--color-accent-primary);
+}
+
+.section-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ============================================
+   NODE PANEL STATE CLASSES
+   ============================================ */
+
+.node-panel.processing {
+  border-color: var(--color-accent-primary);
+}
+
+.node-panel.error {
+  border-color: var(--color-accent-error);
+}
+
+/* ============================================
+   RESPONSIVE & ACCESSIBILITY
+   ============================================ */
+
+/* Ensure text is readable */
+.node-header,
+.node-status-bar,
+.node-body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Focus states for accessibility */
+.node-panel:focus-within {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+}
