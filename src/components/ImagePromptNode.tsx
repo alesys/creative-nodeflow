@@ -2,11 +2,11 @@
 import React, { useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Handle, Position, NodeResizer } from '@xyflow/react';
 import GoogleAIService from '../services/GoogleAIService';
 import { usePromptNode } from '../hooks/useNodeEditor';
-import { UI_DIMENSIONS } from '../constants/app';
+import { BaseNode } from './base';
 import type { ImagePromptNodeData } from '../types/nodes';
+import type { NodeConfig } from '../types/nodeConfig';
 
 interface ImagePromptNodeProps {
   data: ImagePromptNodeData;
@@ -92,44 +92,45 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
 
   const connectionStatus = getConnectionStatus();
 
+  // Configure node using BaseNode architecture
+  const nodeConfig: NodeConfig = {
+    header: {
+      title: 'Art Director',
+      variant: 'loader',
+      icon: '🖼️'
+    },
+    statusBar: {
+      show: true,
+      status: isProcessing ? 'processing' : hasReceivedInput ? 'success' : 'idle',
+      message: isProcessing 
+        ? 'Generating image with Nano Banana...' 
+        : connectionStatus.text,
+      showProgress: isProcessing
+    },
+    connectors: {
+      inputs: [
+        {
+          id: 'input-text',
+          type: 'text',
+          label: 'Context',
+          position: 'middle'
+        }
+      ],
+      outputs: [
+        {
+          id: 'output-image',
+          type: 'image',
+          label: 'Image',
+          position: 'middle'
+        }
+      ]
+    },
+    resizable: true,
+    error: error
+  };
+
   return (
-    <div className={`node-panel ${isProcessing ? 'processing' : ''} ${error ? 'error' : ''}`}>
-        {/* ReactFlow Native Resize Control */}
-        <NodeResizer
-          minWidth={UI_DIMENSIONS.NODE_MIN_WIDTH}
-          minHeight={UI_DIMENSIONS.NODE_MIN_HEIGHT}
-        />      {/* Node Header with Design System Gradient */}
-      <div className="node-header model-loader">
-        Art Director
-      </div>
-
-      {/* Compact Status Bar */}
-      <div className="image-status-bar">
-        <div className="status-item">
-          <span className="status-text" style={{ color: connectionStatus.color }}>{connectionStatus.text}</span>
-          {isProcessing && (
-            <div style={{
-              width: '100%',
-              height: '4px',
-              background: 'var(--node-border-color)',
-              borderRadius: '2px',
-              marginTop: '4px',
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                width: '100%',
-                height: '100%',
-                background: 'var(--color-accent-primary)',
-                animation: 'progress-bar 1.5s ease-in-out infinite',
-                transformOrigin: 'left'
-              }} />
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Node Body */}
-      <div className="node-body">
+    <BaseNode id={id} isConnectable={isConnectable} config={nodeConfig}>
         {/* Text Area Control */}
         {isEditing ? (
           <div>
@@ -265,25 +266,7 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
             </div>
           )}
         </div>
-
-      </div>
-
-      {/* ReactFlow Input Handle */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="react-flow__handle"
-        isConnectable={isConnectable}
-      />
-
-      {/* ReactFlow Output Handle */}
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="react-flow__handle"
-        isConnectable={isConnectable}
-      />
-    </div>
+    </BaseNode>
   );
 };
 

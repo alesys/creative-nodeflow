@@ -5,9 +5,10 @@
 
 import React, { useState, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { Handle, Position, NodeResizer, useReactFlow } from '@xyflow/react';
-import { UI_DIMENSIONS } from '../constants/app';
+import { useReactFlow } from '@xyflow/react';
+import { BaseNode } from './base';
 import type { ImagePanelNodeData } from '../types/nodes';
+import type { NodeConfig } from '../types/nodeConfig';
 import logger from '../utils/logger';
 
 interface ImagePanelNodeProps {
@@ -164,18 +165,34 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
     logger.debug('[ImagePanelNode] Image deleted');
   }, [id, setNodes]);
 
-  return (
-    <div className="node-panel">
-      <NodeResizer 
-        minWidth={UI_DIMENSIONS.NODE_MIN_WIDTH}
-        minHeight={UI_DIMENSIONS.NODE_MIN_HEIGHT}
-      />
-      {/* Node Header with Design System Gradient */}
-      <div className="node-header">
-        <span>🖼️</span>
-        <span>Image Panel</span>
-      </div>
+  // Configure node using BaseNode architecture
+  const nodeConfig: NodeConfig = {
+    header: {
+      title: 'Image Panel',
+      variant: 'panel',
+      icon: '🖼️'
+    },
+    statusBar: {
+      show: true,
+      status: imageUrl ? 'success' : 'idle',
+      message: imageUrl ? 'Image loaded' : 'Drop or paste an image'
+    },
+    connectors: {
+      inputs: [],
+      outputs: [
+        {
+          id: 'output-image',
+          type: 'image',
+          label: 'Image',
+          position: 'middle'
+        }
+      ]
+    },
+    resizable: true
+  };
 
+  return (
+    <BaseNode id={id} isConnectable={isConnectable} config={nodeConfig}>
       {/* Image Drop Zone */}
       <div
         onClick={handleClick}
@@ -277,20 +294,6 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
         style={{ display: 'none' }}
       />
 
-      {/* Output Handle */}
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="output"
-        isConnectable={isConnectable}
-        style={{
-          background: 'var(--color-accent-primary)',
-          width: '12px',
-          height: '12px',
-          border: '2px solid var(--node-body-background)',
-        }}
-      />
-
       {/* Lightbox Portal - Same as OutputNode */}
       {lightboxOpen && imageUrl && ReactDOM.createPortal(
         <div
@@ -313,7 +316,7 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
         </div>,
         document.body
       )}
-    </div>
+    </BaseNode>
   );
 };
 

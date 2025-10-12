@@ -3,10 +3,12 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Handle, Position, NodeResizer, useReactFlow } from '@xyflow/react';
+import { useReactFlow } from '@xyflow/react';
+import { BaseNode } from './base';
 import logger from '../utils/logger';
 import type { OutputNodeData } from '../types/nodes';
 import type { ConversationContext } from '../types/api';
+import type { NodeConfig } from '../types/nodeConfig';
 
 interface OutputNodeProps {
   data: OutputNodeData;
@@ -354,21 +356,46 @@ const OutputNode: React.FC<OutputNodeProps> = ({ data, id, isConnectable }) => {
     }
   }, [currentPageIndex, pages, id, setNodes, data]);
 
+  // Configure node using BaseNode architecture
+  const nodeConfig: NodeConfig = {
+    header: {
+      title: 'Output',
+      variant: 'output',
+      icon: '📤'
+    },
+    statusBar: {
+      show: true,
+      status: content ? 'success' : 'idle',
+      message: `${getContentTypeLabel()}: ${content ? 'Content received' : 'Waiting for input...'}`
+    },
+    connectors: {
+      inputs: [
+        {
+          id: 'input-any',
+          type: 'any',
+          label: 'Input',
+          position: 'middle'
+        }
+      ],
+      outputs: [
+        {
+          id: 'output-any',
+          type: 'any',
+          label: 'Output',
+          position: 'middle'
+        }
+      ]
+    },
+    resizable: true,
+    minWidth: 480,
+    minHeight: 320,
+    className: content ? 'has-content' : 'empty'
+  };
+
   return (
     <>
-      <div className={`node-panel ${content ? 'has-content' : 'empty'}`}>
-        {/* ReactFlow Native Resize Control */}
-        <NodeResizer
-          minWidth={480}
-          minHeight={320}
-        />
-
-        {/* Node Header with Design System Gradient */}
-        <div className="node-header output">
-          Output
-        </div>
-
-        {/* Compact Status Bar with Pagination */}
+      <BaseNode id={id} isConnectable={isConnectable} config={nodeConfig}>
+        {/* Pagination Controls in Status Bar */}
         <div className="output-status-bar">
           <div className="status-item">
             <span className="status-text">{getContentTypeLabel()}: {content ? 'Content received' : 'Waiting for input...'}</span>
@@ -507,23 +534,7 @@ const OutputNode: React.FC<OutputNodeProps> = ({ data, id, isConnectable }) => {
           )}
 
         </div>
-
-        {/* ReactFlow Input Handle */}
-        <Handle
-          type="target"
-          position={Position.Left}
-          className="react-flow__handle"
-          isConnectable={isConnectable}
-        />
-
-        {/* ReactFlow Output Handle */}
-        <Handle
-          type="source"
-          position={Position.Right}
-          className="react-flow__handle"
-          isConnectable={isConnectable}
-        />
-      </div>
+      </BaseNode>
 
       {/* Render lightbox using portal to escape node positioning constraints */}
       {lightboxOpen && contentType === 'image' && ReactDOM.createPortal(
