@@ -177,18 +177,31 @@ function CreativeNodeFlowInner() {
   }), []);
 
   // Helper function to get connector type from node
-  const getConnectorType = useCallback((node: Node, _handleId: string | null, handleType: 'source' | 'target'): ConnectorType => {
+  const getConnectorType = useCallback((node: Node, handleId: string | null, handleType: 'source' | 'target'): ConnectorType => {
+    const nodeType = node.type || 'unknown';
+    
+    // Special handling for nodes with multiple inputs of different types
+    if (nodeType === 'agentPrompt' && handleType === 'target' && handleId) {
+      // AgentPrompt has two inputs: text (input-text) and image (input-image)
+      if (handleId === 'input-text') return 'text';
+      if (handleId === 'input-image') return 'image';
+    }
+    
+    // Special handling for VideoPrompt which accepts text or image inputs
+    if (nodeType === 'videoPrompt' && handleType === 'target') {
+      return 'any'; // Can accept text or image
+    }
+    
     // Default mapping based on node type
     const nodeTypeMapping: Record<string, { source: ConnectorType; target: ConnectorType }> = {
       startingPrompt: { source: 'text', target: 'text' },
-      agentPrompt: { source: 'text', target: 'text' },
+      agentPrompt: { source: 'text', target: 'text' }, // Default to text if handleId not specified
       imagePrompt: { source: 'image', target: 'text' },
-      videoPrompt: { source: 'video', target: 'any' }, // Can accept text or image
+      videoPrompt: { source: 'video', target: 'any' },
       customOutput: { source: 'any', target: 'any' },
       imagePanel: { source: 'image', target: 'image' }
     };
 
-    const nodeType = node.type || 'unknown';
     const mapping = nodeTypeMapping[nodeType];
     
     if (!mapping) {

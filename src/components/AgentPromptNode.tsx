@@ -71,8 +71,14 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
         {
           id: 'input-text',
           type: 'text',
-          label: 'Input',
-          position: 'middle'
+          label: 'Text',
+          position: 'top'
+        },
+        {
+          id: 'input-image',
+          type: 'image',
+          label: 'Image',
+          position: 'bottom'
         }
       ],
       outputs: [
