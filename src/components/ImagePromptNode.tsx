@@ -112,8 +112,14 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
         {
           id: 'input-text',
           type: 'text',
-          label: 'Context',
-          position: 'middle'
+          label: 'Text',
+          position: 'top'
+        },
+        {
+          id: 'input-image',
+          type: 'image',
+          label: 'Image',
+          position: 'bottom'
         }
       ],
       outputs: [
