@@ -2,6 +2,7 @@
 import React, { useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useReactFlow } from '@xyflow/react';
 import VeoVideoService from '../services/VeoVideoService';
 import { usePromptNode } from '../hooks/useNodeEditor';
 import { BaseNode } from './base';
@@ -15,6 +16,8 @@ interface VideoPromptNodeProps {
 }
 
 const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectable }) => {
+  const { setNodes } = useReactFlow();
+  
   const {
     isEditing,
     setIsEditing,
@@ -30,7 +33,25 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
     setError
   } = usePromptNode(data.prompt || '', data, id);
 
-  const [aspectRatio, setAspectRatio] = React.useState<string>('16:9');
+  const [aspectRatio, setAspectRatio] = React.useState<string>(data.aspectRatio || '16:9');
+
+  // Update node data when aspect ratio changes
+  const handleAspectRatioChange = useCallback((newRatio: string) => {
+    setAspectRatio(newRatio);
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                aspectRatio: newRatio
+              }
+            }
+          : node
+      )
+    );
+  }, [id, setNodes]);
 
   // Input listener is now set up automatically by useNodeInput hook
 
@@ -231,7 +252,7 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
           <span className="control-label">Aspect Ratio</span>
           <select
             value={aspectRatio}
-            onChange={(e) => setAspectRatio(e.target.value)}
+            onChange={(e) => handleAspectRatioChange(e.target.value)}
             className="nodrag"
             style={{
               padding: '4px 8px',

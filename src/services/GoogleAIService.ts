@@ -174,29 +174,35 @@ class GoogleAIService {
 
       logger.debug('Final content parts for generation:', enhancedContentParts.length);
 
-      // Try with generation config first, fallback to plain call
+      // Generate content with aspect ratio config
+      // According to Google's documentation, aspect ratio should be in the generation config
       let result;
       try {
-        // Attempt 1: Try with imageConfig (may work in newer API versions)
+        // Attempt 1: Use the proper config structure for @google/generative-ai v0.24.x
         result = await model.generateContent(
           enhancedContentParts,
           {
             generationConfig: {
               temperature: 0.7,
-              candidateCount: 1,
-              // @ts-ignore - imageConfig may be supported
-              imageConfig: {
-                aspectRatio: normalizedAspectRatio
-              }
+              candidateCount: 1
+            },
+            // @ts-ignore - imageConfig is supported but may not be in TypeScript types yet
+            imageConfig: {
+              aspectRatio: normalizedAspectRatio
             }
           } as any
         );
-        logger.debug('Generated image with imageConfig');
+        logger.debug('Generated image with imageConfig:', normalizedAspectRatio);
       } catch (configError) {
-        logger.debug('imageConfig failed, trying without config:', configError);
-        // Attempt 2: Fallback to simple generation (aspect ratio in prompt)
-        result = await model.generateContent(enhancedContentParts);
-        logger.debug('Generated image without config, aspect ratio in prompt');
+        logger.debug('imageConfig failed, trying without config. Error:', configError);
+        // Attempt 2: Fallback to simple generation (aspect ratio in prompt only)
+        try {
+          result = await model.generateContent(enhancedContentParts);
+          logger.debug('Generated image without config, aspect ratio in prompt');
+        } catch (fallbackError) {
+          logger.error('Both generation attempts failed:', fallbackError);
+          throw fallbackError;
+        }
       }
       const response = await result.response;
 

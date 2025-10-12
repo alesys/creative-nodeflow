@@ -89,10 +89,15 @@ class VeoVideoService {
         model: 'veo-3.0-fast-generate-001', // Using VEO-3 Fast (cheaper and faster)
         prompt: fullPrompt,
         config: {
-          aspectRatio: aspectRatio,
+          aspectRatio: aspectRatio, // VEO-3 supports '16:9' and '9:16'
           negativePrompt: 'low quality, blurry, distorted'
         }
       };
+      
+      logger.debug('VEO-3 config:', { 
+        aspectRatio, 
+        negativePrompt: videoRequest.config.negativePrompt 
+      });
 
       // Check if context contains images and add them to the request
       // Handle multiple images: incorporate all in prompt, use most recent as primary
