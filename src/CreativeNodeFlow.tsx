@@ -40,6 +40,8 @@ import type {
   ImagePanelNodeData
 } from './types/nodes';
 import type { FileContext, OutputData, ConversationContext } from './types/api';
+import type { ConnectorType } from './types/nodeConfig';
+import { areConnectorsCompatible } from './types/nodeConfig';
 
 // ============================================================================
 // Type Definitions
@@ -174,6 +176,44 @@ function CreativeNodeFlowInner() {
     imagePanel: ImagePanelNode,
   }), []);
 
+  // Helper function to get connector type from node
+  const getConnectorType = useCallback((node: Node, _handleId: string | null, handleType: 'source' | 'target'): ConnectorType => {
+    // Default mapping based on node type
+    const nodeTypeMapping: Record<string, { source: ConnectorType; target: ConnectorType }> = {
+      startingPrompt: { source: 'text', target: 'text' },
+      agentPrompt: { source: 'text', target: 'text' },
+      imagePrompt: { source: 'image', target: 'text' },
+      videoPrompt: { source: 'video', target: 'any' }, // Can accept text or image
+      customOutput: { source: 'any', target: 'any' },
+      imagePanel: { source: 'image', target: 'image' }
+    };
+
+    const nodeType = node.type || 'unknown';
+    const mapping = nodeTypeMapping[nodeType];
+    
+    if (!mapping) {
+      return 'any'; // Default to 'any' for unknown nodes
+    }
+    
+    return handleType === 'source' ? mapping.source : mapping.target;
+  }, []);
+
+  // Helper function to validate connection between two connectors
+  const validateConnection = useCallback((sourceNode: Node, targetNode: Node, connection: Connection): boolean => {
+    const sourceType = getConnectorType(sourceNode, connection.sourceHandle, 'source');
+    const targetType = getConnectorType(targetNode, connection.targetHandle, 'target');
+    
+    logger.debug('[validateConnection]', {
+      source: sourceNode.type,
+      sourceType,
+      target: targetNode.type,
+      targetType,
+      compatible: areConnectorsCompatible(sourceType, targetType)
+    });
+    
+    return areConnectorsCompatible(sourceType, targetType);
+  }, [getConnectorType]);
+
   // Helper function to get the highest z-index from existing nodes
   const getHighestZIndex = useCallback((): number => {
     const currentNodes = nodesRef.current;
@@ -280,6 +320,28 @@ function CreativeNodeFlowInner() {
 
   const onConnect: OnConnect = useCallback(
     (params: Connection) => {
+      console.log('[CreativeNodeFlow] Connection attempt:', params);
+      
+      // Validate connection types
+      const sourceNode = nodes.find(n => n.id === params.source);
+      const targetNode = nodes.find(n => n.id === params.target);
+      
+      if (!sourceNode || !targetNode) {
+        console.warn('[CreativeNodeFlow] Source or target node not found');
+        alertService.error('Connection failed: Node not found');
+        return;
+      }
+      
+      // Check if connection is compatible
+      if (!validateConnection(sourceNode, targetNode, params)) {
+        const sourceType = getConnectorType(sourceNode, params.sourceHandle, 'source');
+        const targetType = getConnectorType(targetNode, params.targetHandle, 'target');
+        console.warn('[CreativeNodeFlow] Incompatible connection:', { sourceType, targetType });
+        alertService.warning(`Cannot connect ${sourceType} output to ${targetType} input`);
+        setIsConnecting(false);
+        return;
+      }
+      
       console.log('[CreativeNodeFlow] Connection successful:', params);
       setIsConnecting(false); // Connection was successful
       setEdges((eds) => addEdge({
@@ -309,7 +371,7 @@ function CreativeNodeFlowInner() {
         }
       }, 100);
     },
-    [setEdges, nodes],
+    [setEdges, nodes, validateConnection, getConnectorType],
   );
 
   // Use ReactFlow's built-in coordinate transformation (more reliable)
