@@ -51,9 +51,12 @@ interface FilePanelProps {
 }
 
 type FilterType = 'all' | 'image' | 'text' | 'document';
+type TabType = 'files' | 'brand';
 
 const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, position = 'right' }) => {
   // State management
+  const [activeTab, setActiveTab] = useState<TabType>('files');
+  const [brandInstructions, setBrandInstructions] = useState<string>('');
   const [files, setFiles] = useState<StoredFile[]>([]);
   const [contexts, setContexts] = useState<FileContext[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
@@ -71,7 +74,19 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
   // Load existing files on mount
   useEffect(() => {
     loadFiles();
+    // Load brand instructions from localStorage
+    const saved = localStorage.getItem('brandInstructions');
+    if (saved) {
+      setBrandInstructions(saved);
+    }
   }, []);
+
+  // Save brand instructions to localStorage
+  useEffect(() => {
+    if (brandInstructions) {
+      localStorage.setItem('brandInstructions', brandInstructions);
+    }
+  }, [brandInstructions]);
 
   // Load files from storage
   const loadFiles = async (): Promise<void> => {
@@ -342,14 +357,32 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
           onClick={() => setIsCollapsed(!isCollapsed)}
           title={isCollapsed ? 'Expand panel' : 'Collapse panel'}
         >
-          {isCollapsed ? '◀' : '▶'}
+          {isCollapsed ? '▼' : '▲'}
         </button>
       </div>
 
       {!isCollapsed && (
-        <>
-          {/* Controls */}
-          <div className="file-panel-controls">
+        <div className="file-panel-body">
+          {/* Tabs */}
+          <div className="file-panel-tabs">
+            <button
+              className={`tab-btn ${activeTab === 'files' ? 'active' : ''}`}
+              onClick={() => setActiveTab('files')}
+            >
+              📁 Reference Files
+            </button>
+            <button
+              className={`tab-btn ${activeTab === 'brand' ? 'active' : ''}`}
+              onClick={() => setActiveTab('brand')}
+            >
+              🎯 Brand Voice
+            </button>
+          </div>
+
+          {activeTab === 'files' ? (
+            <>
+              {/* Controls */}
+              <div className="file-panel-controls">
             <div className="upload-section">
               <button
                 className="upload-btn primary"
@@ -462,10 +495,30 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
                 const context = getFileContext(file.id);
                 const isSelected = selectedFiles.has(file.id);
 
+                const handleDragStart = (e: React.DragEvent) => {
+                  const isImage = file.type.startsWith('image/');
+                  const dragData = {
+                    fileId: file.id,
+                    fileName: file.name,
+                    fileType: file.type,
+                    isImage: isImage,
+                    fileUrl: file.url,
+                    context: context ? {
+                      summary: context.summary,
+                      content: context.content,
+                      type: context.type
+                    } : null
+                  };
+                  e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+                  e.dataTransfer.effectAllowed = 'copy';
+                };
+
                 return (
                   <div
                     key={file.id}
                     className={`file-item ${isSelected ? 'selected' : ''}`}
+                    draggable="true"
+                    onDragStart={handleDragStart}
                   >
                     <div className="file-item-header">
                       <div className="file-info">
@@ -538,7 +591,37 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
               </div>
             </div>
           )}
-        </>
+            </>
+          ) : (
+            /* Brand Voice Tab */
+            <div className="brand-voice-container">
+              <div className="brand-voice-header">
+                <h3>Brand Voice & System Instructions</h3>
+                <p className="brand-voice-description">
+                  Define your brand's personality, tone, and default instructions that will be applied to all AI generations.
+                </p>
+              </div>
+              <textarea
+                className="brand-voice-textarea"
+                value={brandInstructions}
+                onChange={(e) => setBrandInstructions(e.target.value)}
+                placeholder="Enter your brand voice guidelines, tone preferences, writing style, and any system-wide instructions you want the AI to follow...
+
+Example:
+- Brand: Professional yet approachable
+- Tone: Conversational, helpful, and clear
+- Style: Use active voice, short sentences
+- Avoid: Jargon, overly formal language"
+                rows={15}
+              />
+              <div className="brand-voice-footer">
+                <span className="helper-text">
+                  {brandInstructions.length} characters • Auto-saved
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

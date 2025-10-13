@@ -3,6 +3,7 @@ import React, { useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useReactFlow } from '@xyflow/react';
+import VideocamIcon from '@mui/icons-material/Videocam';
 import VeoVideoService from '../services/VeoVideoService';
 import { usePromptNode } from '../hooks/useNodeEditor';
 import { BaseNode } from './base';
@@ -17,6 +18,7 @@ interface VideoPromptNodeProps {
 
 const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectable }) => {
   const { setNodes } = useReactFlow();
+  const [isDragOver, setIsDragOver] = React.useState(false);
   
   const {
     isEditing,
@@ -52,6 +54,58 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
       )
     );
   }, [id, setNodes]);
+
+  // Drag and drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    try {
+      const dragData = JSON.parse(e.dataTransfer.getData('application/json'));
+      if (dragData.fileId && dragData.context) {
+        const contextText = `\n\n[File: ${dragData.fileName}]\n${dragData.context.summary}`;
+        setPrompt(prompt + contextText);
+        
+        setNodes((nds) =>
+          nds.map((node) => {
+            if (node.id === id) {
+              const existingContexts = Array.isArray(node.data.fileContexts) ? node.data.fileContexts : [];
+              const updatedFileContexts = [...existingContexts, {
+                fileId: dragData.fileId,
+                fileName: dragData.fileName,
+                summary: dragData.context.summary,
+                content: dragData.context.content
+              }];
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  fileContexts: updatedFileContexts,
+                  prompt: prompt + contextText
+                }
+              };
+            }
+            return node;
+          })
+        );
+      }
+    } catch (err) {
+      console.error('Failed to parse drop data:', err);
+    }
+  }, [id, prompt, setPrompt, setNodes]);
 
   // Input listener is now set up automatically by useNodeInput hook
 
@@ -119,7 +173,7 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
     header: {
       title: 'Motion Director',
       variant: 'loader',
-      icon: '🎬'
+      icon: <VideocamIcon sx={{ fontSize: '18px' }} />
     },
     statusBar: {
       show: true,
@@ -161,7 +215,12 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
     <BaseNode id={id} isConnectable={isConnectable} config={nodeConfig}>
         {/* Text Area Control */}
         {isEditing ? (
-          <div>
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={isDragOver ? 'drop-zone-active' : ''}
+          >
             <textarea
               ref={textareaRef}
               value={prompt}
@@ -173,7 +232,7 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
               placeholder="Describe the video you want to generate... Press Ctrl+Enter to create"
             />
             <div className="helper-text helper-text-margined">
-              Press Ctrl+Enter to execute
+              Press Ctrl+Enter to execute • Drop files to attach
             </div>
           </div>
         ) : (

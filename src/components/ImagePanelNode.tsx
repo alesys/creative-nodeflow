@@ -6,6 +6,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useReactFlow } from '@xyflow/react';
+import ImageIcon from '@mui/icons-material/Image';
 import { BaseNode } from './base';
 import type { ImagePanelNodeData } from '../types/nodes';
 import type { NodeConfig } from '../types/nodeConfig';
@@ -123,11 +124,43 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
     e.stopPropagation();
     setIsDragging(false);
 
+    // Try to get JSON data first (from FilePanel)
+    try {
+      const jsonData = e.dataTransfer.getData('application/json');
+      if (jsonData) {
+        const dragData = JSON.parse(jsonData);
+        if (dragData.isImage && dragData.fileUrl) {
+          setImageUrl(dragData.fileUrl);
+          
+          // Update node data
+          setNodes((nodes) =>
+            nodes.map((node) =>
+              node.id === id
+                ? {
+                    ...node,
+                    data: {
+                      ...node.data,
+                      imageUrl: dragData.fileUrl,
+                      fileName: dragData.fileName,
+                      fileType: dragData.fileType
+                    }
+                  }
+                : node
+            )
+          );
+          return;
+        }
+      }
+    } catch (err) {
+      // Not JSON data, continue to check for files
+    }
+
+    // Handle file drops (from file system)
     const file = e.dataTransfer.files?.[0];
     if (file) {
       handleFileSelect(file);
     }
-  }, [handleFileSelect]);
+  }, [handleFileSelect, id, setNodes]);
 
   // Handle click - open lightbox if image exists, otherwise upload
   const handleClick = useCallback(() => {
@@ -170,7 +203,7 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
     header: {
       title: 'Image Panel',
       variant: 'panel',
-      icon: '🖼️'
+      icon: <ImageIcon sx={{ fontSize: '18px' }} />
     },
     statusBar: {
       show: true,
@@ -200,18 +233,17 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         style={{
-          flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
+          alignItems: imageUrl ? 'stretch' : 'center',
+          justifyContent: imageUrl ? 'flex-start' : 'center',
           padding: '16px',
           cursor: imageUrl ? 'zoom-in' : 'pointer',
           background: isDragging ? 'var(--color-accent-primary-alpha)' : 'transparent',
           border: isDragging ? '2px dashed var(--color-accent-primary)' : 'none',
           borderRadius: '4px',
           margin: '8px',
-          minHeight: '150px',
+          minHeight: imageUrl ? 'auto' : '150px',
           transition: 'all 0.2s ease',
           position: 'relative'
         }}
@@ -223,9 +255,10 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
               alt="Uploaded preview"
               style={{
                 width: '100%',
-                height: '100%',
+                height: 'auto',
                 objectFit: 'contain',
-                borderRadius: '4px'
+                borderRadius: '4px',
+                display: 'block'
               }}
             />
             {/* Delete/Trash Icon - appears when image exists */}

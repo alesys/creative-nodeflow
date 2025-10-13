@@ -250,3 +250,16 @@
 .output-image.clickable:hover {
   transform: scale(1.02);
 }
+
+/* Drop Zone Styles */
+.drop-zone-active {
+  background: rgba(56, 189, 248, 0.1);
+  border: 2px dashed #38bdf8;
+  border-radius: 6px;
+  padding: 4px;
+  transition: all 0.2s ease;
+}
+
+.drop-zone-active textarea {
+  border-color: #38bdf8 !important;
+}

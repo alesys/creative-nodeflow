@@ -2,6 +2,8 @@
 import React, { useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import { useReactFlow } from '@xyflow/react';
 import OpenAIService from '../services/OpenAIService';
 import { usePromptNode } from '../hooks/useNodeEditor';
 import { BaseNode } from './base';
@@ -15,6 +17,9 @@ interface StartingPromptNodeProps {
 }
 
 const StartingPromptNode: React.FC<StartingPromptNodeProps> = ({ data, id, isConnectable }) => {
+  const [isDragOver, setIsDragOver] = React.useState(false);
+  const { setNodes } = useReactFlow();
+  
   const {
     isEditing,
     prompt,
@@ -30,12 +35,65 @@ const StartingPromptNode: React.FC<StartingPromptNodeProps> = ({ data, id, isCon
     await baseHandleKeyDown(e, OpenAIService);
   }, [baseHandleKeyDown]);
 
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    try {
+      const dragData = JSON.parse(e.dataTransfer.getData('application/json'));
+      if (dragData.fileId && dragData.context) {
+        // Append file context to prompt
+        const contextText = `\n\n[File: ${dragData.fileName}]\n${dragData.context.summary}`;
+        setPrompt(prompt + contextText);
+        
+        // Update node data with file context
+        setNodes((nds) =>
+          nds.map((node) => {
+            if (node.id === id) {
+              const existingContexts = Array.isArray(node.data.fileContexts) ? node.data.fileContexts : [];
+              const updatedFileContexts = [...existingContexts, {
+                fileId: dragData.fileId,
+                fileName: dragData.fileName,
+                summary: dragData.context.summary,
+                content: dragData.context.content
+              }];
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  fileContexts: updatedFileContexts,
+                  prompt: prompt + contextText
+                }
+              };
+            }
+            return node;
+          })
+        );
+      }
+    } catch (err) {
+      console.error('Failed to parse drop data:', err);
+    }
+  }, [id, prompt, setPrompt, setNodes]);
+
   // Configure node using BaseNode architecture
   const nodeConfig: NodeConfig = {
     header: {
       title: 'Starting Prompt',
       variant: 'positive',
-      icon: '▶️'
+      icon: <PlayArrowIcon sx={{ fontSize: '18px' }} />
     },
     statusBar: {
       show: true,
@@ -76,7 +134,12 @@ const StartingPromptNode: React.FC<StartingPromptNodeProps> = ({ data, id, isCon
 
       {/* Text Area Control */}
       {isEditing ? (
-        <div>
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={isDragOver ? 'drop-zone-active' : ''}
+        >
           <textarea
             ref={textareaRef}
             value={prompt}
@@ -88,7 +151,7 @@ const StartingPromptNode: React.FC<StartingPromptNodeProps> = ({ data, id, isCon
             placeholder="Enter your prompt here... Press Ctrl+Enter to execute"
           />
           <div className="helper-text helper-text-margined">
-            Press Ctrl+Enter to execute
+            Press Ctrl+Enter to execute • Drop files to attach
           </div>
         </div>
       ) : (

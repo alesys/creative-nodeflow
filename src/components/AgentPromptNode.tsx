@@ -2,6 +2,8 @@
 import React, { useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import PaletteIcon from '@mui/icons-material/Palette';
+import { useReactFlow } from '@xyflow/react';
 import OpenAIService from '../services/OpenAIService';
 import { usePromptNode } from '../hooks/useNodeEditor';
 import { BaseNode } from './base';
@@ -16,6 +18,9 @@ interface AgentPromptNodeProps {
 }
 
 const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectable }) => {
+  const [isDragOver, setIsDragOver] = React.useState(false);
+  const { setNodes } = useReactFlow();
+  
   const {
     isEditing,
     prompt,
@@ -38,6 +43,57 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
     await baseHandleKeyDown(e, OpenAIService);
   }, [baseHandleKeyDown, hasReceivedInput, inputContext]);
 
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    try {
+      const dragData = JSON.parse(e.dataTransfer.getData('application/json'));
+      if (dragData.fileId && dragData.context) {
+        const contextText = `\n\n[File: ${dragData.fileName}]\n${dragData.context.summary}`;
+        setPrompt(prompt + contextText);
+        
+        setNodes((nds) =>
+          nds.map((node) => {
+            if (node.id === id) {
+              const existingContexts = Array.isArray(node.data.fileContexts) ? node.data.fileContexts : [];
+              const updatedFileContexts = [...existingContexts, {
+                fileId: dragData.fileId,
+                fileName: dragData.fileName,
+                summary: dragData.context.summary,
+                content: dragData.context.content
+              }];
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  fileContexts: updatedFileContexts,
+                  prompt: prompt + contextText
+                }
+              };
+            }
+            return node;
+          })
+        );
+      }
+    } catch (err) {
+      console.error('Failed to parse drop data:', err);
+    }
+  }, [id, prompt, setPrompt, setNodes]);
+
   const getConnectionStatus = () => {
     if (!hasReceivedInput) {
       return {
@@ -58,7 +114,7 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
     header: {
       title: 'Creative Director',
       variant: 'positive',
-      icon: '🎨'
+      icon: <PaletteIcon sx={{ fontSize: '18px' }} />
     },
     statusBar: {
       show: true,
@@ -107,7 +163,12 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
       )}
         {/* Text Area Control */}
         {isEditing ? (
-          <div>
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={isDragOver ? 'drop-zone-active' : ''}
+          >
             <textarea
               ref={textareaRef}
               value={prompt}
@@ -119,7 +180,7 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
               placeholder="Enter your follow-up prompt here... Press Ctrl+Enter to execute"
             />
             <div className="helper-text helper-text-margined">
-              Press Ctrl+Enter to execute
+              Press Ctrl+Enter to execute • Drop files to attach
             </div>
           </div>
         ) : (

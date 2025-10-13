@@ -351,7 +351,7 @@
 
 /* Textarea wrapper should be flex container but not expand */
 /* Only apply to divs that contain textarea controls, not parameter controls */
-.node-body > div:not(.parameter-control):not(.helper-text):not(.details-section):not(.status-area) {
+.node-body > div:not(.parameter-control):not(.helper-text):not(.details-section):not(.status-area):not(.file-context-indicator) {
   display: flex;
   flex-direction: column;
   flex: 1; /* Take available space */
@@ -621,9 +621,11 @@
 
 .output-image {
   width: 100%;
+  height: auto;
   max-height: none;
   border-radius: var(--radius-base);
   object-fit: contain;
+  display: block;
 }
 
 .output-image.clickable {
@@ -656,6 +658,7 @@
   hyphens: auto;
   width: 100%;
   box-sizing: border-box;
+  max-height: calc(1.6em * 20); /* ~20 lines (line-height * 20) */
 }
 
 .waiting-content {
@@ -862,11 +865,7 @@
   transform: translateY(-50%) !important;
 }
 
-.react-flow__handle:hover {
-  border-color: var(--color-accent-primary) !important;
-  background: var(--color-accent-primary) !important;
-  transform: translateY(-50%) scale(1.1) !important;
-}
+/* Hover styles defined later to enhance type color without replacing it */
 
 /* ReactFlow connection states - using the actual classes ReactFlow applies */
 .react-flow__handle.connecting {
@@ -890,73 +889,40 @@
 }
 
 /* Connected state - ReactFlow adds these classes */
-.react-flow__handle.react-flow__handle-target.connected,
-.react-flow__handle[data-nodeid][data-handleid].react-flow__handle-target {
-  background: var(--color-accent-success) !important;
-  border-color: var(--color-accent-success) !important;
+/* Connectors maintain their type-based colors (from inline styles) when connected */
+.react-flow__handle.connected,
+.react-flow__handle[data-nodeid][data-handleid] {
+  /* Type colors are applied via inline styles in NodeConnectors */
+  /* No override needed - let type colors show through */
+  opacity: 1;
+  transform: scale(1.1);
+  transition: transform var(--duration-fast), opacity var(--duration-fast);
 }
 
-.react-flow__handle.react-flow__handle-source.connected,
-.react-flow__handle[data-nodeid][data-handleid].react-flow__handle-source {
-  background: var(--color-accent-warning) !important;
-  border-color: var(--color-accent-warning) !important;
-}
-
-/* Force connection colors on nodes that have edges */
-.react-flow__node.selected .react-flow__handle-target {
-  background: var(--color-accent-success) !important;
-  border-color: var(--color-accent-success) !important;
-}
-
-.react-flow__node.selected .react-flow__handle-source {
-  background: var(--color-accent-warning) !important;
-  border-color: var(--color-accent-warning) !important;
-}
-
-/* Programmatic connection state classes */
-.react-flow__handle.connected-input {
-  background: var(--color-accent-success) !important;
-  border-color: var(--color-accent-success) !important;
-}
-
-.react-flow__handle.connected-output {
-  background: var(--color-accent-warning) !important;
-  border-color: var(--color-accent-warning) !important;
-}
-
-/* Alternative approach - show connection state on hover to test colors */
-.react-flow__handle-target:hover {
-  background: var(--color-accent-success) !important;
-  border-color: var(--color-accent-success) !important;
-}
-
-.react-flow__handle-source:hover {
-  background: var(--color-accent-warning) !important;
-  border-color: var(--color-accent-warning) !important;
-}
-
-/* Override the general hover rule for specific handle types */
-.react-flow__handle-target:hover {
-  background: var(--color-accent-success) !important;
-  border-color: var(--color-accent-success) !important;
-  transform: translateY(-50%) scale(1.1) !important;
-}
-
-.react-flow__handle-source:hover {
-  background: var(--color-accent-warning) !important;
-  border-color: var(--color-accent-warning) !important;
-  transform: translateY(-50%) scale(1.1) !important;
+/* Hover state - enhance the type color without replacing it */
+.react-flow__handle:hover {
+  filter: brightness(1.2);
+  transform: translateY(-50%) scale(1.15);
+  box-shadow: 0 0 8px currentColor;
 }
 
 /* Enhanced connection lines */
 .react-flow__edge path {
   stroke: var(--color-text-tertiary);
   stroke-width: 2;
+  cursor: pointer;
+  transition: stroke var(--duration-fast), stroke-width var(--duration-fast), filter var(--duration-fast);
+}
+
+.react-flow__edge:hover path {
+  stroke-width: 3;
+  filter: brightness(1.2);
 }
 
 .react-flow__edge.selected path {
-  stroke: var(--color-accent-primary);
+  stroke: #ffffff !important;
   stroke-width: 3;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
 }
 
 .react-flow__connectionline {
