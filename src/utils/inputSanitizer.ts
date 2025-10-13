@@ -182,7 +182,11 @@ class InputSanitizer {
    */
   validateFileType(
     fileName: string,
-    allowedExtensions: string[] = ['.txt', '.md', '.json', '.js', '.jsx', '.ts', '.tsx', '.css', '.html']
+    allowedExtensions: string[] = [
+      '.txt', '.md', '.json', '.js', '.jsx', '.ts', '.tsx', '.css', '.html',
+      '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.ico',
+      '.pdf', '.doc', '.docx'
+    ]
   ): FileTypeValidationResult {
     const ext = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
 

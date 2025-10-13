@@ -18,6 +18,7 @@ interface StoredFile {
   category?: string;
   uploadedAt?: string;
   metadata?: Record<string, any>;
+  tags?: string[];
 }
 
 interface FileContext {
@@ -66,6 +67,10 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
+  const [renamingValue, setRenamingValue] = useState<string>('');
+  const [editingTagsFileId, setEditingTagsFileId] = useState<string | null>(null);
+  const [tagInput, setTagInput] = useState<string>('');
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -254,6 +259,82 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
     } catch (error) {
       logger.error('[FilePanel] Delete failed:', error);
       setError('Delete failed: ' + (error as Error).message);
+    }
+  };
+
+  // Start renaming a file
+  const handleStartRename = (fileId: string, currentName: string): void => {
+    setRenamingFileId(fileId);
+    setRenamingValue(currentName);
+  };
+
+  // Finish renaming a file
+  const handleFinishRename = async (fileId: string): Promise<void> => {
+    if (!renamingValue.trim()) {
+      setRenamingFileId(null);
+      return;
+    }
+
+    try {
+      await fileStorageService.init();
+      const file = files.find(f => f.id === fileId);
+      if (file) {
+        // Update file metadata with new name
+        const updatedMetadata = {
+          ...file.metadata,
+          originalName: file.name,
+          customName: renamingValue.trim()
+        };
+        // For now, we'll just update in memory
+        // You may want to add a rename method to fileStorageService
+        setFiles(prev => prev.map(f => 
+          f.id === fileId ? { ...f, name: renamingValue.trim(), metadata: updatedMetadata } : f
+        ));
+      }
+      setRenamingFileId(null);
+      setRenamingValue('');
+    } catch (error) {
+      logger.error('[FilePanel] Rename failed:', error);
+      setError('Rename failed: ' + (error as Error).message);
+    }
+  };
+
+  // Add tag to file
+  const handleAddTag = async (fileId: string, tag: string): Promise<void> => {
+    if (!tag.trim()) return;
+
+    try {
+      const file = files.find(f => f.id === fileId);
+      if (file) {
+        const existingTags = file.tags || [];
+        if (existingTags.includes(tag.trim())) return; // Tag already exists
+        
+        const updatedTags = [...existingTags, tag.trim()];
+        setFiles(prev => prev.map(f => 
+          f.id === fileId ? { ...f, tags: updatedTags } : f
+        ));
+        
+        // Save to metadata
+        await fileStorageService.init();
+        // You may want to add an updateMetadata method to fileStorageService
+      }
+    } catch (error) {
+      logger.error('[FilePanel] Add tag failed:', error);
+    }
+  };
+
+  // Remove tag from file
+  const handleRemoveTag = async (fileId: string, tag: string): Promise<void> => {
+    try {
+      const file = files.find(f => f.id === fileId);
+      if (file && file.tags) {
+        const updatedTags = file.tags.filter(t => t !== tag);
+        setFiles(prev => prev.map(f => 
+          f.id === fileId ? { ...f, tags: updatedTags } : f
+        ));
+      }
+    } catch (error) {
+      logger.error('[FilePanel] Remove tag failed:', error);
     }
   };
 
@@ -526,15 +607,50 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
                           {getFileTypeLabel(file.type)}
                         </span>
                         <div className="file-details">
-                          <div className="file-name" title={file.name}>
-                            {file.name}
-                          </div>
+                          {renamingFileId === file.id ? (
+                            <input
+                              type="text"
+                              className="file-rename-input"
+                              value={renamingValue}
+                              onChange={(e) => setRenamingValue(e.target.value)}
+                              onBlur={() => handleFinishRename(file.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleFinishRename(file.id);
+                                if (e.key === 'Escape') setRenamingFileId(null);
+                                e.stopPropagation();
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              autoFocus
+                            />
+                          ) : (
+                            <div 
+                              className="file-name" 
+                              title={file.name}
+                              onDoubleClick={() => handleStartRename(file.id, file.name)}
+                            >
+                              {file.name}
+                            </div>
+                          )}
                           <div className="file-meta">
                             {formatFileSize(file.size)} • {file.type}
                           </div>
                         </div>
                       </div>
                       <div className="file-actions">
+                        <button
+                          className="action-btn"
+                          onClick={() => handleStartRename(file.id, file.name)}
+                          title="Rename file"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          className="action-btn"
+                          onClick={() => setEditingTagsFileId(editingTagsFileId === file.id ? null : file.id)}
+                          title="Manage tags"
+                        >
+                          🏷️
+                        </button>
                         <button
                           className={`select-btn ${isSelected ? 'selected' : ''}`}
                           onClick={() => handleFileToggle(file.id)}
@@ -551,6 +667,46 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
                         </button>
                       </div>
                     </div>
+
+                    {/* Tags section */}
+                    {(file.tags && file.tags.length > 0) || editingTagsFileId === file.id ? (
+                      <div className="file-tags">
+                        {file.tags?.map((tag, idx) => (
+                          <span key={idx} className="file-tag">
+                            {tag}
+                            <button
+                              className="tag-remove"
+                              onClick={() => handleRemoveTag(file.id, tag)}
+                              title="Remove tag"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                        {editingTagsFileId === file.id && (
+                          <input
+                            type="text"
+                            className="tag-input"
+                            placeholder="Add tag..."
+                            value={tagInput}
+                            onChange={(e) => setTagInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && tagInput.trim()) {
+                                handleAddTag(file.id, tagInput);
+                                setTagInput('');
+                                e.stopPropagation();
+                              }
+                              if (e.key === 'Escape') {
+                                setEditingTagsFileId(null);
+                                setTagInput('');
+                              }
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            autoFocus
+                          />
+                        )}
+                      </div>
+                    ) : null}
 
                     {context && (
                       <div className="file-context">

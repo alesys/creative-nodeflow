@@ -14,6 +14,7 @@ import {
   Connection,
   OnConnect,
   NodeTypes,
+  EdgeTypes,
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
@@ -25,10 +26,12 @@ import ImagePromptNode from './components/ImagePromptNode';
 import VideoPromptNode from './components/VideoPromptNode';
 import OutputNode from './components/OutputNode';
 import ImagePanelNode from './components/ImagePanelNode';
+import CustomEdge from './components/CustomEdge';
 import FilePanel from './components/FilePanel';
 import { alertService } from './components/Alert';
 import { UI_DIMENSIONS } from './constants/app';
 import logger from './utils/logger';
+import fileStorageService from './services/FileStorageService';
 
 // Import types
 import type {
@@ -174,6 +177,11 @@ function CreativeNodeFlowInner() {
     videoPrompt: VideoPromptNode,
     customOutput: OutputNode,
     imagePanel: ImagePanelNode,
+  }), []);
+
+  // Define custom edge types
+  const edgeTypes: EdgeTypes = useMemo(() => ({
+    default: CustomEdge,
   }), []);
 
   // Helper function to get connector type from node
@@ -364,12 +372,22 @@ function CreativeNodeFlowInner() {
         return;
       }
       
+      // Get edge type and color based on source connector type
+      const edgeType = getConnectorType(sourceNode, params.sourceHandle, 'source');
+      const edgeColorMap: Record<ConnectorType, string> = {
+        text: 'var(--color-type-text)',
+        image: 'var(--color-type-image)',
+        video: 'var(--color-type-video)',
+        any: 'var(--color-type-any)'
+      };
+      
       console.log('[CreativeNodeFlow] Connection successful:', params);
       setIsConnecting(false); // Connection was successful
       setEdges((eds) => addEdge({
         ...params,
+        type: edgeType, // Store the edge type in data
         animated: true,
-        style: { stroke: '#10b981', strokeWidth: 2 }
+        style: { stroke: edgeColorMap[edgeType], strokeWidth: 2 }
       }, eds));
 
       // After creating the connection, check if source node has existing output data
@@ -515,8 +533,20 @@ function CreativeNodeFlowInner() {
               clipboardItem.getType(type).then(blob => {
                 // Convert blob to data URL
                 const reader = new FileReader();
-                reader.onload = (e) => {
+                reader.onload = async (e) => {
                   const imageUrl = e.target?.result as string;
+
+                  // Save pasted image to reference files
+                  try {
+                    await fileStorageService.init();
+                    // Convert blob to File object with a timestamped name
+                    const fileName = `pasted-image-${Date.now()}.${type.split('/')[1] || 'png'}`;
+                    const file = new File([blob], fileName, { type: type });
+                    await fileStorageService.uploadFile(file);
+                    logger.info(`Pasted image saved to reference files: ${fileName}`);
+                  } catch (error) {
+                    logger.error('Failed to save pasted image to reference files:', error);
+                  }
 
                   // Check if an Image Panel is selected
                   const selectedImagePanels = nodes.filter(
@@ -980,6 +1010,14 @@ function CreativeNodeFlowInner() {
     };
   }, [edges, setContextMenu, setHandleContext]);
 
+  // Handle edge deletion (delete key or backspace)
+  const onEdgesDelete = useCallback((edgesToDelete: Edge[]) => {
+    console.log('[CreativeNodeFlow] Edges deleted:', edgesToDelete);
+    if (edgesToDelete.length > 0) {
+      alertService.info(`${edgesToDelete.length} connection${edgesToDelete.length > 1 ? 's' : ''} deleted`);
+    }
+  }, []);
+
   return (
     <div ref={reactFlowWrapperRef} style={{ width: '100vw', height: '100vh' }}>
       <ReactFlow
@@ -990,9 +1028,15 @@ function CreativeNodeFlowInner() {
         onConnect={onConnect}
         onConnectStart={onConnectStart}
         onConnectEnd={onConnectEnd}
+        onEdgesDelete={onEdgesDelete}
         onPaneContextMenu={handlePaneContextMenu}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        defaultEdgeOptions={{
+          interactionWidth: 20,
+        }}
         colorMode="dark"
+        deleteKeyCode="Delete"
         fitView
         fitViewOptions={{
           padding: 0.1,
