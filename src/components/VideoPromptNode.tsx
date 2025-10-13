@@ -76,9 +76,7 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
     try {
       const dragData = JSON.parse(e.dataTransfer.getData('application/json'));
       if (dragData.fileId && dragData.context) {
-        const contextText = `\n\n[File: ${dragData.fileName}]\n${dragData.context.summary}`;
-        setPrompt(prompt + contextText);
-        
+        // Update node data with file context (without inserting text)
         setNodes((nds) =>
           nds.map((node) => {
             if (node.id === id) {
@@ -93,8 +91,7 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
                 ...node,
                 data: {
                   ...node.data,
-                  fileContexts: updatedFileContexts,
-                  prompt: prompt + contextText
+                  fileContexts: updatedFileContexts
                 }
               };
             }
@@ -105,7 +102,7 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
     } catch (err) {
       console.error('Failed to parse drop data:', err);
     }
-  }, [id, prompt, setPrompt, setNodes]);
+  }, [id, setNodes]);
 
   // Input listener is now set up automatically by useNodeInput hook
 

@@ -11,6 +11,7 @@ import { BaseNode } from './base';
 import type { ImagePanelNodeData } from '../types/nodes';
 import type { NodeConfig } from '../types/nodeConfig';
 import logger from '../utils/logger';
+import fileStorageService from '../services/FileStorageService';
 
 interface ImagePanelNodeProps {
   data: ImagePanelNodeData;
@@ -33,14 +34,14 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
   }, [data.imageUrl, imageUrl]);
 
   // Handle file selection
-  const handleFileSelect = useCallback((file: File) => {
+  const handleFileSelect = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) {
       logger.warn('Only image files are allowed');
       return;
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const url = e.target?.result as string;
       setImageUrl(url);
 
@@ -66,6 +67,24 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
           }
         ]
       };
+
+      // Save image to FilePanel if not already there
+      try {
+        await fileStorageService.init();
+        const existingFiles = await fileStorageService.listFiles();
+        
+        // Check if this exact image already exists (by comparing data URLs or file names)
+        const fileExists = existingFiles.some(f => 
+          f.name === file.name && f.type === file.type && f.size === file.size
+        );
+
+        if (!fileExists) {
+          await fileStorageService.uploadFile(file);
+          logger.info(`Image saved to reference files: ${file.name}`);
+        }
+      } catch (error) {
+        logger.error('Failed to save image to reference files:', error);
+      }
 
       // Update this node's data so it's available when connections are made
       setNodes((nodes) =>

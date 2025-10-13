@@ -55,11 +55,7 @@ const StartingPromptNode: React.FC<StartingPromptNodeProps> = ({ data, id, isCon
     try {
       const dragData = JSON.parse(e.dataTransfer.getData('application/json'));
       if (dragData.fileId && dragData.context) {
-        // Append file context to prompt
-        const contextText = `\n\n[File: ${dragData.fileName}]\n${dragData.context.summary}`;
-        setPrompt(prompt + contextText);
-        
-        // Update node data with file context
+        // Update node data with file context (without inserting text)
         setNodes((nds) =>
           nds.map((node) => {
             if (node.id === id) {
@@ -74,8 +70,7 @@ const StartingPromptNode: React.FC<StartingPromptNodeProps> = ({ data, id, isCon
                 ...node,
                 data: {
                   ...node.data,
-                  fileContexts: updatedFileContexts,
-                  prompt: prompt + contextText
+                  fileContexts: updatedFileContexts
                 }
               };
             }
@@ -86,7 +81,7 @@ const StartingPromptNode: React.FC<StartingPromptNodeProps> = ({ data, id, isCon
     } catch (err) {
       console.error('Failed to parse drop data:', err);
     }
-  }, [id, prompt, setPrompt, setNodes]);
+  }, [id, setNodes]);
 
   // Configure node using BaseNode architecture
   const nodeConfig: NodeConfig = {
