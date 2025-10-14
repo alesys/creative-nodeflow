@@ -58,20 +58,20 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
         />
       )}
       
-      {/* Connectors (rendered outside main content for absolute positioning) */}
-      {connectors && (
-        <NodeConnectors 
-          connectors={connectors} 
-          isConnectable={isConnectable}
-        />
-      )}
-      
       {/* Header */}
       <NodeHeader config={header} />
       
       {/* Status Bar */}
       {statusBar?.show && (
         <NodeStatusBar config={statusBar} />
+      )}
+      
+      {/* Connectors (inline between status bar and body) */}
+      {connectors && (
+        <NodeConnectors 
+          connectors={connectors} 
+          isConnectable={isConnectable}
+        />
       )}
       
       {/* Body */}

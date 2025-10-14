@@ -1,18 +1,34 @@
-// API service for Google Gemini integration - NEW SDK VERSION
+// ================================================================================================
+// LEGACY IMPLEMENTATION - DEPRECATED SDK
+// ================================================================================================
+// 
+// This is a BACKUP of the old GoogleAIService using the deprecated @google/generative-ai SDK
+// 
+// Date archived: October 12, 2025
+// Reason: The @google/generative-ai SDK v0.24.x is deprecated (EOL: November 30, 2025)
+//         and does NOT support imageConfig parameter for aspect ratio control.
+// 
+// This file is kept as a fallback in case we need to rollback to the old SDK.
+// To use this legacy version, rename:
+//   - GoogleAIService.ts -> GoogleAIService.new.ts
+//   - GoogleAIService.legacy.ts -> GoogleAIService.ts
+// 
+// Limitations of this implementation:
+//   - Aspect ratio MUST be embedded in prompt text (unreliable)
+//   - No API guarantee of aspect ratio
+//   - Model often defaults to 1:1 (square) regardless of prompt instructions
+//   - SDK will lose support after November 2025
+// 
+// The NEW implementation (GoogleAIService.ts) uses @google/genai with proper imageConfig support
+// 
+// ================================================================================================
+
+// API service for Google Gemini integration
 // "Nano Banana" is the official nickname for Gemini's image generation capability
 // Model: gemini-2.5-flash-image-preview (requires billing for image generation)
 // Documentation: https://ai.google.dev/gemini-api/docs/image-generation
-// 
-// MIGRATION NOTE: This service now uses @google/genai (new unified SDK)
-// The legacy implementation using @google/generative-ai is backed up in GoogleAIService.legacy.ts
-// 
-// Key differences from legacy SDK:
-// - Proper imageConfig support with aspectRatio parameter
-// - Different API structure: ai.models.generateContent()
-// - Enhanced multimodal support
-// - Better TypeScript types
 
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { LIMITS, MODELS, API_ERRORS } from '../constants/app';
 import logger from '../utils/logger';
 import type { ChatMessage, ConversationContext } from '../types/api';
@@ -40,7 +56,7 @@ interface ContentPart {
 }
 
 class GoogleAIService {
-  private client: GoogleGenAI | null;
+  private client: GoogleGenerativeAI | null;
 
   constructor() {
     this.client = null;
@@ -56,8 +72,7 @@ class GoogleAIService {
     }
 
     try {
-      this.client = new GoogleGenAI({ apiKey: apiKey.trim() });
-      logger.info('Google AI client initialized with new @google/genai SDK');
+      this.client = new GoogleGenerativeAI(apiKey.trim());
     } catch (error) {
       logger.error('Failed to initialize Google AI client:', error);
       this.client = null;
@@ -74,8 +89,11 @@ class GoogleAIService {
     }
 
     try {
-      logger.debug('Generating image with new SDK - aspect ratio:', aspectRatio);
-      logger.debug('Model:', MODELS.GOOGLE_IMAGE);
+      // Use Gemini 2.5 Flash Image Preview (Nano Banana) for image generation
+      // Note: Image generation may require billing to be enabled
+      const model = this.client.getGenerativeModel({
+        model: MODELS.GOOGLE_IMAGE
+      });
 
       // Build multimodal content array with text and images
       const contentParts: Array<string | { inlineData: { data: string; mimeType: string } }> = [];
@@ -181,47 +199,27 @@ class GoogleAIService {
 
       logger.debug('Final content parts for generation:', enhancedContentParts.length);
 
-      // NEW SDK: Use proper imageConfig with aspectRatio parameter
-      // This is the key difference from the legacy SDK - proper aspect ratio support!
-      logger.debug('Using new SDK with imageConfig.aspectRatio:', normalizedAspectRatio);
+      // IMPORTANT: The @google/generative-ai SDK v0.24.x does NOT support imageConfig parameter
+      // The SDK is deprecated and imageConfig was added in the NEW @google/genai SDK
+      // Therefore, we MUST rely on the prompt-based aspect ratio approach
+      // Documentation: https://ai.google.dev/gemini-api/docs/image-generation (uses new SDK)
+      // Migration guide: https://ai.google.dev/gemini-api/docs/migrate
       
-      // Build the request using the new SDK structure
-      const contents = enhancedContentParts.map(part => {
-        if (typeof part === 'string') {
-          return { text: part };
-        } else {
-          // Handle inline data (images from context)
-          return {
-            inlineData: {
-              data: part.inlineData.data,
-              mimeType: part.inlineData.mimeType
-            }
-          };
-        }
-      });
-
-      logger.debug('Calling generateContent with imageConfig');
+      logger.debug('Generating image with aspect ratio in prompt:', normalizedAspectRatio);
+      logger.debug('Note: Using deprecated SDK - aspect ratio is embedded in prompt text');
       
-      const result = await this.client.models.generateContent({
-        model: MODELS.GOOGLE_IMAGE,
-        contents: contents,
-        config: {
-          responseModalities: ['IMAGE'],
-          imageConfig: {
-            aspectRatio: normalizedAspectRatio
-          }
-        }
-      });
+      const result = await model.generateContent(enhancedContentParts);
+      const response = await result.response;
 
       logger.debug('Gemini image response received');
-      logger.debug('Response structure:', JSON.stringify(result, null, 2).substring(0, 500));
+      logger.debug('Response candidates:', response.candidates?.length);
+      logger.debug('Response status:', response.candidates?.[0]?.finishReason);
 
-      // Handle the new SDK response format
-      if (!result || !result.candidates || result.candidates.length === 0) {
+      if (!response.candidates || response.candidates.length === 0) {
         throw new Error('No candidates returned from Gemini. This may indicate a billing or access issue.');
       }
 
-      const candidate = result.candidates[0];
+      const candidate = response.candidates[0];
       logger.debug('Candidate finish reason:', candidate.finishReason);
       logger.debug('Candidate safety ratings:', candidate.safetyRatings);
 
@@ -234,7 +232,7 @@ class GoogleAIService {
       }
 
       if (!candidate.content || !candidate.content.parts) {
-        logger.debug('Full response structure:', JSON.stringify(result, null, 2));
+        logger.debug('Full response structure:', JSON.stringify(response, null, 2));
         throw new Error('No content parts in response. This may indicate billing is required for image generation.');
       }
 
@@ -396,6 +394,8 @@ Your prompt was: "${prompt}"`;
     }
 
     try {
+      const model = this.client.getGenerativeModel({ model: MODELS.GOOGLE_TEXT });
+
       let fullPrompt = prompt;
 
       // Add context if provided
@@ -409,14 +409,9 @@ Your prompt was: "${prompt}"`;
         }
       }
 
-      // Use new SDK for text generation
-      const result = await this.client.models.generateContent({
-        model: MODELS.GOOGLE_TEXT,
-        contents: [{ text: fullPrompt }]
-      });
-
-      // Extract text from response
-      const responseContent = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const result = await model.generateContent(fullPrompt);
+      const response = await result.response;
+      const responseContent = response.text();
 
       const updatedMessages: ChatMessage[] = [
         ...(context?.messages || []).slice(-LIMITS.MAX_CONTEXT_MESSAGES),

@@ -32,7 +32,7 @@ export interface ConnectorDefinition {
 export type NodeVariant = 'positive' | 'loader' | 'output' | 'panel';
 
 export interface NodeHeaderConfig {
-  icon?: string;
+  icon?: ReactNode;
   title: string;
   variant: NodeVariant;
   actions?: ReactNode;
@@ -91,22 +91,22 @@ export interface ConnectorMetadata {
 
 export const CONNECTOR_METADATA: Record<ConnectorType, ConnectorMetadata> = {
   text: {
-    color: '#3B82F6', // Blue
+    color: 'var(--color-type-text)', // Green from CSS variables
     icon: '📝',
     label: 'Text'
   },
   image: {
-    color: '#A855F7', // Purple
+    color: 'var(--color-type-image)', // Orange from CSS variables
     icon: '🖼️',
     label: 'Image'
   },
   video: {
-    color: '#EF4444', // Red
+    color: 'var(--color-type-video)', // Purple from CSS variables
     icon: '🎬',
     label: 'Video'
   },
   any: {
-    color: '#6B7280', // Gray
+    color: 'var(--color-type-any)', // Gray from CSS variables
     icon: '⚡',
     label: 'Any'
   }

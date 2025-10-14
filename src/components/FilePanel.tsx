@@ -1,5 +1,7 @@
 // File Panel Component - provides file upload, management, and AI processing interface
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { fileStorageService } from '../services/FileStorageService';
 import { fileProcessingService } from '../services/FileProcessingService';
 import openAIService from '../services/OpenAIService';
@@ -58,6 +60,7 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
   // State management
   const [activeTab, setActiveTab] = useState<TabType>('files');
   const [brandInstructions, setBrandInstructions] = useState<string>('');
+  const [isBrandEditMode, setIsBrandEditMode] = useState<boolean>(false);
   const [files, setFiles] = useState<StoredFile[]>([]);
   const [contexts, setContexts] = useState<FileContext[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
@@ -385,7 +388,8 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
   const filteredFiles = files.filter(file => {
     const matchesSearch = !searchQuery ||
       file.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      file.type.toLowerCase().includes(searchQuery.toLowerCase());
+      file.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      file.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesType = filterType === 'all' ||
       (filterType === 'image' && file.type.startsWith('image/')) ||
@@ -425,7 +429,7 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
       {/* Header */}
       <div className="file-panel-header">
         <div className="file-panel-title">
-          <span>Reference Files</span>
+          <span>Resources & Brand</span>
           <div className="file-panel-stats">
             {files.length} file{files.length !== 1 ? 's' : ''}
             {selectedFiles.size > 0 && (
@@ -450,7 +454,7 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
               className={`tab-btn ${activeTab === 'files' ? 'active' : ''}`}
               onClick={() => setActiveTab('files')}
             >
-              📁 Reference Files
+              📁 Files
             </button>
             <button
               className={`tab-btn ${activeTab === 'brand' ? 'active' : ''}`}
@@ -632,7 +636,7 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
                             </div>
                           )}
                           <div className="file-meta">
-                            {formatFileSize(file.size)} • {file.type}
+                            {formatFileSize(file.size)}
                           </div>
                         </div>
                       </div>
@@ -701,6 +705,10 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
                                 setTagInput('');
                               }
                             }}
+                            onBlur={() => {
+                              setEditingTagsFileId(null);
+                              setTagInput('');
+                            }}
                             onClick={(e) => e.stopPropagation()}
                             autoFocus
                           />
@@ -708,24 +716,10 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
                       </div>
                     ) : null}
 
-                    {context && (
-                      <div className="file-context">
-                        <div className="context-summary">
-                          {context.summary}
-                        </div>
-                        {context.content?.keyPoints && context.content.keyPoints.length > 0 && (
-                          <div className="context-points">
-                            {context.content.keyPoints.slice(0, 2).map((point, i) => (
-                              <div key={i} className="context-point">• {point}</div>
-                            ))}
-                          </div>
-                        )}
-                        <div className="context-meta">
-                          {context.processingMethod} • {context.type}
-                          {context.error && (
-                            <span className="context-error" title={context.error}>Error</span>
-                          )}
-                        </div>
+                    {/* Image Thumbnail */}
+                    {file.type.startsWith('image/') && file.url && (
+                      <div className="file-thumbnail">
+                        <img src={file.url} alt={file.name} />
                       </div>
                     )}
                   </div>
@@ -757,22 +751,44 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
                   Define your brand's personality, tone, and default instructions that will be applied to all AI generations.
                 </p>
               </div>
-              <textarea
-                className="brand-voice-textarea"
-                value={brandInstructions}
-                onChange={(e) => setBrandInstructions(e.target.value)}
-                placeholder="Enter your brand voice guidelines, tone preferences, writing style, and any system-wide instructions you want the AI to follow...
+              
+              {isBrandEditMode ? (
+                <textarea
+                  className="brand-voice-textarea"
+                  value={brandInstructions}
+                  onChange={(e) => setBrandInstructions(e.target.value)}
+                  onBlur={() => setIsBrandEditMode(false)}
+                  placeholder="Enter your brand voice guidelines, tone preferences, writing style, and any system-wide instructions you want the AI to follow...
 
 Example:
 - Brand: Professional yet approachable
 - Tone: Conversational, helpful, and clear
 - Style: Use active voice, short sentences
 - Avoid: Jargon, overly formal language"
-                rows={15}
-              />
+                  rows={15}
+                  autoFocus
+                />
+              ) : (
+                <div 
+                  className="brand-voice-display"
+                  onClick={() => setIsBrandEditMode(true)}
+                >
+                  {brandInstructions ? (
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {brandInstructions}
+                    </ReactMarkdown>
+                  ) : (
+                    <div className="brand-voice-placeholder">
+                      Click to add your brand voice guidelines...
+                    </div>
+                  )}
+                </div>
+              )}
+              
               <div className="brand-voice-footer">
                 <span className="helper-text">
                   {brandInstructions.length} characters • Auto-saved
+                  {!isBrandEditMode && <span> • Click to edit</span>}
                 </span>
               </div>
             </div>

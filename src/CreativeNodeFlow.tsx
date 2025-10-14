@@ -609,16 +609,17 @@ function CreativeNodeFlowInner() {
                     }
                   } else {
                     // Create a new Image Panel in the center of viewport
-                    const reactFlowViewport = document.querySelector('.react-flow__viewport');
-                    if (reactFlowViewport) {
-                      const bounds = reactFlowViewport.getBoundingClientRect();
+                    const reactFlowWrapper = reactFlowWrapperRef.current;
+                    if (reactFlowWrapper) {
+                      const bounds = reactFlowWrapper.getBoundingClientRect();
                       const centerX = bounds.width / 2;
                       const centerY = bounds.height / 2;
 
-                      const flowPosition = screenToFlowPosition(
-                        bounds.left + centerX,
-                        bounds.top + centerY
-                      );
+                      // Use ReactFlow's screenToFlowPosition for accurate positioning
+                      const flowPosition = reactFlowScreenToFlowPosition({
+                        x: bounds.left + centerX,
+                        y: bounds.top + centerY
+                      });
 
                       const newId = `imagePanel-${Date.now()}`;
 
@@ -675,7 +676,7 @@ function CreativeNodeFlowInner() {
         logger.debug('No image in clipboard or clipboard access denied:', err);
       });
     }
-  }, [nodes, edges, setNodes, setEdges, screenToFlowPosition, getHighestZIndex, registerNodeHandlers]);
+  }, [nodes, edges, setNodes, setEdges, reactFlowScreenToFlowPosition, getHighestZIndex, registerNodeHandlers]);
 
   // Right-click context menu handler
   const handlePaneContextMenu = useCallback((event: React.MouseEvent | MouseEvent) => {
@@ -1018,6 +1019,49 @@ function CreativeNodeFlowInner() {
     }
   }, []);
 
+  // Handle drop on canvas for creating image nodes
+  const handleDrop = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    
+    try {
+      const dragData = JSON.parse(event.dataTransfer.getData('application/json'));
+      
+      // Only handle image files dropped on canvas (not on nodes)
+      if (dragData.isImage && dragData.fileUrl) {
+        const reactFlowBounds = reactFlowWrapperRef.current?.getBoundingClientRect();
+        if (!reactFlowBounds) return;
+
+        // Convert screen coordinates to flow coordinates
+        const position = reactFlowScreenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY,
+        });
+
+        // Create a new ImagePanel node at the drop position
+        const newNode = {
+          id: `imagePanel-${Date.now()}`,
+          type: 'imagePanel',
+          position,
+          data: {
+            imageUrl: dragData.fileUrl,
+            fileName: dragData.fileName,
+            label: `Image: ${dragData.fileName}`
+          }
+        };
+
+        setNodes((nds) => nds.concat(newNode));
+        alertService.success(`Image node created: ${dragData.fileName}`);
+      }
+    } catch (error) {
+      console.error('[CreativeNodeFlow] Error handling drop:', error);
+    }
+  }, [setNodes, reactFlowScreenToFlowPosition]);
+
+  const handleDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  }, []);
+
   return (
     <div ref={reactFlowWrapperRef} style={{ width: '100vw', height: '100vh' }}>
       <ReactFlow
@@ -1030,6 +1074,8 @@ function CreativeNodeFlowInner() {
         onConnectEnd={onConnectEnd}
         onEdgesDelete={onEdgesDelete}
         onPaneContextMenu={handlePaneContextMenu}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={{
@@ -1039,8 +1085,10 @@ function CreativeNodeFlowInner() {
         deleteKeyCode="Delete"
         fitView
         fitViewOptions={{
-          padding: 0.1,
-          includeHiddenNodes: false
+          padding: 0.3,
+          includeHiddenNodes: false,
+          maxZoom: 1.0,
+          minZoom: 1.0
         }}
         onError={(id, message) => {
           // Suppress ResizeObserver errors

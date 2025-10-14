@@ -205,9 +205,19 @@ export const usePromptNode = (
       throw new Error(`${service.constructor.name} not configured. Please check your .env file.`);
     }
 
+    // Retrieve Brand Voice from localStorage
+    const brandInstructions = localStorage.getItem('brandInstructions') || '';
+    
+    // Combine Brand Voice with system prompt
+    let enhancedSystemPrompt = systemPrompt;
+    if (brandInstructions.trim()) {
+      enhancedSystemPrompt = `${brandInstructions}\n\n---\n\n${systemPrompt}`;
+      logger.debug('[useNodeEditor] Enhanced system prompt with Brand Voice, total length:', enhancedSystemPrompt.length);
+    }
+
     // Sanitize inputs before processing
     const sanitizedPrompt = inputSanitizer.sanitizePrompt(prompt);
-    const sanitizedSystemPrompt = inputSanitizer.sanitizeSystemPrompt(systemPrompt);
+    const sanitizedSystemPrompt = inputSanitizer.sanitizeSystemPrompt(enhancedSystemPrompt);
 
     if (!sanitizedPrompt) {
       throw new Error('Prompt is empty or contains only invalid characters');

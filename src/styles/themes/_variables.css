@@ -253,10 +253,29 @@
   --duration-fast: 150ms;
   --duration-normal: 200ms;
   --duration-slow: 300ms;
+  --duration-pulse: 2s;
 
   --easing-default: cubic-bezier(0.4, 0, 0.2, 1);
   --easing-in: cubic-bezier(0.4, 0, 1, 1);
   --easing-out: cubic-bezier(0, 0, 0.2, 1);
+
+  /* ============================================
+     EFFECTS - Glows and Shadows
+     ============================================ */
+  --glow-processing: 0 0 20px rgba(96, 165, 250, 0.6);
+  --glow-selected: 0 0 0 3px rgba(245, 158, 11, 0.2);
+  --glow-edge-selected: 0 0 8px rgba(245, 158, 11, 0.8);
+  
+  --color-glow-processing: rgba(96, 165, 250, 0.6);
+  --color-glow-selected: rgba(245, 158, 11, 0.5);
+
+  /* ============================================
+     CONNECTION TYPES - Data Flow Colors
+     ============================================ */
+  --color-type-text: #10B981;
+  --color-type-image: #F59E0B;
+  --color-type-video: #8B5CF6;
+  --color-type-any: #6B7280;
 
   /* ============================================
      ACCESSIBILITY

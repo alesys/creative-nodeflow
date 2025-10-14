@@ -4,6 +4,8 @@ import ReactDOM from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useReactFlow } from '@xyflow/react';
+import OutputIcon from '@mui/icons-material/Output';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { BaseNode } from './base';
 import logger from '../utils/logger';
 import type { OutputNodeData } from '../types/nodes';
@@ -132,7 +134,7 @@ const OutputNode: React.FC<OutputNodeProps> = ({ data, id, isConnectable }) => {
         }
 
         return (
-          <div>
+          <div style={{ width: '100%' }}>
             <img
               ref={imageRef}
               src={content}
@@ -151,9 +153,9 @@ const OutputNode: React.FC<OutputNodeProps> = ({ data, id, isConnectable }) => {
                 const img = e.target as HTMLImageElement;
                 if (img.naturalWidth && img.naturalHeight) {
                   const aspectRatio = img.naturalHeight / img.naturalWidth;
-                  const maxWidth = 480; // Current node width
-                  const imageHeight = Math.min(aspectRatio * maxWidth, 600); // Max height of 600px
-                  const nodeHeight = imageHeight + 100; // Add padding for header and status
+                  const nodeWidth = (document.querySelector(`[data-id="${id}"]`) as HTMLElement)?.offsetWidth || 480;
+                  const imageHeight = aspectRatio * nodeWidth;
+                  const nodeHeight = imageHeight + 120; // Add space for header, status bar, and padding
 
                   setNodes((nodes) =>
                     nodes.map((node) =>
@@ -164,7 +166,12 @@ const OutputNode: React.FC<OutputNodeProps> = ({ data, id, isConnectable }) => {
                   );
                 }
               }}
-              style={{ cursor: 'pointer' }}
+              style={{ 
+                cursor: 'pointer',
+                width: '100%',
+                height: 'auto',
+                display: 'block'
+              }}
             />
           </div>
         );
@@ -205,12 +212,13 @@ const OutputNode: React.FC<OutputNodeProps> = ({ data, id, isConnectable }) => {
             <video
               src={content}
               controls
-              preload="auto"
+              preload="metadata"
               style={{
                 width: '100%',
-                maxHeight: '400px',
+                height: 'auto',
                 borderRadius: '4px',
-                backgroundColor: '#000'
+                backgroundColor: '#000',
+                display: 'block'
               }}
               onLoadedMetadata={(e) => {
                 const video = e.target as HTMLVideoElement;
@@ -219,6 +227,22 @@ const OutputNode: React.FC<OutputNodeProps> = ({ data, id, isConnectable }) => {
                   videoWidth: video.videoWidth,
                   videoHeight: video.videoHeight
                 });
+
+                // Auto-resize node to accommodate video
+                if (video.videoWidth && video.videoHeight) {
+                  const aspectRatio = video.videoHeight / video.videoWidth;
+                  const nodeWidth = (document.querySelector(`[data-id="${id}"]`) as HTMLElement)?.offsetWidth || 480;
+                  const videoHeight = aspectRatio * nodeWidth;
+                  const nodeHeight = videoHeight + 160; // Add space for header, status bar, controls, and padding
+
+                  setNodes((nodes) =>
+                    nodes.map((node) =>
+                      node.id === id
+                        ? { ...node, height: Math.max(nodeHeight, 320) } // Min height 320px
+                        : node
+                    )
+                  );
+                }
               }}
               onCanPlay={() => {
                 logger.debug('Video can play now');
@@ -356,17 +380,34 @@ const OutputNode: React.FC<OutputNodeProps> = ({ data, id, isConnectable }) => {
     }
   }, [currentPageIndex, pages, id, setNodes, data]);
 
+  // Build status message with pagination and timestamp
+  const getStatusMessage = () => {
+    const typeLabel = getContentTypeLabel();
+    const baseMessage = content ? 'Content received' : 'Waiting for input...';
+    const parts = [`${typeLabel}: ${baseMessage}`];
+    
+    if (pages.length > 1) {
+      parts.push(`• Page ${currentPageIndex + 1}/${pages.length}`);
+    }
+    
+    if (lastUpdated) {
+      parts.push(`• ${lastUpdated.toLocaleTimeString()}`);
+    }
+    
+    return parts.join(' ');
+  };
+
   // Configure node using BaseNode architecture
   const nodeConfig: NodeConfig = {
     header: {
       title: 'Output',
       variant: 'output',
-      icon: '📤'
+      icon: <OutputIcon sx={{ fontSize: '18px' }} />
     },
     statusBar: {
       show: true,
       status: content ? 'success' : 'idle',
-      message: `${getContentTypeLabel()}: ${content ? 'Content received' : 'Waiting for input...'}`
+      message: getStatusMessage()
     },
     connectors: {
       inputs: [
@@ -395,93 +436,77 @@ const OutputNode: React.FC<OutputNodeProps> = ({ data, id, isConnectable }) => {
   return (
     <>
       <BaseNode id={id} isConnectable={isConnectable} config={nodeConfig}>
-        {/* Pagination Controls in Status Bar */}
-        <div className="output-status-bar">
-          <div className="status-item">
-            <span className="status-text">{getContentTypeLabel()}: {content ? 'Content received' : 'Waiting for input...'}</span>
+        {/* Pagination Controls - only show when there are multiple pages */}
+        {pages.length > 1 && (
+          <div className="parameter-control" style={{ 
+            borderBottom: 'none', 
+            display: 'flex', 
+            flexDirection: 'row',
+            justifyContent: 'center', 
+            alignItems: 'center',
+            padding: '4px 8px',
+            gap: '8px',
+            minHeight: 'auto',
+            height: 'auto',
+            width: 'fit-content',
+            margin: '0 auto',
+            flex: 'none'
+          }}>
+            <button
+              onClick={handlePreviousPage}
+              disabled={currentPageIndex === 0}
+              className="nodrag"
+              style={{
+                background: currentPageIndex === 0 ? 'var(--node-border-color)' : 'var(--color-accent-primary)',
+                color: 'var(--color-text-primary)',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '4px 8px',
+                cursor: currentPageIndex === 0 ? 'not-allowed' : 'pointer',
+                fontSize: '12px',
+                opacity: currentPageIndex === 0 ? 0.5 : 1
+              }}
+              title="Previous page"
+            >
+              ←
+            </button>
+            <span className="helper-text" style={{ fontSize: '11px', whiteSpace: 'nowrap' }}>
+              {currentPageIndex + 1} / {pages.length}
+            </span>
+            <button
+              onClick={handleNextPage}
+              disabled={currentPageIndex === pages.length - 1}
+              className="nodrag"
+              style={{
+                background: currentPageIndex === pages.length - 1 ? 'var(--node-border-color)' : 'var(--color-accent-primary)',
+                color: 'var(--color-text-primary)',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '4px 8px',
+                cursor: currentPageIndex === pages.length - 1 ? 'not-allowed' : 'pointer',
+                fontSize: '12px',
+                opacity: currentPageIndex === pages.length - 1 ? 0.5 : 1
+              }}
+              title="Next page"
+            >
+              →
+            </button>
           </div>
-          {content && (
-            <div className="status-item">
-              <button
-                onClick={handleCopyToClipboard}
-                className="nodrag"
-                style={{
-                  background: 'transparent',
-                  color: 'var(--color-accent-primary)',
-                  border: '1px solid var(--color-accent-primary)',
-                  borderRadius: '4px',
-                  padding: '4px 8px',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--color-accent-primary)';
-                  e.currentTarget.style.color = 'var(--color-text-primary)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.color = 'var(--color-accent-primary)';
-                }}
-                title="Copy to clipboard"
-              >
-                📋
-              </button>
-            </div>
-          )}
-          {pages.length > 1 && (
-            <div className="status-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
-                onClick={handlePreviousPage}
-                disabled={currentPageIndex === 0}
-                className="nodrag"
-                style={{
-                  background: currentPageIndex === 0 ? 'var(--node-border-color)' : 'var(--color-accent-primary)',
-                  color: 'var(--color-text-primary)',
-                  border: 'none',
-                  borderRadius: '4px',
-                  padding: '4px 8px',
-                  cursor: currentPageIndex === 0 ? 'not-allowed' : 'pointer',
-                  fontSize: '12px',
-                  opacity: currentPageIndex === 0 ? 0.5 : 1
-                }}
-              >
-                ←
-              </button>
-              <span className="status-text">
-                Page {currentPageIndex + 1} / {pages.length}
-              </span>
-              <button
-                onClick={handleNextPage}
-                disabled={currentPageIndex === pages.length - 1}
-                className="nodrag"
-                style={{
-                  background: currentPageIndex === pages.length - 1 ? 'var(--node-border-color)' : 'var(--color-accent-primary)',
-                  color: 'var(--color-text-primary)',
-                  border: 'none',
-                  borderRadius: '4px',
-                  padding: '4px 8px',
-                  cursor: currentPageIndex === pages.length - 1 ? 'not-allowed' : 'pointer',
-                  fontSize: '12px',
-                  opacity: currentPageIndex === pages.length - 1 ? 0.5 : 1
-                }}
-              >
-                →
-              </button>
-            </div>
-          )}
-          {lastUpdated && (
-            <div className="status-item">
-              <span className="status-text">{lastUpdated.toLocaleTimeString()}</span>
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Node Body */}
-        <div className="node-body">
+        <div className="node-body output-node-body">
+          {/* Floating Copy Button - visible on hover */}
+          {content && (
+            <button
+              onClick={handleCopyToClipboard}
+              className="nodrag output-copy-button"
+              title="Copy to clipboard"
+            >
+              <ContentCopyIcon sx={{ fontSize: '16px' }} />
+            </button>
+          )}
+          
           {/* Content Display Area */}
           <div style={{ marginTop: 'var(--spacing-sm)' }}>
             {renderContent()}

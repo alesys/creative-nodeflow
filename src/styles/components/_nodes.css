@@ -658,7 +658,6 @@
   hyphens: auto;
   width: 100%;
   box-sizing: border-box;
-  max-height: calc(1.6em * 20); /* ~20 lines (line-height * 20) */
 }
 
 .waiting-content {

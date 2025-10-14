@@ -45,24 +45,72 @@
 
 /* File Context Indicator Styles */
 .file-context-indicator {
-  padding: 6px 12px;
+  padding: 3px 8px;
   background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 4px;
-  margin: 8px 12px 0 12px;
-  display: flex;
+  margin: 4px 12px;
+  display: inline-flex;
+  flex-direction: row;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   font-size: 11px;
   color: #3b82f6;
+  width: fit-content;
+  max-width: calc(100% - 24px);
+  height: fit-content;
+  min-height: auto;
 }
 
 .context-icon {
   flex-shrink: 0;
+  font-size: 12px;
+  line-height: 1;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .context-text {
   font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Output Node Floating Copy Button */
+.output-node-body {
+  position: relative;
+}
+
+.output-copy-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: var(--color-accent-primary);
+  border: 1px solid var(--color-accent-primary);
+  border-radius: 4px;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0;
+  z-index: 10;
+}
+
+.output-node-body:hover .output-copy-button {
+  opacity: 1;
+}
+
+.output-copy-button:hover {
+  background: var(--color-accent-primary);
+  color: var(--color-text-primary);
+  transform: scale(1.05);
 }
 
 
