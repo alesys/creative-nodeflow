@@ -5,10 +5,15 @@ A visual, node-based interface for building and executing AI prompt chains using
 ## ✨ Features
 
 - **🚀 Starting Prompt Node**: Entry point for prompt chains with OpenAI GPT-4o-mini integration
-- **🤖 Agent Prompt Node**: Continuation prompts that receive context from previous nodes  
+- **🤖 Creative Director Node**: Continuation prompts that receive context from previous nodes  
 - **🎨 Art Director Node**: Generate images using Google's Gemini 2.5 Flash Image (Nano Banana)
-- **📄 Output Node**: Display text (rendered as Markdown) or images from AI responses
-- **🔗 Context Flow**: Seamless context passing between connected nodes
+- **🎬 VEO-3 Video Node**: Generate videos using Google's VEO-3 Fast model
+- **📄 Output Node**: Display text (rendered as Markdown), images, or videos from AI responses
+- **🖼️ Image Panel**: Upload or paste images to use as context in prompts
+- **📁 File Panel**: Upload documents, images, and text files with AI-powered processing
+- **🎙️ Brand Voice**: Define your brand's personality and writing style (auto-applied to all prompts)
+- **🧵 Thread Management**: Smart conversation threading with efficient Brand Voice injection
+- **🔗 Context Flow**: Seamless context passing between connected nodes with multimodal support
 - **⚡ Auto-Output**: Automatic output node creation when no output is connected
 - **🎯 Interactive UI**: Click to edit, Ctrl+Enter to execute, real-time processing feedback
 
@@ -97,6 +102,21 @@ REACT_APP_DEFAULT_SYSTEM_PROMPT=You are a helpful AI assistant. Respond clearly 
 
 ## 🎯 How to Use
 
+### Setting Up Brand Voice (Optional but Recommended)
+
+1. **Open File Panel**: Click the "📁" icon on the right side
+2. **Switch to Brand Voice Tab**: Click the "Brand Voice" tab
+3. **Define Your Brand**:
+   ```
+   You are a professional technical writer.
+   - Tone: Clear and concise
+   - Style: Active voice, short sentences
+   - Avoid: Jargon, overly formal language
+   ```
+4. **Auto-Save**: Your Brand Voice is automatically saved and applied to all prompts
+
+**How It Works**: Brand Voice is injected as a system message only when you create a new thread (Starting Prompt). Follow-up prompts (Creative Director) continue the thread without re-injecting Brand Voice, saving tokens and maintaining consistency.
+
 ### Creating Your First Workflow
 
 1. **Add Starting Prompt**: Click "🚀 Starting Prompt" in the left panel
@@ -104,11 +124,16 @@ REACT_APP_DEFAULT_SYSTEM_PROMPT=You are a helpful AI assistant. Respond clearly 
 3. **Execute**: Press `Ctrl+Enter` to send to OpenAI
 4. **Auto Output**: An output node will automatically appear with the response
 
+**Behind the Scenes**: Starting Prompt creates a new conversation thread with your Brand Voice (if defined) as the first system message.
+
 ### Chaining Prompts
 
-1. **Add Agent Prompt**: Click "🤖 Agent Prompt" to add a follow-up prompt
+1. **Add Creative Director**: Click "🤖 Creative Director" to add a follow-up prompt
 2. **Connect Nodes**: Drag from the output handle (right side) of one node to the input handle (left side) of another
-3. **Context Flow**: Agent prompts automatically receive context from connected nodes
+3. **Context Flow**: Creative Director automatically receives context from connected nodes
+4. **Thread Continuity**: The Creative Director continues the existing thread without re-injecting Brand Voice
+
+**Token Savings**: By not re-injecting Brand Voice on every follow-up, you save 100-500 tokens per message (900-4500 tokens per 10-message conversation)!
 
 ### Generating Images
 
@@ -128,14 +153,35 @@ REACT_APP_DEFAULT_SYSTEM_PROMPT=You are a helpful AI assistant. Respond clearly 
 
 ### Node Types
 
-- **Starting Prompt**: No input, has output. Uses OpenAI GPT-4o-mini
-- **Agent Prompt**: Has input and output. Receives context from previous nodes
-- **Art Director**: Has input and output. Uses Google Gemini 2.5 Flash Image
+- **Starting Prompt**: No input, has output. Creates new thread with Brand Voice. Uses OpenAI GPT-4o-mini
+- **Creative Director**: Has input and output. Continues existing thread. Receives context from previous nodes
+- **Art Director**: Has input and output. Uses Google Gemini 2.5 Flash Image (Nano Banana)
+- **VEO-3 Video**: Has input and output. Uses Google VEO-3 Fast for video generation
 - **Output**: Has input and output. Displays results and passes context through
+- **Image Panel**: No input, has output. Upload or paste images for use as context
+
+### Thread Management
+
+**How Threads Work**:
+- Starting Prompt creates a **new thread** with Brand Voice as the first system message
+- Creative Director **continues the thread** from upstream nodes
+- Thread ID is passed through the node chain via context
+- Brand Voice is **never re-injected** in follow-up prompts
+
+**Example Flow**:
+```
+Starting Prompt: "Write about AI" 
+  ↓ Creates Thread-123 with Brand Voice
+  ↓ Sends context (threadId=Thread-123)
+Creative Director: "Make it more technical"
+  ↓ Uses Thread-123 (Brand Voice already present)
+  ↓ Adds message to existing thread
+Output: Displays final result
+```
 
 ### Context Flow
 
-Context flows through the node chain as a message history, allowing each subsequent node to understand the full conversation context.
+Context flows through the node chain as a message history with thread tracking, allowing each subsequent node to understand the full conversation context while maintaining token efficiency.
 
 ## 🛠️ Development
 
