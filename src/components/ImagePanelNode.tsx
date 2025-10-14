@@ -11,7 +11,6 @@ import { BaseNode } from './base';
 import type { ImagePanelNodeData } from '../types/nodes';
 import type { NodeConfig } from '../types/nodeConfig';
 import logger from '../utils/logger';
-import fileStorageService from '../services/FileStorageService';
 
 interface ImagePanelNodeProps {
   data: ImagePanelNodeData;
@@ -30,8 +29,32 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
   React.useEffect(() => {
     if (data.imageUrl && data.imageUrl !== imageUrl) {
       setImageUrl(data.imageUrl);
+
+      // Emit context to downstream nodes if onOutput exists
+      if (data.onOutput) {
+        const mimeType = typeof data.imageUrl === 'string' && data.imageUrl.startsWith('data:')
+          ? data.imageUrl.split(';')[0].split(':')[1] || 'image/png'
+          : 'image/png';
+        const imageContext = {
+          messages: [
+            {
+              role: 'user' as const,
+              content: [
+                { type: 'text' as const, text: 'Image loaded from resource file' },
+                { type: 'image' as const, imageUrl: data.imageUrl, mimeType }
+              ]
+            }
+          ]
+        };
+        data.onOutput({
+          nodeId: id,
+          content: data.imageUrl,
+          type: 'image',
+          context: imageContext
+        });
+      }
     }
-  }, [data.imageUrl, imageUrl]);
+  }, [data.imageUrl, imageUrl, data.onOutput, id]);
 
   // Handle file selection
   const handleFileSelect = useCallback(async (file: File) => {
@@ -69,23 +92,24 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
       };
 
       // Save image to FilePanel if not already there
-      try {
-        await fileStorageService.init();
-        const existingFiles = await fileStorageService.listFiles();
-        
-        // Check if this exact image already exists (by comparing data URLs or file names)
-        const fileExists = existingFiles.some(f => 
-          f.name === file.name && f.type === file.type && f.size === file.size
-        );
-
-        if (!fileExists) {
-          await fileStorageService.uploadFile(file);
-          logger.info(`Image saved to reference files: ${file.name}`);
-        }
-      } catch (error) {
-        logger.error('Failed to save image to reference files:', error);
-      }
-
+            <img
+              src={imageUrl}
+              alt="Uploaded preview"
+              style={{
+                width: '100%',
+                maxWidth: '400px',
+                height: 'auto',
+                objectFit: 'contain',
+                borderRadius: '4px',
+                display: 'block'
+              }}
+              onError={(e) => {
+                // If the URL is a remote one and fails, we can't recover unless a preview was provided earlier
+                // Replace image with placeholder icon
+                const target = e.currentTarget;
+                target.style.display = 'none';
+              }}
+            />
       // Update this node's data so it's available when connections are made
       setNodes((nodes) =>
         nodes.map((node) =>
@@ -148,9 +172,10 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
       const jsonData = e.dataTransfer.getData('application/json');
       if (jsonData) {
         const dragData = JSON.parse(jsonData);
-        if (dragData.isImage && dragData.fileUrl) {
-          setImageUrl(dragData.fileUrl);
-          
+        if (dragData.isImage && (dragData.fileUrl || dragData.previewUrl)) {
+          const chosenUrl = dragData.fileUrl || dragData.previewUrl;
+          setImageUrl(chosenUrl);
+
           // Update node data
           setNodes((nodes) =>
             nodes.map((node) =>
@@ -159,7 +184,7 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
                     ...node,
                     data: {
                       ...node.data,
-                      imageUrl: dragData.fileUrl,
+                      imageUrl: chosenUrl,
                       fileName: dragData.fileName,
                       fileType: dragData.fileType
                     }
@@ -278,6 +303,12 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
                 objectFit: 'contain',
                 borderRadius: '4px',
                 display: 'block'
+              }}
+              onError={(e) => {
+                // If the URL is a remote one and fails, we can't recover unless a preview was provided earlier
+                // Replace image with placeholder icon
+                const target = e.currentTarget;
+                target.style.display = 'none';
               }}
             />
             {/* Delete/Trash Icon - appears when image exists */}

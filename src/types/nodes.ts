@@ -36,7 +36,7 @@ export interface StartingPromptNodeData extends PromptNodeData {
 }
 
 export interface AgentPromptNodeData extends PromptNodeData {
-  // Agent prompt specific properties (if any)
+  // Creative Director node specific properties (if any)
 }
 
 export interface ImagePromptNodeData extends BaseNodeData {

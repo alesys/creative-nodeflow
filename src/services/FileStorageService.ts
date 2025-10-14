@@ -159,7 +159,18 @@ export class FileStorageService {
     await this.ensureInitialized();
 
     logger.debug(`[FileStorageService] Uploading file: ${file.name} (${file.size} bytes)`);
-    return await this.adapter.uploadFile(file, options);
+    const result = await this.adapter.uploadFile(file, options);
+    // Fallback: if adapter failed to provide a usable URL, create a temporary object URL so UI can still render
+    if (!result.url) {
+      try {
+        const objectUrl = URL.createObjectURL(file);
+        logger.warn('[FileStorageService] Adapter returned no URL; using temporary object URL');
+        return { ...result, url: objectUrl };
+      } catch (e) {
+        logger.error('[FileStorageService] Failed to create object URL fallback:', e);
+      }
+    }
+    return result;
   }
 
   /**

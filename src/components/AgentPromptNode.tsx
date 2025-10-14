@@ -1,9 +1,9 @@
-// Agent Prompt Node - Continuation prompt with context input
+// Creative Director Node - Continuation prompt with context input
 import React, { useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import PaletteIcon from '@mui/icons-material/Palette';
-import { useReactFlow } from '@xyflow/react';
+import { useReactFlow, useStore } from '@xyflow/react';
 import OpenAIService from '../services/OpenAIService';
 import { usePromptNode } from '../hooks/useNodeEditor';
 import { BaseNode } from './base';
@@ -21,6 +21,15 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
   const [isDragOver, setIsDragOver] = React.useState(false);
   const { setNodes } = useReactFlow();
   
+
+  // Gather connected input nodes (for context detection)
+  const nodes = useStore(state => state.nodes);
+  const edges = useStore(state => state.edges);
+  const inputNodeIds = edges
+    .filter(edge => edge.target === id)
+    .map(edge => edge.source);
+  const inputNodes = nodes.filter(node => inputNodeIds.includes(node.id));
+
   const {
     isEditing,
     prompt,
@@ -32,7 +41,7 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
     inputContext,
     hasReceivedInput,
     handleKeyDown: baseHandleKeyDown
-  } = usePromptNode(data.prompt || '', data, id);
+  } = usePromptNode(data.prompt || '', data, id, inputNodes);
 
   // Input listener is now set up automatically by useNodeInput hook
 

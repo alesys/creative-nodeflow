@@ -44,7 +44,7 @@ export interface ConversationContext {
 export interface FileContext {
   fileId: string;
   fileName?: string;
-  content?: string | { fullText?: string };
+  content?: string | { fullText?: string } | import('./api').ImageContent | import('./api').VideoContent;
   contextPrompt?: string;
   summary?: string;
   type?: string;

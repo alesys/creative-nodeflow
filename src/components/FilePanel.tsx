@@ -17,6 +17,10 @@ interface StoredFile {
   type: string;
   size: number;
   url?: string;
+  /** Local object URL or data URL used for immediate optimistic preview before a persistent URL is available */
+  previewUrl?: string;
+  /** Indicates this record was optimistically added and awaiting final persisted metadata */
+  _temp?: boolean;
   category?: string;
   uploadedAt?: string;
   metadata?: Record<string, any>;
@@ -174,14 +178,58 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
 
         const fileId = `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+        // Create a local object URL for immediate feedback if image (or potentially any file)
+        let previewUrl: string | undefined;
+        if (file.type.startsWith('image/')) {
+          try {
+            previewUrl = URL.createObjectURL(file);
+          } catch (e) {
+            logger.warn('[FilePanel] Failed to create object URL preview:', e);
+          }
+        }
+
+        // Optimistically insert file into list so user sees it immediately
+        const optimisticFile: StoredFile = {
+          id: fileId,
+            name: sanitizedFileName,
+            type: file.type,
+            size: file.size,
+            previewUrl,
+            _temp: true,
+            uploadedAt: new Date().toISOString()
+        };
+        setFiles(prev => [optimisticFile, ...prev]);
+
         // Update progress
         setUploadProgress(prev => ({
           ...prev,
           [fileId]: { file: sanitizedFileName, progress: 0, stage: 'uploading' }
         }));
 
-        // Store file with sanitized name
-        const storedFile = await fileStorageService.uploadFile(file, { fileId, name: sanitizedFileName }) as StoredFile;
+        // Store file with sanitized name (may take time)
+        let storedFile: StoredFile | null = null;
+        try {
+          storedFile = await fileStorageService.uploadFile(file, { fileId, name: sanitizedFileName }) as StoredFile;
+        } catch (uploadErr) {
+          logger.error('[FilePanel] Upload failed for file', sanitizedFileName, uploadErr);
+          setUploadProgress(prev => ({
+            ...prev,
+            [fileId]: { ...prev[fileId], progress: 100, stage: 'complete' }
+          }));
+          // Mark optimistic file as failed (could add error state UI in future)
+          continue; // Skip processing step
+        }
+
+        // Merge stored file data into optimistic entry
+        if (storedFile) {
+          setFiles(prev => prev.map(f => f.id === fileId ? {
+            ...f,
+            ...storedFile,
+            // Preserve previewUrl if final url missing
+            previewUrl: f.previewUrl || storedFile?.url,
+            _temp: false
+          } : f));
+        }
 
         setUploadProgress(prev => ({
           ...prev,
@@ -237,8 +285,8 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
         }, 2000);
       }
 
-      // Reload files
-      await loadFiles();
+  // After all uploads, refresh to ensure we have any metadata/contexts not already merged
+  await loadFiles();
 
     } catch (error) {
       logger.error('[FilePanel] Upload failed:', error);
@@ -587,7 +635,8 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
                     fileName: file.name,
                     fileType: file.type,
                     isImage: isImage,
-                    fileUrl: file.url,
+                    fileUrl: file.url || file.previewUrl,
+                    previewUrl: file.previewUrl,
                     context: context ? {
                       summary: context.summary,
                       content: context.content,
@@ -716,10 +765,22 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
                       </div>
                     ) : null}
 
-                    {/* Image Thumbnail */}
-                    {file.type.startsWith('image/') && file.url && (
+                    {/* Image Thumbnail with fallback to previewUrl */}
+                    {file.type.startsWith('image/') && (file.url || file.previewUrl) && (
                       <div className="file-thumbnail">
-                        <img src={file.url} alt={file.name} />
+                        <img
+                          src={file.url || file.previewUrl}
+                          alt={file.name}
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            if (file.previewUrl && target.src !== file.previewUrl) {
+                              target.src = file.previewUrl; // fallback to local preview
+                            } else {
+                              // final fallback: remove image element (could show placeholder)
+                              target.style.display = 'none';
+                            }
+                          }}
+                        />
                       </div>
                     )}
                   </div>

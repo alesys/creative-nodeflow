@@ -508,7 +508,7 @@ const OutputNode: React.FC<OutputNodeProps> = ({ data, id, isConnectable }) => {
           )}
           
           {/* Content Display Area */}
-          <div style={{ marginTop: 'var(--spacing-sm)' }}>
+          <div style={{ marginTop: 'var(--spacing-sm)' }} className="output-content-selectable nodrag">
             {renderContent()}
           </div>
 

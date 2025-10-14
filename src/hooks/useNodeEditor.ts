@@ -88,7 +88,6 @@ export const useNodeEditor = (initialPrompt: string = ''): UseNodeEditorReturn =
 export const useNodeProcessing = (): UseNodeProcessingReturn => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const handleProcess = useCallback(async (processFn: () => Promise<void>) => {
     setIsProcessing(true);
     setError(null);
@@ -182,7 +181,8 @@ export const useNodeInput = (data: Pick<PromptNodeData, 'onReceiveInput'>): UseN
 export const usePromptNode = (
   initialPrompt: string,
   data: PromptNodeData,
-  id: string
+  id: string,
+  inputNodes?: any[]
 ): UsePromptNodeReturn => {
   const editor = useNodeEditor(initialPrompt);
   const processing = useNodeProcessing();
@@ -215,6 +215,7 @@ export const usePromptNode = (
       logger.debug('[useNodeEditor] Enhanced system prompt with Brand Voice, total length:', enhancedSystemPrompt.length);
     }
 
+
     // Sanitize inputs before processing
     const sanitizedPrompt = inputSanitizer.sanitizePrompt(prompt);
     const sanitizedSystemPrompt = inputSanitizer.sanitizeSystemPrompt(enhancedSystemPrompt);
@@ -223,50 +224,102 @@ export const usePromptNode = (
       throw new Error('Prompt is empty or contains only invalid characters');
     }
 
-    // Build enhanced prompt with file contexts if available
+    // Build enhanced prompt and context for multimodal (image) support
     let enhancedPrompt = sanitizedPrompt;
-    if (data.fileContexts && data.fileContexts.length > 0) {
-      logger.debug('[useNodeEditor] Building context from file contexts:', data.fileContexts);
+    let multimodalContext: ConversationContext | null = context ? { ...context } : { messages: [] };
 
-      const contextSummary = data.fileContexts
-        .map(ctx => {
-          logger.debug('[useNodeEditor] Processing context:', ctx);
+    // Gather fileContexts as before
+    let allFileContexts = Array.isArray(data.fileContexts) ? [...data.fileContexts] : [];
 
-          // Try to get the most detailed content available
-          let contextText = '';
+    // Try to gather image context from connected input nodes (imagePrompt, imagePanel)
+    if (inputNodes && Array.isArray(inputNodes)) {
+      inputNodes.forEach((inputNode: any) => {
+        // ImagePrompt: generated image
+        if (inputNode.type === 'imagePrompt' && inputNode.data && inputNode.data.generatedImageUrl) {
+          allFileContexts.push({
+            fileId: inputNode.id,
+            fileName: inputNode.data.prompt || 'Generated Image',
+            content: { type: 'image', imageUrl: inputNode.data.generatedImageUrl },
+            contextPrompt: inputNode.data.prompt
+          });
+        }
+        // ImagePanel: uploaded image
+        if (inputNode.type === 'imagePanel' && inputNode.data && inputNode.data.imageUrl) {
+          allFileContexts.push({
+            fileId: inputNode.id,
+            fileName: 'Uploaded Image',
+            content: { type: 'image', imageUrl: inputNode.data.imageUrl },
+            contextPrompt: inputNode.data.contextPrompt || 'Image uploaded via Image Panel'
+          });
+        }
+      });
+    }
 
-          if (typeof ctx.content === 'object' && ctx.content !== null && 'fullText' in ctx.content) {
-            // Use full text if available
-            contextText = ctx.content.fullText as string;
-            logger.debug('[useNodeEditor] Using fullText, length:', contextText.length);
-          } else if (ctx.contextPrompt) {
-            // Use contextPrompt (pre-formatted for prompts)
-            contextText = ctx.contextPrompt;
-            logger.debug('[useNodeEditor] Using contextPrompt');
-          } else if (ctx.summary) {
-            // Use summary as fallback
-            contextText = ctx.summary;
-            logger.debug('[useNodeEditor] Using summary');
-          } else if (ctx.content) {
-            // Try to stringify content object
-            contextText = JSON.stringify(ctx.content, null, 2);
-            logger.debug('[useNodeEditor] Stringified content object');
-          } else {
-            contextText = `File context (ID: ${ctx.fileId})`;
-            logger.warn('[useNodeEditor] No usable context found, using placeholder');
+
+    if (allFileContexts.length > 0) {
+      logger.debug('[useNodeEditor] Building context from file contexts:', allFileContexts);
+      const contextMessages = allFileContexts.map(ctx => {
+        // Normalize image context from FilePanel/Resource Files
+        const isObj = (val: any): val is { type?: string; url?: string; imageUrl?: string; fullText?: string; name?: string } =>
+          typeof val === 'object' && val !== null;
+
+
+        // Detect image file from FilePanel (type: 'image', content may have url or imageUrl)
+        if (
+          (ctx.type === 'image' || (isObj(ctx.content) && (ctx.content.type === 'image' || ctx.content.type?.startsWith('image/')))) &&
+          isObj(ctx.content)
+        ) {
+          const imageUrl = ctx.content.url || ctx.content.imageUrl;
+          if (typeof imageUrl === 'string' && imageUrl.length > 0) {
+            return {
+              role: 'user' as const,
+              content: [
+                { type: 'text' as const, text: ctx.contextPrompt || ctx.summary || 'Image uploaded as context.' },
+                { type: 'image' as const, imageUrl }
+              ]
+            };
           }
+        }
 
-          return contextText;
+        // Otherwise, treat as text context
+        let contextText = '';
+        if (isObj(ctx.content) && 'fullText' in ctx.content && ctx.content.fullText) {
+          contextText = ctx.content.fullText;
+        } else if (ctx.contextPrompt) {
+          contextText = ctx.contextPrompt;
+        } else if (ctx.summary) {
+          contextText = ctx.summary;
+        } else if (ctx.content) {
+          contextText = typeof ctx.content === 'string' ? ctx.content : JSON.stringify(ctx.content, null, 2);
+        } else {
+          contextText = 'File context (ID: ' + ctx.fileId + ')';
+        }
+        return {
+          role: 'user' as const,
+          content: contextText
+        };
+      });
+
+      // Add all file context messages to the multimodal context
+      multimodalContext.messages = [...(multimodalContext.messages || []), ...contextMessages];
+
+      // For prompt, still include a summary for user reference
+      const contextSummary = allFileContexts
+        .map(ctx => {
+          const isObj = (val: any): val is { fullText?: string; url?: string } => typeof val === 'object' && val !== null;
+          if (ctx.contextPrompt) return ctx.contextPrompt;
+          if (ctx.summary) return ctx.summary;
+          if (isObj(ctx.content) && ctx.content.fullText) return ctx.content.fullText;
+          if (isObj(ctx.content) && ctx.content.url) return ctx.content.url;
+          if (typeof ctx.content === 'string') return ctx.content;
+          return ctx.fileId;
         })
         .join('\n\n---\n\n');
 
-      enhancedPrompt = `Context from uploaded files:
-${contextSummary}
-
----
-
-User request:
-${prompt}`;
+      enhancedPrompt = 'Context from uploaded files:\n' +
+        contextSummary +
+        '\n\n---\n\nUser request:\n' +
+        prompt;
 
       logger.debug('[useNodeEditor] Enhanced prompt length:', enhancedPrompt.length);
       logger.debug('[useNodeEditor] Enhanced prompt preview:', enhancedPrompt.substring(0, 300) + '...');
@@ -276,7 +329,9 @@ ${prompt}`;
       throw new Error('Service does not support text generation');
     }
 
-    const response = await service.generateResponse(enhancedPrompt, sanitizedSystemPrompt, context);
+
+  // Use multimodalContext if fileContexts present, else fallback to original context
+  const response = await service.generateResponse(enhancedPrompt, sanitizedSystemPrompt, (data.fileContexts && data.fileContexts.length > 0) ? multimodalContext : context);
 
     // Emit the response through the output
     if (onOutput) {

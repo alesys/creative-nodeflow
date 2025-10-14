@@ -396,16 +396,41 @@ function CreativeNodeFlowInner() {
         const sourceNode = nodes.find(n => n.id === params.source);
         if (sourceNode && sourceNode.data) {
           // Check if source node has existing content to transmit
-          const { content, context, type } = sourceNode.data as any;
+          let { content, context, type } = sourceNode.data as any;
+          
+          // Special handling for Image Panel nodes
+          if (sourceNode.type === 'imagePanel' && (sourceNode.data as any).imageUrl) {
+            const imageUrl = (sourceNode.data as any).imageUrl;
+            content = imageUrl;
+            type = 'image';
+            // Build context if not already present
+            if (!context) {
+              const mimeType = typeof imageUrl === 'string' && imageUrl.startsWith('data:')
+                ? imageUrl.split(';')[0].split(':')[1] || 'image/png'
+                : 'image/png';
+              context = {
+                messages: [
+                  {
+                    role: 'user' as const,
+                    content: [
+                      { type: 'text' as const, text: 'Image from Image Panel' },
+                      { type: 'image' as const, imageUrl, mimeType }
+                    ]
+                  }
+                ]
+              };
+            }
+          }
+          
           if (content || context) {
             const targetHandler = nodeInputHandlers.current.get(params.target!);
             if (targetHandler) {
               logger.debug(`[onConnect] Transmitting existing data from ${params.source} to ${params.target}:`, {
-                content: content ? content.substring(0, 50) + '...' : 'No content',
+                content: content ? (typeof content === 'string' ? content.substring(0, 50) + '...' : 'Non-string content') : 'No content',
                 hasContext: !!context,
                 type
               });
-              targetHandler({ content, context, type });
+              targetHandler({ content, context, type, nodeId: params.source });
             }
           }
         }
@@ -645,9 +670,9 @@ function CreativeNodeFlowInner() {
 
                       const newNode: any = {
                         id: newId,
-                        position: { x: flowPosition.x - 140, y: flowPosition.y - 100 },
+                        position: { x: flowPosition.x - 200, y: flowPosition.y - 100 },
                         type: 'imagePanel',
-                        width: 280,
+                        width: 440,
                         height: 200,
                         zIndex: getHighestZIndex(),
                         data: {
@@ -725,8 +750,8 @@ function CreativeNodeFlowInner() {
         })
       );
     } else {
-      logger.warn('[CreativeNodeFlow] No prompt nodes selected. Please select a Starting Prompt or Agent Prompt node before sending files.');
-      alertService.warning('Please select a Starting Prompt or Agent Prompt node first, then click "Send to Prompt"');
+  logger.warn('[CreativeNodeFlow] No prompt nodes selected. Please select a Starting Prompt or Creative Director node before sending files.');
+  alertService.warning('Please select a Starting Prompt or Creative Director node first, then click "Send to Prompt"');
     }
   }, [nodes, setNodes]);
 
@@ -873,7 +898,7 @@ function CreativeNodeFlowInner() {
       id: newId,
       position,
       type: nodeType,
-      width: nodeType === 'customOutput' ? 480 : (nodeType === 'imagePanel' ? 280 : UI_DIMENSIONS.NODE_MIN_WIDTH),
+      width: nodeType === 'customOutput' ? 480 : (nodeType === 'imagePanel' ? 440 : UI_DIMENSIONS.NODE_MIN_WIDTH),
       height: nodeType === 'customOutput' ? 320 : (nodeType === 'imagePanel' ? 200 : UI_DIMENSIONS.NODE_MIN_HEIGHT),
       zIndex: getHighestZIndex(),
       data: nodeData
@@ -1211,7 +1236,7 @@ function CreativeNodeFlowInner() {
             onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-accent-primary-alpha)'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
-            Agent Prompt
+            Creative Director
           </button>
           <button
             style={{
