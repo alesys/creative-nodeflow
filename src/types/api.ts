@@ -39,6 +39,8 @@ export interface ChatMessage {
 
 export interface ConversationContext {
   messages: ChatMessage[];
+  threadId?: string;
+  sessionId?: string;
 }
 
 export interface FileContext {

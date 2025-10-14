@@ -32,7 +32,8 @@ const StartingPromptNode: React.FC<StartingPromptNodeProps> = ({ data, id, isCon
   } = usePromptNode(data.prompt || '', data, id);
 
   const handleKeyDown = useCallback(async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    await baseHandleKeyDown(e, OpenAIService);
+    // Pass isStartingPrompt=true to create a new thread with Brand Voice
+    await baseHandleKeyDown(e, OpenAIService, true);
   }, [baseHandleKeyDown]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {

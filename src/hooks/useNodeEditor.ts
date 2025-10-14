@@ -3,6 +3,7 @@ import { useState, useCallback, useRef, useEffect, type RefObject } from 'react'
 import { TIMING } from '../constants/app';
 import logger from '../utils/logger';
 import inputSanitizer from '../utils/inputSanitizer';
+import threadManagementService from '../services/ThreadManagementService';
 import type { ConversationContext } from '../types/api';
 import type { PromptNodeData, AIService, InputData } from '../types/nodes';
 
@@ -37,13 +38,16 @@ interface UseNodeInputReturn {
 
 interface UsePromptNodeReturn extends UseNodeEditorReturn, UseNodeProcessingReturn, UseNodeInputReturn {
   systemPrompt: string;
+  threadId: string | null;
+  setThreadId: (threadId: string | null) => void;
   executePrompt: (
     service: AIService,
     prompt: string,
     systemPrompt: string,
-    context?: ConversationContext | null
+    context?: ConversationContext | null,
+    isStartingPrompt?: boolean
   ) => Promise<{ content: string; context: ConversationContext }>;
-  handleKeyDown: (e: React.KeyboardEvent, service: AIService) => Promise<void>;
+  handleKeyDown: (e: React.KeyboardEvent, service: AIService, isStartingPrompt?: boolean) => Promise<void>;
 }
 
 // ============================================================================
@@ -151,14 +155,15 @@ export const useNodeInput = (data: Pick<PromptNodeData, 'onReceiveInput'>): UseN
             return inputData.context;
           }
 
-          // Merge messages from both contexts
+          // Merge messages from both contexts, preserve threadId
           const existingMessages = prevContext.messages || [];
           const newMessages = inputData.context.messages || [];
 
           logger.debug('[useNodeInput] Merging contexts - existing:', existingMessages.length, 'new:', newMessages.length);
 
           return {
-            messages: [...existingMessages, ...newMessages]
+            messages: [...existingMessages, ...newMessages],
+            threadId: inputData.context.threadId || prevContext.threadId
           };
         });
 
@@ -188,6 +193,17 @@ export const usePromptNode = (
   const processing = useNodeProcessing();
   const input = useNodeInput(data);
 
+  // Thread management state
+  const [threadId, setThreadId] = useState<string | null>(data.threadId || null);
+
+  // Update threadId if it comes from input context (from upstream nodes)
+  useEffect(() => {
+    if (input.inputContext?.threadId && input.inputContext.threadId !== threadId) {
+      logger.debug('[usePromptNode] Adopting threadId from input context:', input.inputContext.threadId);
+      setThreadId(input.inputContext.threadId);
+    }
+  }, [input.inputContext, threadId]);
+
   // Destructure data properties to optimize dependency arrays
   const { onOutput, systemPrompt: dataSystemPrompt } = data;
 
@@ -198,30 +214,40 @@ export const usePromptNode = (
   const executePrompt = useCallback(async (
     service: AIService,
     prompt: string,
-    systemPrompt: string,
-    context: ConversationContext | null = null
+    _systemPrompt: string, // Kept for backward compatibility, not used with thread management
+    context: ConversationContext | null = null,
+    isStartingPrompt: boolean = false
   ) => {
     if (!service.isConfigured()) {
       throw new Error(`${service.constructor.name} not configured. Please check your .env file.`);
     }
 
-    // Retrieve Brand Voice from localStorage
-    const brandInstructions = localStorage.getItem('brandInstructions') || '';
-    
-    // Combine Brand Voice with system prompt
-    let enhancedSystemPrompt = systemPrompt;
-    if (brandInstructions.trim()) {
-      enhancedSystemPrompt = `${brandInstructions}\n\n---\n\n${systemPrompt}`;
-      logger.debug('[useNodeEditor] Enhanced system prompt with Brand Voice, total length:', enhancedSystemPrompt.length);
-    }
-
-
     // Sanitize inputs before processing
     const sanitizedPrompt = inputSanitizer.sanitizePrompt(prompt);
-    const sanitizedSystemPrompt = inputSanitizer.sanitizeSystemPrompt(enhancedSystemPrompt);
 
     if (!sanitizedPrompt) {
       throw new Error('Prompt is empty or contains only invalid characters');
+    }
+
+    // Thread Management: Create new thread or use existing
+    let currentThreadId = threadId;
+    let threadContext: ConversationContext;
+
+    if (isStartingPrompt || !currentThreadId) {
+      // Starting Prompt: Create new thread with Brand Voice
+      const brandVoice = localStorage.getItem('brandInstructions') || '';
+      currentThreadId = threadManagementService.createThread(brandVoice);
+      setThreadId(currentThreadId);
+      logger.debug('[useNodeEditor] Created new thread with Brand Voice:', currentThreadId);
+      
+      // Get thread context (contains Brand Voice as system message)
+      threadContext = threadManagementService.getThreadContext(currentThreadId) || { messages: [] };
+    } else {
+      // Follow-up prompt: Use existing thread (no Brand Voice re-injection)
+      logger.debug('[useNodeEditor] Using existing thread:', currentThreadId);
+      
+      // Get existing thread context
+      threadContext = threadManagementService.getThreadContext(currentThreadId) || { messages: [] };
     }
 
     // Build enhanced prompt and context for multimodal (image) support
@@ -329,30 +355,78 @@ export const usePromptNode = (
       throw new Error('Service does not support text generation');
     }
 
+    // Merge multimodal context (file contexts) with thread context
+    let finalContext = threadContext;
+    if (multimodalContext && multimodalContext.messages && multimodalContext.messages.length > 0) {
+      // Merge file context messages with thread messages
+      finalContext = {
+        ...threadContext,
+        messages: [...threadContext.messages, ...multimodalContext.messages],
+        threadId: currentThreadId
+      };
+      logger.debug('[useNodeEditor] Merged file contexts with thread context');
+    } else {
+      finalContext = {
+        ...threadContext,
+        threadId: currentThreadId
+      };
+    }
 
-  // Use multimodalContext if fileContexts present, else fallback to original context
-  const response = await service.generateResponse(enhancedPrompt, sanitizedSystemPrompt, (data.fileContexts && data.fileContexts.length > 0) ? multimodalContext : context);
+    // Call AI service with thread context (Brand Voice already in thread if it was a Starting Prompt)
+    // System prompt is NOT passed here because Brand Voice is already in the thread's system message
+    const response = await service.generateResponse(
+      (data.fileContexts && data.fileContexts.length > 0) ? enhancedPrompt : sanitizedPrompt,
+      null, // No system prompt - Brand Voice is in thread context
+      finalContext
+    );
 
-    // Emit the response through the output
+    // Update thread with user prompt and assistant response
+    if (currentThreadId) {
+      // Add user message
+      threadManagementService.appendMessage(currentThreadId, {
+        role: 'user',
+        content: sanitizedPrompt
+      });
+      
+      // Add assistant response
+      threadManagementService.appendMessage(currentThreadId, {
+        role: 'assistant',
+        content: response.content
+      });
+      
+      logger.debug('[useNodeEditor] Updated thread with user prompt and assistant response');
+    }
+
+    // Emit the response through the output with thread context
     if (onOutput) {
       onOutput({
         nodeId: id,
         content: response.content,
-        context: response.context,
+        context: {
+          ...response.context,
+          threadId: currentThreadId
+        },
         type: 'text'
       });
     }
 
-    return response;
-  }, [onOutput, id, data.fileContexts]);
+    return {
+      ...response,
+      context: {
+        ...response.context,
+        threadId: currentThreadId
+      }
+    };
+  }, [onOutput, id, data.fileContexts, threadId]);
 
-  const handleKeyDown = useCallback(async (e: React.KeyboardEvent, service: AIService) => {
+  const handleKeyDown = useCallback(async (e: React.KeyboardEvent, service: AIService, isStartingPrompt: boolean = false) => {
     if (e.ctrlKey && e.key === 'Enter') {
       e.preventDefault();
 
       logger.debug('[usePromptNode] Ctrl+Enter pressed');
       logger.debug('[usePromptNode] Has received input:', input.hasReceivedInput);
       logger.debug('[usePromptNode] Input context:', input.inputContext);
+      logger.debug('[usePromptNode] Is starting prompt:', isStartingPrompt);
 
       // Switch from editing to render mode
       editor.setIsEditing(false);
@@ -365,7 +439,7 @@ export const usePromptNode = (
 
       await processing.handleProcess(async () => {
         logger.debug('[usePromptNode] Executing prompt with context:', input.inputContext);
-        await executePrompt(service, editor.prompt, systemPrompt, input.inputContext);
+        await executePrompt(service, editor.prompt, systemPrompt, input.inputContext, isStartingPrompt);
       });
     }
   }, [editor, processing, input.inputContext, input.hasReceivedInput, systemPrompt, executePrompt]);
@@ -375,6 +449,8 @@ export const usePromptNode = (
     ...processing,
     ...input,
     systemPrompt,
+    threadId,
+    setThreadId,
     executePrompt,
     handleKeyDown
   };

@@ -29,6 +29,7 @@ export interface PromptNodeData extends BaseNodeData {
   prompt: string;
   systemPrompt?: string;
   fileContexts?: FileContext[];
+  threadId?: string;
 }
 
 export interface StartingPromptNodeData extends PromptNodeData {
