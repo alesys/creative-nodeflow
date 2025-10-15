@@ -51,6 +51,7 @@ export interface VideoPromptNodeData extends BaseNodeData {
   fileContexts?: FileContext[];
   aspectRatio?: string;
   videoModel?: string;
+  durationSeconds?: string;
 }
 
 // ============================================================================

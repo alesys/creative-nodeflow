@@ -49,7 +49,8 @@ class VeoVideoService {
     prompt: string,
     context: ConversationContext | null = null,
     aspectRatio: string = '16:9',
-    modelOverride?: string
+    modelOverride?: string,
+    durationSeconds?: string
   ): Promise<VeoVideoResponse> {
     if (!this.client) {
       throw new Error('VEO-3 client not initialized. Please check your Google API key.');
@@ -91,7 +92,8 @@ class VeoVideoService {
         prompt: fullPrompt,
         config: {
           aspectRatio: aspectRatio, // VEO-3 supports '16:9' and '9:16'
-          negativePrompt: 'low quality, blurry, distorted'
+          negativePrompt: 'low quality, blurry, distorted',
+          durationSeconds: durationSeconds || '8'
         }
       };
       

@@ -47,8 +47,13 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
       ? data.videoModel
       : MODELS.GOOGLE_VIDEO
   );
+  const [durationSeconds, setDurationSeconds] = React.useState<string>(
+    typeof data.durationSeconds === 'string' && data.durationSeconds.length > 0
+      ? data.durationSeconds
+      : '8'
+  );
 
-  // Update node data when aspect ratio or model changes
+  // Update node data when aspect ratio, model, or duration changes
   const handleAspectRatioChange = useCallback((newRatio: string) => {
     setAspectRatio(newRatio);
     setNodes((nodes) =>
@@ -59,6 +64,23 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
               data: {
                 ...node.data,
                 aspectRatio: newRatio
+              }
+            }
+          : node
+      )
+    );
+  }, [id, setNodes]);
+
+  const handleDurationChange = useCallback((newDuration: string) => {
+    setDurationSeconds(newDuration);
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                durationSeconds: newDuration
               }
             }
           : node
@@ -143,7 +165,13 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
       throw new Error('Google API key not configured. Please check your .env file.');
     }
 
-    const response = await VeoVideoService.generateVideo(prompt, inputContext, aspectRatio, videoModel);
+    const response = await VeoVideoService.generateVideo(
+      prompt,
+      inputContext,
+      aspectRatio,
+      videoModel,
+      durationSeconds
+    );
 
     // Emit the response through the output
     if (onOutput) {
@@ -157,7 +185,7 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
     }
 
     return response;
-  }, [prompt, inputContext, aspectRatio, videoModel, onOutput, id]);
+  }, [prompt, inputContext, aspectRatio, videoModel, durationSeconds, onOutput, id]);
 
   const handleKeyDown = useCallback(async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.ctrlKey && e.key === 'Enter') {
@@ -352,6 +380,31 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
             {VIDEO_MODELS.map((m) => (
               <option key={m.value} value={m.value}>{m.label}</option>
             ))}
+          </select>
+        </div>
+
+
+        {/* Duration Selector */}
+        <div className="parameter-control" style={{ borderBottom: 'none', minHeight: 'auto', marginBottom: 8 }}>
+          <span className="control-label">Duration</span>
+          <select
+            value={durationSeconds}
+            onChange={(e) => handleDurationChange(e.target.value)}
+            className="nodrag"
+            style={{
+              padding: '4px 8px',
+              borderRadius: '4px',
+              border: '1px solid var(--node-border-color)',
+              background: 'var(--node-body-background)',
+              color: 'var(--color-text-primary)',
+              fontSize: '12px',
+              cursor: 'pointer',
+              marginRight: 8
+            }}
+          >
+            <option value="4">4 seconds</option>
+            <option value="6">6 seconds</option>
+            <option value="8">8 seconds</option>
           </select>
         </div>
 

@@ -1,3 +1,13 @@
+## Veo Video Duration Options
+
+You can specify the duration of Veo-generated videos using the `durationSeconds` parameter. The available options and defaults depend on the model and feature used:
+
+| Model                | Supported Durations (seconds) | Default Duration | Notes                                                                                 |
+|----------------------|-------------------------------|------------------|--------------------------------------------------------------------------------------|
+| Veo 3.1 Fast (Preview)| 4, 6, 8                       | 8                | 8s required for reference images, video extension, and interpolation features         |
+| Veo 3.0 Fast         | 4, 6, 8                       | 8                | All durations supported for text-to-video and image-to-video                          |
+
+**Note:** If you do not specify `durationSeconds`, the default is **8 seconds**. Some advanced features (reference images, video extension, interpolation) require 8 seconds.
 # AI Models and Pricing - Creative NodeFlow
 
 ## Current AI Models in Use
@@ -83,11 +93,13 @@
 ### Per Operation
 
 | Operation | Model | Cost |
-|-----------|-------|------|
+|-----------|--------------------------|------|
 | Text prompt (500 tokens) | GPT-5-nano | ~$0.00045 |
 | Image generation | Gemini 2.5 Flash Image | ~$0.04 |
 | Single video | Veo 3.1 Fast (Preview) | ~$0.15 |
 | Single video | Veo 3.1 Standard (Preview) | ~$0.40 |
+| Single video | Veo 3.0 Fast | ~$0.15 |
+| Single video | Veo 3.0 Standard | ~$0.40 |
 
 ### Typical Workflow Costs
 
