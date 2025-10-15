@@ -51,8 +51,8 @@
 
 ### Video Generation
 
-#### Google VEO-3 Fast (veo-3.0-fast-generate-001)
-- **Model**: `veo-3.0-fast-generate-001`
+#### Google Veo 3.1 Fast (Preview)
+- **Model**: `veo-3.1-fast-generate-preview` (fallback: `veo-3.0-fast-generate-001`)
 - **Used In**: Motion Director Node (Video Prompt)
 - **Purpose**: AI video generation from text or image prompts
 - **Features**:
@@ -60,19 +60,21 @@
   - Image-to-video animation
   - Aspect ratios: 16:9 (landscape), 9:16 (portrait)
   - ~5-10 second videos
-  - Fast generation (VEO-3 Fast variant)
+  - Fast generation (Veo Fast variant)
 
 **Pricing** (as of Oct 2025):
-- **VEO-3 Fast**: $0.10 per second of generated video
-- **Text Input**: $0.075 per 1M tokens
-- **Image Input** (for image-to-video): Included in video cost
+- Veo 3.1 Standard (video with audio): $0.40 per video
+- Veo 3.1 Fast (video with audio): $0.15 per video
+- You are only charged if a video is successfully generated
 
 **Typical Usage Cost**:
-- 5-second video: ~$0.50
-- 10-second video: ~$1.00
-- 100 5-second videos: ~$50.00
+- 1 video (Fast): ~$0.15
+- 10 videos (Fast): ~$1.50
+- 100 videos (Fast): ~$15.00
 
-**Note**: VEO-3 requires billing to be enabled in Google AI Studio.
+**Notes**:
+- Veo video generation requires billing to be enabled in Google AI Studio.
+- Preview models may change and can have more restrictive limits.
 
 ---
 
@@ -84,8 +86,8 @@
 |-----------|-------|------|
 | Text prompt (500 tokens) | GPT-5-nano | ~$0.00045 |
 | Image generation | Gemini 2.5 Flash Image | ~$0.04 |
-| 5-second video | VEO-3 Fast | ~$0.50 |
-| 10-second video | VEO-3 Fast | ~$1.00 |
+| Single video | Veo 3.1 Fast (Preview) | ~$0.15 |
+| Single video | Veo 3.1 Standard (Preview) | ~$0.40 |
 
 ### Typical Workflow Costs
 
@@ -99,7 +101,7 @@
 
 #### Video Generation Workflow
 - Starting Prompt → Art Director → Motion Director → Output
-- **Cost**: ~$0.5409 (1 prompt + 1 image + 1 5-second video)
+- **Cost**: ~$0.1909 (1 prompt + 1 image + 1 video at $0.15)
 
 #### Complex Multi-step Workflow
 - Starting Prompt → Creative Director (×3) → Art Director → Motion Director → Output

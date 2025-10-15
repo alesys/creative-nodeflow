@@ -23,7 +23,7 @@ export const MODELS = {
   OPENAI_VISION: 'gpt-5-nano', // GPT-5-nano supports both text and vision
   GOOGLE_IMAGE: 'gemini-2.5-flash-image-preview', // "Nano Banana"
   GOOGLE_TEXT: 'gemini-2.5-flash',
-  GOOGLE_VIDEO: 'veo-3.0-fast-generate-001', // VEO-3 Fast for video generation (cheaper and faster)
+  GOOGLE_VIDEO: 'veo-3.1-fast-generate-preview', // Veo 3.1 Fast (Preview) for video generation
 } as const;
 
 // API Error Messages

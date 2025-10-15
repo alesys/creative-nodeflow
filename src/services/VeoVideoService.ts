@@ -2,7 +2,7 @@
 // This service uses the newer @google/genai SDK for video generation with VEO-3
 
 import { GoogleGenAI } from '@google/genai';
-import { LIMITS } from '../constants/app';
+import { LIMITS, MODELS } from '../constants/app';
 import logger from '../utils/logger';
 import type { ChatMessage, ConversationContext } from '../types/api';
 
@@ -86,7 +86,7 @@ class VeoVideoService {
 
       // Build the video generation request with image context if available
       const videoRequest: any = {
-        model: 'veo-3.0-fast-generate-001', // Using VEO-3 Fast (cheaper and faster)
+        model: MODELS.GOOGLE_VIDEO, // Centralized model selection (e.g., Veo 3.1 Fast Preview)
         prompt: fullPrompt,
         config: {
           aspectRatio: aspectRatio, // VEO-3 supports '16:9' and '9:16'
@@ -171,8 +171,23 @@ ${fullPrompt}`;
         hasImage: !!videoRequest.image
       });
 
-      // Start video generation operation
-      let operation = await this.client.models.generateVideos(videoRequest);
+      // Start video generation operation (with graceful fallback if 3.1 preview isn't available)
+      let operation;
+      try {
+        operation = await this.client.models.generateVideos(videoRequest);
+      } catch (err) {
+        const msg = (err as any)?.message || '';
+        const isPreviewUnavailable = msg.includes('NOT_FOUND') || msg.includes('model') && msg.includes('unavailable');
+        const isVeo31 = String(videoRequest.model).includes('veo-3.1');
+        if (isPreviewUnavailable && isVeo31) {
+          const fallbackModel = 'veo-3.0-fast-generate-001';
+          logger.warn(`Primary model ${videoRequest.model} unavailable. Falling back to ${fallbackModel}.`);
+          videoRequest.model = fallbackModel;
+          operation = await this.client.models.generateVideos(videoRequest);
+        } else {
+          throw err;
+        }
+      }
 
       logger.debug('VEO-3 operation started, operation ID:', operation.name);
 
