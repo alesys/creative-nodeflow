@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useReactFlow } from '@xyflow/react';
 import VideocamIcon from '@mui/icons-material/Videocam';
+import SendIcon from '@mui/icons-material/Send';
 import VeoVideoService from '../services/VeoVideoService';
 import { MODELS } from '../constants/app';
 import { usePromptNode } from '../hooks/useNodeEditor';
@@ -264,6 +265,17 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
     error: error
   };
 
+  const handleSend = useCallback(async () => {
+    if (!prompt.trim()) {
+      setError('Please enter video direction first');
+      return;
+    }
+    setIsEditing(false);
+    await handleProcess(async () => {
+      await generateVideo();
+    });
+  }, [prompt, setIsEditing, setError, handleProcess, generateVideo]);
+
   return (
     <BaseNode id={id} isConnectable={isConnectable} config={nodeConfig}>
         {/* Text Area Control */}
@@ -273,6 +285,7 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             className={isDragOver ? 'drop-zone-active' : ''}
+            style={{ position: 'relative', display: 'flex', alignItems: 'flex-end' }}
           >
             <textarea
               ref={textareaRef}
@@ -282,11 +295,18 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
               onMouseDown={(e) => e.stopPropagation()}
               onMouseMove={(e) => e.stopPropagation()}
               className="nodrag textarea-control"
-              placeholder="Describe the video you want to generate... Press Ctrl+Enter to create"
+              placeholder="Describe the video you want to generate..."
+              style={{ flex: 1, resize: 'none' }}
             />
-            <div className="helper-text helper-text-margined">
-              Press Ctrl+Enter to execute • Drop files to attach
-            </div>
+            <button
+              type="button"
+              aria-label="Send"
+              onClick={handleSend}
+              className="send-button"
+              disabled={isProcessing}
+            >
+              <SendIcon fontSize="medium" />
+            </button>
           </div>
         ) : (
           <div
@@ -359,79 +379,81 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
           </div>
         </details>
 
-        {/* Model Selector */}
-        <div className="parameter-control" style={{ borderBottom: 'none', minHeight: 'auto', marginBottom: 8 }}>
-          <span className="control-label">Video Model</span>
-          <select
-            value={videoModel}
-            onChange={(e) => handleModelChange(e.target.value)}
-            className="nodrag"
-            style={{
-              padding: '4px 8px',
-              borderRadius: '4px',
-              border: '1px solid var(--node-border-color)',
-              background: 'var(--node-body-background)',
-              color: 'var(--color-text-primary)',
-              fontSize: '12px',
-              cursor: 'pointer',
-              marginRight: 8
-            }}
-          >
-            {VIDEO_MODELS.map((m) => (
-              <option key={m.value} value={m.value}>{m.label}</option>
-            ))}
-          </select>
+        {/* Parameters Container */}
+        <div className="parameters-container">
+          {/* Model Selector */}
+          <div className="parameter-control" style={{ borderBottom: 'none' }}>
+            <span className="control-label">Video Model</span>
+            <select
+              value={videoModel}
+              onChange={(e) => handleModelChange(e.target.value)}
+              className="nodrag"
+              style={{
+                padding: '4px 8px',
+                borderRadius: '4px',
+                border: '1px solid var(--node-border-color)',
+                background: 'var(--node-body-background)',
+                color: 'var(--color-text-primary)',
+                fontSize: '12px',
+                cursor: 'pointer',
+                marginRight: 8
+              }}
+            >
+              {VIDEO_MODELS.map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Duration Selector */}
+          <div className="parameter-control" style={{ borderBottom: 'none' }}>
+            <span className="control-label">Duration</span>
+            <select
+              value={durationSeconds}
+              onChange={(e) => handleDurationChange(e.target.value)}
+              className="nodrag"
+              style={{
+                padding: '4px 8px',
+                borderRadius: '4px',
+                border: '1px solid var(--node-border-color)',
+                background: 'var(--node-body-background)',
+                color: 'var(--color-text-primary)',
+                fontSize: '12px',
+                cursor: 'pointer',
+                marginRight: 8
+              }}
+            >
+              <option value="4">4 seconds</option>
+              <option value="6">6 seconds</option>
+              <option value="8">8 seconds</option>
+            </select>
+          </div>
+
+          {/* Aspect Ratio Selector */}
+          <div className="parameter-control" style={{ borderBottom: 'none' }}>
+            <span className="control-label">Aspect Ratio</span>
+            <select
+              value={aspectRatio}
+              onChange={(e) => handleAspectRatioChange(e.target.value)}
+              className="nodrag"
+              style={{
+                padding: '4px 8px',
+                borderRadius: '4px',
+                border: '1px solid var(--node-border-color)',
+                background: 'var(--node-body-background)',
+                color: 'var(--color-text-primary)',
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="9:16">9:16 (Portrait)</option>
+              <option value="16:9">16:9 (Landscape)</option>
+            </select>
+          </div>
         </div>
 
-
-        {/* Duration Selector */}
-        <div className="parameter-control" style={{ borderBottom: 'none', minHeight: 'auto', marginBottom: 8 }}>
-          <span className="control-label">Duration</span>
-          <select
-            value={durationSeconds}
-            onChange={(e) => handleDurationChange(e.target.value)}
-            className="nodrag"
-            style={{
-              padding: '4px 8px',
-              borderRadius: '4px',
-              border: '1px solid var(--node-border-color)',
-              background: 'var(--node-body-background)',
-              color: 'var(--color-text-primary)',
-              fontSize: '12px',
-              cursor: 'pointer',
-              marginRight: 8
-            }}
-          >
-            <option value="4">4 seconds</option>
-            <option value="6">6 seconds</option>
-            <option value="8">8 seconds</option>
-          </select>
-        </div>
-
-        {/* Aspect Ratio Selector */}
-        <div className="parameter-control" style={{ borderBottom: 'none', minHeight: 'auto' }}>
-          <span className="control-label">Aspect Ratio</span>
-          <select
-            value={aspectRatio}
-            onChange={(e) => handleAspectRatioChange(e.target.value)}
-            className="nodrag"
-            style={{
-              padding: '4px 8px',
-              borderRadius: '4px',
-              border: '1px solid var(--node-border-color)',
-              background: 'var(--node-body-background)',
-              color: 'var(--color-text-primary)',
-              fontSize: '12px',
-              cursor: 'pointer'
-            }}
-          >
-            <option value="9:16">9:16 (Portrait)</option>
-            <option value="16:9">16:9 (Landscape)</option>
-          </select>
-        </div>
-
-        {/* Status Area - Always present to prevent layout shifts */}
-        <div className="status-area" style={{ marginTop: 'var(--spacing-sm)', minHeight: '24px' }}>
+        {/* Status Area */}
+        <div className="status-area">
           {isProcessing && (
             <div className="parameter-control" style={{ borderBottom: 'none', margin: 0 }}>
               <span className="control-label" style={{ color: 'var(--color-accent-primary)' }}>

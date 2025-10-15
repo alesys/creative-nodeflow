@@ -1,3 +1,7 @@
+/* --- override startingPrompt width after general node sizing rules --- */
+.react-flow__node-startingPrompt {
+  min-width: calc(var(--node-min-width) * 1.4) !important;
+}
 /* Node Editor Design System - Node Components */
 
 /* ============================================
@@ -242,23 +246,60 @@
    PARAMETER CONTROLS
    ============================================ */
 
+/* Parameters Container - wraps all parameter controls for better spacing */
+.parameters-container {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0; /* No gap needed - parameter controls handle their own spacing */
+  margin-bottom: var(--spacing-sm); /* Separation from other items */
+  flex: none;
+  border: 1px solid #393939;
+  border-radius: 6px;
+  padding: 6px 8px; /* Reduced vertical padding */
+  width: auto;
+}
+
 /* Parameter Control Base - should be compact */
+
 .parameter-control {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
   gap: var(--spacing-sm);
-  padding: var(--spacing-xs) 0;
+  padding: 4px 0; /* Reduced padding for tighter spacing */
   font-size: var(--control-font-size);
   border-bottom: var(--control-border-bottom);
-  margin-bottom: var(--control-spacing);
+  margin-bottom: 0; /* Remove individual margins - container handles spacing */
   transition: background-color var(--duration-fast) var(--easing-default);
-  /* Ensure minimal height and compact layout */
   min-height: auto;
   height: auto;
   line-height: 1.2;
-  flex: none; /* Don't expand to fill parent container */
+  flex: none;
+}
+
+/* Remove border from last parameter control to avoid extra visual space */
+.parameters-container .parameter-control:last-child {
+  border-bottom: none;
+}
+
+.parameter-control .control-label {
+  min-width: 110px;
+  max-width: 140px;
+  flex-shrink: 0;
+  text-align: right;
+  margin-right: 8px;
+}
+
+.parameter-control select {
+  flex: 1;
+  min-width: 120px;
+  max-width: 200px;
+}
+
+/* When parameter controls are inside a container, adjust spacing */
+.parameters-container .parameter-control {
+  margin-bottom: 0; /* Container gap handles spacing */
 }
 
 .parameter-control:hover {
@@ -391,7 +432,6 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   font-size: var(--font-size-sm);
   flex-shrink: 0;
-  min-height: 24px;
   width: 100%;
   box-sizing: border-box;
   overflow: hidden;
@@ -599,6 +639,35 @@
   font-weight: normal;
 }
 
+/* Send button styles */
+.send-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: 8px;
+  cursor: pointer;
+  align-self: flex-end;
+  color: var(--color-accent-primary);
+  display: flex;
+  align-items: center;
+  height: 32px;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.send-button:hover:not(:disabled) {
+  opacity: 0.7;
+  transform: scale(1.05);
+}
+
+.send-button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.send-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* Status indicators */
 .status-indicator {
   font-size: var(--font-size-sm);
@@ -702,6 +771,7 @@
 
 /* Details and summary - should be compact */
 .details-section {
+  display: none; /* Hidden for now - can be enabled for debugging */
   margin-top: 0; /* Remove top margin - node-body gap handles spacing */
   margin-bottom: 0; /* Remove bottom margin */
   max-width: 100%;

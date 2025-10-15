@@ -3,20 +3,21 @@ import React, { useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useReactFlow } from '@xyflow/react';
-import ImageIcon from '@mui/icons-material/Image';
 import GoogleAIService from '../services/GoogleAIService';
 import { usePromptNode } from '../hooks/useNodeEditor';
 import { BaseNode } from './base';
-import type { ImagePromptNodeData } from '../types/nodes';
 import type { NodeConfig } from '../types/nodeConfig';
+import ImageIcon from '@mui/icons-material/Image';
+import SendIcon from '@mui/icons-material/Send';
 
 interface ImagePromptNodeProps {
-  data: ImagePromptNodeData;
+  data: any;
   id: string;
   isConnectable: boolean;
 }
 
 const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectable }) => {
+  // ...existing code...
   const { setNodes } = useReactFlow();
   const [isDragOver, setIsDragOver] = React.useState(false);
   
@@ -36,6 +37,29 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
   } = usePromptNode(data.prompt || '', data, id);
 
   const [aspectRatio, setAspectRatio] = React.useState<string>(data.aspectRatio || '1:1');
+  const [outputImageUrl, setOutputImageUrl] = React.useState<string | null>(data.outputImageUrl || null);
+
+  // Resize node to fit image
+  const updateNodeSize = useCallback((width: number, height: number) => {
+    const TARGET_WIDTH = 350;
+    const PADDING = 32;
+    const aspectRatio = height / width;
+    const scaledHeight = TARGET_WIDTH * aspectRatio;
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? {
+              ...node,
+              style: {
+                ...node.style,
+                width: `${TARGET_WIDTH + PADDING}px`,
+                height: `${scaledHeight + PADDING + 100}px`,
+              },
+            }
+          : node
+      )
+    );
+  }, [id, setNodes]);
 
   // Update node data when aspect ratio changes
   const handleAspectRatioChange = useCallback((newRatio: string) => {
@@ -126,7 +150,10 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
         type: 'image'
       });
     }
-
+    // If response.content is a valid image URL, set it for display
+    if (response.content && typeof response.content === 'string' && response.content.startsWith('http')) {
+      setOutputImageUrl(response.content);
+    }
     return response;
   }, [prompt, inputContext, aspectRatio, onOutput, id]);
 
@@ -207,6 +234,18 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
     error: error
   };
 
+  // Send button handler (must be after hooks)
+  const handleSend = useCallback(async () => {
+    if (!prompt.trim()) {
+      setError('Please enter art direction first');
+      return;
+    }
+    setIsEditing(false);
+    await handleProcess(async () => {
+      await generateImage();
+    });
+  }, [prompt, setIsEditing, setError, handleProcess, generateImage]);
+
   return (
     <BaseNode id={id} isConnectable={isConnectable} config={nodeConfig}>
         {/* Text Area Control */}
@@ -216,6 +255,7 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             className={isDragOver ? 'drop-zone-active' : ''}
+            style={{ position: 'relative', display: 'flex', alignItems: 'flex-end' }}
           >
             <textarea
               ref={textareaRef}
@@ -225,11 +265,18 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
               onMouseDown={(e) => e.stopPropagation()}
               onMouseMove={(e) => e.stopPropagation()}
               className="nodrag textarea-control"
-              placeholder="Describe the image you want to generate... Press Ctrl+Enter to create"
+              placeholder="Describe the image you want to generate..."
+              style={{ flex: 1, resize: 'none' }}
             />
-            <div className="helper-text helper-text-margined">
-              Press Ctrl+Enter to execute • Drop files to attach
-            </div>
+            <button
+              type="button"
+              aria-label="Send"
+              onClick={handleSend}
+              className="send-button"
+              disabled={isProcessing}
+            >
+              <SendIcon fontSize="medium" />
+            </button>
           </div>
         ) : (
           <div
@@ -302,37 +349,57 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
           </div>
         </details>
 
-        {/* Aspect Ratio Selector */}
-        <div className="parameter-control" style={{ borderBottom: 'none', minHeight: 'auto' }}>
-          <span className="control-label">Aspect Ratio</span>
-          <select
-            value={aspectRatio}
-            onChange={(e) => handleAspectRatioChange(e.target.value)}
-            className="nodrag"
-            style={{
-              padding: '4px 8px',
-              borderRadius: '4px',
-              border: '1px solid var(--node-border-color)',
-              background: 'var(--node-body-background)',
-              color: 'var(--color-text-primary)',
-              fontSize: '12px',
-              cursor: 'pointer'
-            }}
-          >
-            <option value="9:16">9:16 (Portrait)</option>
-            <option value="1:1">1:1 (Square)</option>
-            <option value="4:5">4:5</option>
-            <option value="16:9">16:9 (Landscape)</option>
-            <option value="4:3">4:3</option>
-            <option value="3:4">3:4</option>
-            <option value="3:2">3:2</option>
-            <option value="2:3">2:3</option>
-            <option value="5:4">5:4</option>
-          </select>
+        {/* Output Image Display (auto-resize) */}
+        {outputImageUrl && (
+          <div style={{ width: '100%', margin: '8px 0' }}>
+            <img
+              src={outputImageUrl}
+              alt="Generated"
+              style={{ width: '100%', height: 'auto', objectFit: 'contain', borderRadius: '4px', display: 'block' }}
+              onLoad={e => {
+                const img = e.currentTarget;
+                if (img.naturalWidth && img.naturalHeight) {
+                  updateNodeSize(img.naturalWidth, img.naturalHeight);
+                }
+              }}
+            />
+          </div>
+        )}
+
+        {/* Parameters Container */}
+        <div className="parameters-container">
+          {/* Aspect Ratio Selector */}
+          <div className="parameter-control" style={{ borderBottom: 'none' }}>
+            <span className="control-label">Aspect Ratio</span>
+            <select
+              value={aspectRatio}
+              onChange={(e) => handleAspectRatioChange(e.target.value)}
+              className="nodrag"
+              style={{
+                padding: '4px 8px',
+                borderRadius: '4px',
+                border: '1px solid var(--node-border-color)',
+                background: 'var(--node-body-background)',
+                color: 'var(--color-text-primary)',
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="9:16">9:16 (Portrait)</option>
+              <option value="1:1">1:1 (Square)</option>
+              <option value="4:5">4:5</option>
+              <option value="16:9">16:9 (Landscape)</option>
+              <option value="4:3">4:3</option>
+              <option value="3:4">3:4</option>
+              <option value="3:2">3:2</option>
+              <option value="2:3">2:3</option>
+              <option value="5:4">5:4</option>
+            </select>
+          </div>
         </div>
 
-        {/* Status Area - Always present to prevent layout shifts */}
-        <div className="status-area" style={{ marginTop: 'var(--spacing-sm)', minHeight: '24px' }}>
+        {/* Status Area */}
+        <div className="status-area">
           {isProcessing && (
             <div className="parameter-control" style={{ borderBottom: 'none', margin: 0 }}>
               <span className="control-label" style={{ color: 'var(--color-accent-primary)' }}>

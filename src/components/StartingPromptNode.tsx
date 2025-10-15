@@ -3,6 +3,7 @@ import React, { useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import SendIcon from '@mui/icons-material/Send';
 import { useReactFlow } from '@xyflow/react';
 import OpenAIService from '../services/OpenAIService';
 import { usePromptNode } from '../hooks/useNodeEditor';
@@ -22,12 +23,14 @@ const StartingPromptNode: React.FC<StartingPromptNodeProps> = ({ data, id, isCon
   
   const {
     isEditing,
+    setIsEditing,
     prompt,
     setPrompt,
     textareaRef,
     handleEditClick,
     isProcessing,
     error,
+    setError,
     handleKeyDown: baseHandleKeyDown
   } = usePromptNode(data.prompt || '', data, id);
 
@@ -35,6 +38,19 @@ const StartingPromptNode: React.FC<StartingPromptNodeProps> = ({ data, id, isCon
     // Pass isStartingPrompt=true to create a new thread with Brand Voice
     await baseHandleKeyDown(e, OpenAIService, true);
   }, [baseHandleKeyDown]);
+
+  const handleSend = useCallback(async () => {
+    if (!prompt.trim()) {
+      setError('Please enter a prompt first');
+      return;
+    }
+    setIsEditing(false);
+    await baseHandleKeyDown({
+      ctrlKey: true,
+      key: 'Enter',
+      preventDefault: () => {},
+    } as any, OpenAIService, true);
+  }, [prompt, setIsEditing, setError, baseHandleKeyDown]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -135,6 +151,7 @@ const StartingPromptNode: React.FC<StartingPromptNodeProps> = ({ data, id, isCon
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           className={isDragOver ? 'drop-zone-active' : ''}
+          style={{ position: 'relative', display: 'flex', alignItems: 'flex-end' }}
         >
           <textarea
             ref={textareaRef}
@@ -145,10 +162,17 @@ const StartingPromptNode: React.FC<StartingPromptNodeProps> = ({ data, id, isCon
             onMouseMove={(e) => e.stopPropagation()}
             className="nodrag textarea-control positive"
             placeholder="Enter your prompt here... Press Ctrl+Enter to execute"
+            style={{ flex: 1, resize: 'none' }}
           />
-          <div className="helper-text helper-text-margined">
-            Press Ctrl+Enter to execute • Drop files to attach
-          </div>
+          <button
+            type="button"
+            aria-label="Send"
+            onClick={handleSend}
+            className="send-button"
+            disabled={isProcessing}
+          >
+            <SendIcon fontSize="medium" />
+          </button>
         </div>
       ) : (
         <div

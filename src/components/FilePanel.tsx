@@ -1,5 +1,14 @@
 // File Panel Component - provides file upload, management, and AI processing interface
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import FolderIcon from '@mui/icons-material/Folder';
+import TrackChangesIcon from '@mui/icons-material/TrackChanges';
+import EditIcon from '@mui/icons-material/Edit';
+import LabelIcon from '@mui/icons-material/Label';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
+import CloseIcon from '@mui/icons-material/Close';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { fileStorageService } from '../services/FileStorageService';
@@ -490,7 +499,7 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
           onClick={() => setIsCollapsed(!isCollapsed)}
           title={isCollapsed ? 'Expand panel' : 'Collapse panel'}
         >
-          {isCollapsed ? '▼' : '▲'}
+          {isCollapsed ? <ExpandMoreIcon fontSize="small" /> : <ExpandLessIcon fontSize="small" />}
         </button>
       </div>
 
@@ -502,13 +511,13 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
               className={`tab-btn ${activeTab === 'files' ? 'active' : ''}`}
               onClick={() => setActiveTab('files')}
             >
-              📁 Files
+              <FolderIcon fontSize="small" /> Files
             </button>
             <button
               className={`tab-btn ${activeTab === 'brand' ? 'active' : ''}`}
               onClick={() => setActiveTab('brand')}
             >
-              🎯 Brand Voice
+              <TrackChangesIcon fontSize="small" /> Brand Voice
             </button>
           </div>
 
@@ -695,28 +704,28 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
                           onClick={() => handleStartRename(file.id, file.name)}
                           title="Rename file"
                         >
-                          ✏️
+                          <EditIcon fontSize="small" />
                         </button>
                         <button
                           className="action-btn"
                           onClick={() => setEditingTagsFileId(editingTagsFileId === file.id ? null : file.id)}
                           title="Manage tags"
                         >
-                          🏷️
+                          <LabelIcon fontSize="small" />
                         </button>
                         <button
                           className={`select-btn ${isSelected ? 'selected' : ''}`}
                           onClick={() => handleFileToggle(file.id)}
                           title={isSelected ? 'Deselect file' : 'Select file'}
                         >
-                          {isSelected ? '✓' : '○'}
+                          {isSelected ? <CheckCircleIcon fontSize="small" /> : <RadioButtonUncheckedIcon fontSize="small" />}
                         </button>
                         <button
                           className="delete-btn"
                           onClick={() => handleDeleteFile(file.id)}
                           title="Delete file"
                         >
-                          ×
+                          <CloseIcon fontSize="small" />
                         </button>
                       </div>
                     </div>

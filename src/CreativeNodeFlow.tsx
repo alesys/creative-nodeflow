@@ -1,4 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import DescriptionIcon from '@mui/icons-material/Description'; // New
+import SaveIcon from '@mui/icons-material/Save'; // Save
+import FolderOpenIcon from '@mui/icons-material/FolderOpen'; // Load
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -906,12 +909,25 @@ function CreativeNodeFlowInner() {
         break;
     }
 
+    // Calculate increased size for creative/art/motion director nodes
+  let width: any = UI_DIMENSIONS.NODE_MIN_WIDTH;
+  let height: any = UI_DIMENSIONS.NODE_MIN_HEIGHT;
+    if (nodeType === 'agentPrompt' || nodeType === 'imagePrompt' || nodeType === 'videoPrompt') {
+      width = Math.round(UI_DIMENSIONS.NODE_MIN_WIDTH * 1.2) as any;
+      height = Math.round(UI_DIMENSIONS.NODE_MIN_HEIGHT * 1.3) as any;
+    } else if (nodeType === 'customOutput') {
+      width = 480 as any;
+      height = 320 as any;
+    } else if (nodeType === 'imagePanel') {
+      width = 440 as any;
+      height = 200 as any;
+    }
     const newNode: any = {
       id: newId,
       position,
       type: nodeType,
-      width: nodeType === 'customOutput' ? 480 : (nodeType === 'imagePanel' ? 440 : UI_DIMENSIONS.NODE_MIN_WIDTH),
-      height: nodeType === 'customOutput' ? 320 : (nodeType === 'imagePanel' ? 200 : UI_DIMENSIONS.NODE_MIN_HEIGHT),
+      width,
+      height,
       zIndex: getHighestZIndex(),
       data: nodeData
     };
@@ -1270,7 +1286,7 @@ function CreativeNodeFlowInner() {
             }}
             title="New Flow"
           >
-            📄 New
+            <DescriptionIcon fontSize="small" /> New
           </button>
           <button
             onClick={() => setSaveDialogOpen(true)}
@@ -1289,7 +1305,7 @@ function CreativeNodeFlowInner() {
             }}
             title="Save Flow"
           >
-            💾 Save
+            <SaveIcon fontSize="small" /> Save
           </button>
           <button
             onClick={() => setLoadDialogOpen(true)}
@@ -1308,7 +1324,7 @@ function CreativeNodeFlowInner() {
             }}
             title="Load Flow or Template"
           >
-            📂 Load
+            <FolderOpenIcon fontSize="small" /> Load
           </button>
           {currentFlowName && (
             <div style={{
@@ -1369,7 +1385,7 @@ function CreativeNodeFlowInner() {
           e.target.style.borderColor = 'var(--node-border-color)';
         }}
       >
-        {filePanelVisible ? '📁' : '📂'}
+  {filePanelVisible ? <FolderIcon fontSize="small" /> : <FolderOpenOutlinedIcon fontSize="small" />}
       </button> */}
 
       {/* Right-click Context Menu */}

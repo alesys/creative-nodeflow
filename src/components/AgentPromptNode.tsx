@@ -3,6 +3,7 @@ import React, { useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import PaletteIcon from '@mui/icons-material/Palette';
+import SendIcon from '@mui/icons-material/Send';
 import { useReactFlow, useStore } from '@xyflow/react';
 import OpenAIService from '../services/OpenAIService';
 import { usePromptNode } from '../hooks/useNodeEditor';
@@ -41,6 +42,8 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
     inputContext,
     hasReceivedInput,
     setInputContext,
+    setIsEditing,
+    setError,
     handleKeyDown: baseHandleKeyDown
   } = usePromptNode(data.prompt || '', data, id, inputNodes);
 
@@ -70,6 +73,19 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
     logger.debug('[AgentPromptNode] inputContext:', inputContext);
     await baseHandleKeyDown(e, OpenAIService);
   }, [baseHandleKeyDown, hasReceivedInput, inputContext]);
+
+  const handleSend = useCallback(async () => {
+    if (!prompt.trim()) {
+      setError('Please enter a prompt first');
+      return;
+    }
+    setIsEditing(false);
+    await baseHandleKeyDown({
+      ctrlKey: true,
+      key: 'Enter',
+      preventDefault: () => {},
+    } as any, OpenAIService);
+  }, [prompt, setIsEditing, setError, baseHandleKeyDown]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -180,7 +196,7 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
       {/* File Context Indicator */}
       {data.fileContexts && data.fileContexts.length > 0 && (
         <div className="file-context-indicator">
-          <span className="context-icon">📎</span>
+
           <span className="context-text">
             {data.fileContexts.length} file{data.fileContexts.length > 1 ? 's' : ''} attached
           </span>
@@ -204,9 +220,15 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
               className="nodrag textarea-control"
               placeholder="Enter your follow-up prompt here... Press Ctrl+Enter to execute"
             />
-            <div className="helper-text helper-text-margined">
-              Press Ctrl+Enter to execute • Drop files to attach
-            </div>
+            <button
+              type="button"
+              aria-label="Send"
+              onClick={handleSend}
+              className="send-button"
+              disabled={isProcessing}
+            >
+              <SendIcon fontSize="medium" />
+            </button>
           </div>
         ) : (
           <div
@@ -279,8 +301,8 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
           </div>
         </details>
 
-        {/* Status Area - Always present to prevent layout shifts */}
-        <div className="status-area" style={{ marginTop: 'var(--spacing-sm)', minHeight: '24px' }}>
+        {/* Status Area */}
+        <div className="status-area">
           {isProcessing && (
             <div className="parameter-control" style={{ borderBottom: 'none', margin: 0 }}>
               <span className="control-label" style={{ color: 'var(--color-accent-primary)' }}>
