@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { useReactFlow } from '@xyflow/react';
 import VideocamIcon from '@mui/icons-material/Videocam';
 import VeoVideoService from '../services/VeoVideoService';
+import { MODELS } from '../constants/app';
 import { usePromptNode } from '../hooks/useNodeEditor';
 import { BaseNode } from './base';
 import type { VideoPromptNodeData } from '../types/nodes';
@@ -15,6 +16,11 @@ interface VideoPromptNodeProps {
   id: string;
   isConnectable: boolean;
 }
+
+const VIDEO_MODELS = [
+  { label: 'Veo 3.1 Fast (Preview)', value: MODELS.GOOGLE_VIDEO },
+  { label: 'Veo 3.0 Fast', value: 'veo-3.0-fast-generate-001' }
+];
 
 const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectable }) => {
   const { setNodes } = useReactFlow();
@@ -36,8 +42,13 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
   } = usePromptNode(data.prompt || '', data, id);
 
   const [aspectRatio, setAspectRatio] = React.useState<string>(data.aspectRatio || '16:9');
+  const [videoModel, setVideoModel] = React.useState<string>(
+    typeof data.videoModel === 'string' && data.videoModel.length > 0
+      ? data.videoModel
+      : MODELS.GOOGLE_VIDEO
+  );
 
-  // Update node data when aspect ratio changes
+  // Update node data when aspect ratio or model changes
   const handleAspectRatioChange = useCallback((newRatio: string) => {
     setAspectRatio(newRatio);
     setNodes((nodes) =>
@@ -48,6 +59,23 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
               data: {
                 ...node.data,
                 aspectRatio: newRatio
+              }
+            }
+          : node
+      )
+    );
+  }, [id, setNodes]);
+
+  const handleModelChange = useCallback((newModel: string) => {
+    setVideoModel(newModel);
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                videoModel: newModel
               }
             }
           : node
@@ -115,7 +143,7 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
       throw new Error('Google API key not configured. Please check your .env file.');
     }
 
-    const response = await VeoVideoService.generateVideo(prompt, inputContext, aspectRatio);
+    const response = await VeoVideoService.generateVideo(prompt, inputContext, aspectRatio, videoModel);
 
     // Emit the response through the output
     if (onOutput) {
@@ -129,7 +157,7 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
     }
 
     return response;
-  }, [prompt, inputContext, aspectRatio, onOutput, id]);
+  }, [prompt, inputContext, aspectRatio, videoModel, onOutput, id]);
 
   const handleKeyDown = useCallback(async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.ctrlKey && e.key === 'Enter') {
@@ -302,6 +330,30 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
             )}
           </div>
         </details>
+
+        {/* Model Selector */}
+        <div className="parameter-control" style={{ borderBottom: 'none', minHeight: 'auto', marginBottom: 8 }}>
+          <span className="control-label">Video Model</span>
+          <select
+            value={videoModel}
+            onChange={(e) => handleModelChange(e.target.value)}
+            className="nodrag"
+            style={{
+              padding: '4px 8px',
+              borderRadius: '4px',
+              border: '1px solid var(--node-border-color)',
+              background: 'var(--node-body-background)',
+              color: 'var(--color-text-primary)',
+              fontSize: '12px',
+              cursor: 'pointer',
+              marginRight: 8
+            }}
+          >
+            {VIDEO_MODELS.map((m) => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
+          </select>
+        </div>
 
         {/* Aspect Ratio Selector */}
         <div className="parameter-control" style={{ borderBottom: 'none', minHeight: 'auto' }}>

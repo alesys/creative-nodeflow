@@ -48,7 +48,8 @@ class VeoVideoService {
   async generateVideo(
     prompt: string,
     context: ConversationContext | null = null,
-    aspectRatio: string = '16:9'
+    aspectRatio: string = '16:9',
+    modelOverride?: string
   ): Promise<VeoVideoResponse> {
     if (!this.client) {
       throw new Error('VEO-3 client not initialized. Please check your Google API key.');
@@ -86,7 +87,7 @@ class VeoVideoService {
 
       // Build the video generation request with image context if available
       const videoRequest: any = {
-        model: MODELS.GOOGLE_VIDEO, // Centralized model selection (e.g., Veo 3.1 Fast Preview)
+        model: modelOverride || MODELS.GOOGLE_VIDEO, // Use override if provided
         prompt: fullPrompt,
         config: {
           aspectRatio: aspectRatio, // VEO-3 supports '16:9' and '9:16'
