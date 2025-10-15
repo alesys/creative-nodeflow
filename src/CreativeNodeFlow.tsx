@@ -1039,9 +1039,7 @@ function CreativeNodeFlowInner() {
   // Handle edge deletion (delete key or backspace)
   const onEdgesDelete = useCallback((edgesToDelete: Edge[]) => {
     console.log('[CreativeNodeFlow] Edges deleted:', edgesToDelete);
-    if (edgesToDelete.length > 0) {
-      alertService.info(`${edgesToDelete.length} connection${edgesToDelete.length > 1 ? 's' : ''} deleted`);
-    }
+    // Note: No alert needed - edge deletion is obvious from visual feedback
   }, []);
 
   // Handle drop on canvas for creating image nodes
@@ -1075,7 +1073,7 @@ function CreativeNodeFlowInner() {
         };
 
         setNodes((nds) => nds.concat(newNode));
-        alertService.success(`Image node created: ${dragData.fileName}`);
+        // Note: No alert needed - node creation is obvious from visual feedback
       }
     } catch (error) {
       console.error('[CreativeNodeFlow] Error handling drop:', error);

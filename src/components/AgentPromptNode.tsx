@@ -40,8 +40,27 @@ const AgentPromptNode: React.FC<AgentPromptNodeProps> = ({ data, id, isConnectab
     error,
     inputContext,
     hasReceivedInput,
+    setInputContext,
     handleKeyDown: baseHandleKeyDown
   } = usePromptNode(data.prompt || '', data, id, inputNodes);
+
+  // Clear stale context when connections are removed
+  const previousInputNodeIdsRef = React.useRef<string[]>(inputNodeIds);
+  React.useEffect(() => {
+    const previousIds = previousInputNodeIdsRef.current;
+    const currentIds = inputNodeIds;
+    
+    // Check if any previous connections were removed
+    const removedConnections = previousIds.filter(prevId => !currentIds.includes(prevId));
+    
+    if (removedConnections.length > 0) {
+      logger.debug('[AgentPromptNode] Connections removed, clearing stale context:', removedConnections);
+      // Clear the input context since connections have changed
+      setInputContext(null);
+    }
+    
+    previousInputNodeIdsRef.current = currentIds;
+  }, [inputNodeIds, setInputContext]);
 
   // Input listener is now set up automatically by useNodeInput hook
 

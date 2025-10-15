@@ -25,6 +25,39 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { setNodes } = useReactFlow();
 
+  // Update node size when image dimensions change
+  const updateNodeSize = useCallback((width: number, height: number) => {
+    const TARGET_WIDTH = 350; // Target node width in pixels (excluding padding)
+    const PADDING = 32; // 16px padding on each side
+    const aspectRatio = height / width;
+    
+    // Calculate scaled height to maintain aspect ratio
+    const scaledHeight = TARGET_WIDTH * aspectRatio;
+    
+    // Update node dimensions
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? {
+              ...node,
+              style: {
+                ...node.style,
+                width: `${TARGET_WIDTH + PADDING}px`,
+                height: `${scaledHeight + PADDING + 100}px` // Add extra space for header, status bar, and padding
+              }
+            }
+          : node
+      )
+    );
+    
+    logger.debug('[ImagePanelNode] Updated node size:', { 
+      originalWidth: width, 
+      originalHeight: height, 
+      nodeWidth: TARGET_WIDTH + PADDING, 
+      nodeHeight: scaledHeight + PADDING + 100 
+    });
+  }, [id, setNodes]);
+
   // Sync with external updates (e.g., from clipboard paste)
   React.useEffect(() => {
     if (data.imageUrl && data.imageUrl !== imageUrl) {
@@ -221,7 +254,7 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
 
     setImageUrl(undefined);
 
-    // Clear the node data
+    // Clear the node data and reset to default size
     setNodes((nodes) =>
       nodes.map((node) =>
         node.id === id
@@ -233,13 +266,18 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
                 content: undefined,
                 type: undefined,
                 context: undefined
+              },
+              style: {
+                ...node.style,
+                width: undefined,
+                height: undefined
               }
             }
           : node
       )
     );
 
-    logger.debug('[ImagePanelNode] Image deleted');
+    logger.debug('[ImagePanelNode] Image deleted and node size reset');
   }, [id, setNodes]);
 
   // Configure node using BaseNode architecture
@@ -303,6 +341,12 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
                 objectFit: 'contain',
                 borderRadius: '4px',
                 display: 'block'
+              }}
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                if (img.naturalWidth && img.naturalHeight) {
+                  updateNodeSize(img.naturalWidth, img.naturalHeight);
+                }
               }}
               onError={(e) => {
                 // If the URL is a remote one and fails, we can't recover unless a preview was provided earlier
