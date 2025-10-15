@@ -28,10 +28,14 @@ import OutputNode from './components/OutputNode';
 import ImagePanelNode from './components/ImagePanelNode';
 import CustomEdge from './components/CustomEdge';
 import FilePanel from './components/FilePanel';
+import SaveFlowDialog from './components/SaveFlowDialog';
+import LoadFlowDialog from './components/LoadFlowDialog';
 import { alertService } from './components/Alert';
 import { UI_DIMENSIONS } from './constants/app';
 import logger from './utils/logger';
 import fileStorageService from './services/FileStorageService';
+import flowSerializationService from './services/FlowSerializationService';
+import localFlowStorageService from './services/FlowStorageService';
 
 // Import types
 import type {
@@ -127,9 +131,17 @@ function CreativeNodeFlowInner() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [filePanelVisible] = useState<boolean>(true);
   const [, setSelectedFileContexts] = useState<FileContext[]>([]);
+  
+  // Save/Load Flow state
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [loadDialogOpen, setLoadDialogOpen] = useState(false);
+  const [currentFlowId, setCurrentFlowId] = useState<string | null>(null);
+  const [currentFlowName, setCurrentFlowName] = useState<string>('');
+  const [currentFlowDescription, setCurrentFlowDescription] = useState<string>('');
+  const [currentFlowTags, setCurrentFlowTags] = useState<string[]>([]);
 
   // ReactFlow instance for proper coordinate transformations
-  const { screenToFlowPosition: reactFlowScreenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition: reactFlowScreenToFlowPosition, getViewport } = useReactFlow();
 
   // Using useRef for nodeInputHandlers to prevent state mutation
   const nodeInputHandlers = useRef<Map<string, InputHandlerCallback>>(new Map());
@@ -1042,6 +1054,104 @@ function CreativeNodeFlowInner() {
     // Note: No alert needed - edge deletion is obvious from visual feedback
   }, []);
 
+  // ============================================================================
+  // Save/Load Flow Handlers
+  // ============================================================================
+
+  const handleSaveFlow = useCallback(async (data: any) => {
+    try {
+      const viewport = getViewport();
+      const flow = flowSerializationService.serializeFlow(
+        nodes,
+        edges,
+        viewport,
+        {
+          id: currentFlowId || undefined,
+          name: data.name,
+          description: data.description,
+          tags: data.tags
+        },
+        data.saveAsTemplate
+      );
+
+      if (data.saveAsTemplate && data.templateCategory) {
+        const template = {
+          ...flow,
+          isTemplate: true as const,
+          category: data.templateCategory
+        };
+        await localFlowStorageService.saveTemplate(template);
+        alertService.success(`Template "${data.name}" saved successfully!`);
+      } else {
+        await localFlowStorageService.saveFlow(flow);
+        alertService.success(`Flow "${data.name}" saved successfully!`);
+      }
+
+      setCurrentFlowId(flow.metadata.id);
+      setCurrentFlowName(flow.metadata.name);
+      setCurrentFlowDescription(flow.metadata.description || '');
+      setCurrentFlowTags(flow.metadata.tags || []);
+    } catch (error) {
+      logger.error('Failed to save flow:', error);
+      alertService.error('Failed to save flow. Please try again.');
+    }
+  }, [nodes, edges, currentFlowId, getViewport]);
+
+  const handleLoadFlow = useCallback((flow: any) => {
+    try {
+      const state = flowSerializationService.deserializeFlow(flow);
+      setNodes(state.nodes);
+      setEdges(state.edges);
+      
+      setCurrentFlowId(flow.metadata.id);
+      setCurrentFlowName(flow.metadata.name);
+      setCurrentFlowDescription(flow.metadata.description || '');
+      setCurrentFlowTags(flow.metadata.tags || []);
+      
+      alertService.success(`Flow "${flow.metadata.name}" loaded successfully!`);
+    } catch (error) {
+      logger.error('Failed to load flow:', error);
+      alertService.error('Failed to load flow. Please try again.');
+    }
+  }, [setNodes, setEdges]);
+
+  const handleLoadTemplate = useCallback((template: any) => {
+    try {
+      const newFlow = flowSerializationService.instantiateTemplate(template);
+      const state = flowSerializationService.deserializeFlow(newFlow);
+      
+      setNodes(state.nodes);
+      setEdges(state.edges);
+      
+      setCurrentFlowId(newFlow.metadata.id);
+      setCurrentFlowName(newFlow.metadata.name);
+      setCurrentFlowDescription(newFlow.metadata.description || '');
+      setCurrentFlowTags(newFlow.metadata.tags || []);
+      
+      alertService.success(`Template "${template.metadata.name}" loaded as new flow!`);
+    } catch (error) {
+      logger.error('Failed to load template:', error);
+      alertService.error('Failed to load template. Please try again.');
+    }
+  }, [setNodes, setEdges]);
+
+  const handleNewFlow = useCallback(() => {
+    if (nodes.length > 0 || edges.length > 0) {
+      if (!window.confirm('Start a new flow? Unsaved changes will be lost.')) {
+        return;
+      }
+    }
+    
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+    setCurrentFlowId(null);
+    setCurrentFlowName('');
+    setCurrentFlowDescription('');
+    setCurrentFlowTags([]);
+    
+    alertService.info('New flow started');
+  }, [nodes, edges, setNodes, setEdges]);
+
   // Handle drop on canvas for creating image nodes
   const handleDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -1133,7 +1243,89 @@ function CreativeNodeFlowInner() {
         />
         <Background variant={'dots' as any} gap={12} size={1} />
 
-
+        {/* Flow Control Toolbar */}
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: '8px',
+          zIndex: 5
+        }}>
+          <button
+            onClick={handleNewFlow}
+            style={{
+              padding: '8px 16px',
+              background: 'var(--node-body-background)',
+              border: '1px solid var(--node-border-color)',
+              borderRadius: '6px',
+              color: 'var(--color-text-primary)',
+              cursor: 'pointer',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+            }}
+            title="New Flow"
+          >
+            📄 New
+          </button>
+          <button
+            onClick={() => setSaveDialogOpen(true)}
+            style={{
+              padding: '8px 16px',
+              background: 'var(--node-body-background)',
+              border: '1px solid var(--node-border-color)',
+              borderRadius: '6px',
+              color: 'var(--color-text-primary)',
+              cursor: 'pointer',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+            }}
+            title="Save Flow"
+          >
+            💾 Save
+          </button>
+          <button
+            onClick={() => setLoadDialogOpen(true)}
+            style={{
+              padding: '8px 16px',
+              background: 'var(--node-body-background)',
+              border: '1px solid var(--node-border-color)',
+              borderRadius: '6px',
+              color: 'var(--color-text-primary)',
+              cursor: 'pointer',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+            }}
+            title="Load Flow or Template"
+          >
+            📂 Load
+          </button>
+          {currentFlowName && (
+            <div style={{
+              padding: '8px 16px',
+              background: 'var(--node-header-background)',
+              border: '1px solid var(--node-border-color)',
+              borderRadius: '6px',
+              color: 'var(--color-text-secondary)',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+            }}>
+              📌 {currentFlowName}
+            </div>
+          )}
+        </div>
 
         {/* Node creation panel - hidden, will be replaced with right-click context menu */}
       </ReactFlow>
@@ -1329,6 +1521,24 @@ function CreativeNodeFlowInner() {
           </button>
         </div>
       )}
+
+      {/* Save Flow Dialog */}
+      <SaveFlowDialog
+        open={saveDialogOpen}
+        onClose={() => setSaveDialogOpen(false)}
+        onSave={handleSaveFlow}
+        currentFlowName={currentFlowName}
+        currentFlowDescription={currentFlowDescription}
+        currentFlowTags={currentFlowTags}
+      />
+
+      {/* Load Flow Dialog */}
+      <LoadFlowDialog
+        open={loadDialogOpen}
+        onClose={() => setLoadDialogOpen(false)}
+        onLoadFlow={handleLoadFlow}
+        onLoadTemplate={handleLoadTemplate}
+      />
     </div>
   );
 }
