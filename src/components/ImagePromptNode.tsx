@@ -40,11 +40,9 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
   const [outputImageUrl, setOutputImageUrl] = React.useState<string | null>(data.outputImageUrl || null);
 
   // Resize node to fit image
-  const updateNodeSize = useCallback((width: number, height: number) => {
-    const TARGET_WIDTH = 350;
-    const PADDING = 32;
-    const aspectRatio = height / width;
-    const scaledHeight = TARGET_WIDTH * aspectRatio;
+  const updateNodeHeight = useCallback((imgHeight: number) => {
+    // Only set height, let width be managed by CSS/React Flow
+    const PADDING = 100; // header, status, etc.
     setNodes((nodes) =>
       nodes.map((node) =>
         node.id === id
@@ -52,8 +50,7 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
               ...node,
               style: {
                 ...node.style,
-                width: `${TARGET_WIDTH + PADDING}px`,
-                height: `${scaledHeight + PADDING + 100}px`,
+                height: `${imgHeight + PADDING}px`,
               },
             }
           : node
@@ -358,8 +355,8 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
               style={{ width: '100%', height: 'auto', objectFit: 'contain', borderRadius: '4px', display: 'block' }}
               onLoad={e => {
                 const img = e.currentTarget;
-                if (img.naturalWidth && img.naturalHeight) {
-                  updateNodeSize(img.naturalWidth, img.naturalHeight);
+                if (img.naturalHeight) {
+                  updateNodeHeight(img.naturalHeight);
                 }
               }}
             />
