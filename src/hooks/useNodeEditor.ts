@@ -297,11 +297,16 @@ export const usePromptNode = (
         ) {
           const imageUrl = ctx.content.url || ctx.content.imageUrl;
           if (typeof imageUrl === 'string' && imageUrl.length > 0) {
+            // Extract mimeType from data URL or default to image/png
+            const mimeType = typeof imageUrl === 'string' && imageUrl.startsWith('data:')
+              ? imageUrl.split(';')[0].split(':')[1] || 'image/png'
+              : 'image/png';
+            
             return {
               role: 'user' as const,
               content: [
                 { type: 'text' as const, text: ctx.contextPrompt || ctx.summary || 'Image uploaded as context.' },
-                { type: 'image' as const, imageUrl }
+                { type: 'image' as const, imageUrl, mimeType }
               ]
             };
           }
