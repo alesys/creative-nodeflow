@@ -115,8 +115,23 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
       // Initialize storage service first
       await fileStorageService.init();
 
-      const storedFiles = await fileStorageService.listFiles();
+      let storedFiles = await fileStorageService.listFiles();
       const storedContexts = await fileStorageService.listContexts();
+
+      // For each image file, reconstruct a valid object URL from stored data
+      storedFiles = await Promise.all(storedFiles.map(async (file) => {
+        if (file.type && file.type.startsWith('image/')) {
+          try {
+            const fileData = await fileStorageService.getFileData(file.id);
+            const objectUrl = URL.createObjectURL(fileData);
+            return { ...file, url: objectUrl };
+          } catch (e) {
+            logger.warn('[FilePanel] Could not reconstruct image object URL for', file.name, e);
+            return file;
+          }
+        }
+        return file;
+      }));
 
       setFiles(storedFiles);
       setContexts(storedContexts);
@@ -126,6 +141,7 @@ const FilePanel: React.FC<FilePanelProps> = ({ onFileContext, isVisible = true, 
       setError('Failed to load files: ' + (error as Error).message);
     }
   };
+
 
   // Handle file selection
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>): void => {

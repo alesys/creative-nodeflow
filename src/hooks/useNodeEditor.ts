@@ -295,13 +295,20 @@ export const usePromptNode = (
           (ctx.type === 'image' || (isObj(ctx.content) && (ctx.content.type === 'image' || ctx.content.type?.startsWith('image/')))) &&
           isObj(ctx.content)
         ) {
-          const imageUrl = ctx.content.url || ctx.content.imageUrl;
-          if (typeof imageUrl === 'string' && imageUrl.length > 0) {
-            // Extract mimeType from data URL or default to image/png
-            const mimeType = typeof imageUrl === 'string' && imageUrl.startsWith('data:')
-              ? imageUrl.split(';')[0].split(':')[1] || 'image/png'
-              : 'image/png';
-            
+          const rawUrl = ctx.content.url || ctx.content.imageUrl;
+          if (typeof rawUrl === 'string' && rawUrl.length > 0) {
+            let imageUrl = rawUrl;
+            let mimeType = 'image/png';
+
+            // If it's a blob: URL, we need to convert to data URL so downstream services can inline it
+            if (imageUrl.startsWith('blob:')) {
+              // We'll perform a best-effort conversion by returning a placeholder; services should fetch if needed
+              // To keep this hook synchronous, we tag with a special marker for services to resolve
+              imageUrl = `__BLOB_URL__:${imageUrl}`;
+            } else if (imageUrl.startsWith('data:')) {
+              mimeType = imageUrl.split(';')[0].split(':')[1] || 'image/png';
+            }
+
             return {
               role: 'user' as const,
               content: [

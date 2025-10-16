@@ -47,6 +47,35 @@ class GoogleAIService {
     this.initializeClient();
   }
 
+  // Convert an image URL (data:, blob:, http(s): or special marker) to base64 data and mimeType
+  private async toInlineData(imageUrl: string): Promise<{ data: string; mimeType: string } | null> {
+    try {
+      // Special marker from useNodeEditor for blob URLs passed synchronously
+      if (imageUrl.startsWith('__BLOB_URL__:')) {
+        imageUrl = imageUrl.replace('__BLOB_URL__:', '');
+      }
+
+      if (imageUrl.startsWith('data:')) {
+        const match = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          return { mimeType: match[1], data: match[2] };
+        }
+        return null;
+      }
+
+      // Fetch blob for blob: or http(s) URLs and convert to base64
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const mimeType = blob.type || 'image/png';
+      const arrayBuffer = await blob.arrayBuffer();
+      const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      return { data: base64Data, mimeType };
+    } catch (e) {
+      logger.warn('Failed to convert image URL to inline data:', e);
+      return null;
+    }
+  }
+
   initializeClient(): void {
     const apiKey = process.env.REACT_APP_GOOGLE_API_KEY;
 
@@ -77,8 +106,8 @@ class GoogleAIService {
       logger.debug('Generating image with new SDK - aspect ratio:', aspectRatio);
       logger.debug('Model:', MODELS.GOOGLE_IMAGE);
 
-      // Build multimodal content array with text and images
-      const contentParts: Array<string | { inlineData: { data: string; mimeType: string } }> = [];
+  // Build multimodal content array with text and images
+  const contentParts: Array<string | { inlineData: { data: string; mimeType: string } }> = [];
 
       // Add context if provided (from previous nodes)
       if (context && context.messages) {
@@ -96,19 +125,13 @@ class GoogleAIService {
             for (const part of msg.content) {
               if (part.type === 'text') {
                 contextTexts.push(part.text);
-              } else if (part.type === 'image') {
-                // Extract base64 data from data URL
-                const base64Match = part.imageUrl.match(/^data:([^;]+);base64,(.+)$/);
-                if (base64Match) {
-                  const mimeType = base64Match[1];
-                  const base64Data = base64Match[2];
-                  contentParts.push({
-                    inlineData: {
-                      data: base64Data,
-                      mimeType: mimeType
-                    }
-                  });
+              } else if (part.type === 'image' && part.imageUrl) {
+                const inline = await this.toInlineData(part.imageUrl);
+                if (inline) {
+                  contentParts.push({ inlineData: inline });
                   logger.debug('Added image from context to generation request');
+                } else {
+                  logger.warn('Skipping image part: could not inline image');
                 }
               }
             }

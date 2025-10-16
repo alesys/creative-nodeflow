@@ -126,18 +126,24 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
 
     try {
       const dragData = JSON.parse(e.dataTransfer.getData('application/json'));
-      if (dragData.fileId && dragData.context) {
+      if (dragData.fileId) {
         // Update node data with file context (without inserting text)
         setNodes((nds) =>
           nds.map((node) => {
             if (node.id === id) {
               const existingContexts = Array.isArray(node.data.fileContexts) ? node.data.fileContexts : [];
-              const updatedFileContexts = [...existingContexts, {
+              const isImage = !!dragData.isImage;
+              const hasImageUrl = typeof dragData.fileUrl === 'string' && dragData.fileUrl.length > 0;
+              const contextFromDrag = dragData.context || {};
+              const newContext = {
                 fileId: dragData.fileId,
                 fileName: dragData.fileName,
-                summary: dragData.context.summary,
-                content: dragData.context.content
-              }];
+                summary: contextFromDrag.summary || (isImage ? 'Image dragged from files' : undefined),
+                content: isImage && hasImageUrl
+                  ? { type: 'image', imageUrl: dragData.fileUrl }
+                  : (contextFromDrag.content || null)
+              };
+              const updatedFileContexts = [...existingContexts, newContext];
               return {
                 ...node,
                 data: {

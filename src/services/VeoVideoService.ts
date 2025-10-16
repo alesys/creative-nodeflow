@@ -24,6 +24,28 @@ class VeoVideoService {
     this.initializeClient();
   }
 
+  private async toInlineData(imageUrl: string): Promise<{ data: string; mimeType: string } | null> {
+    try {
+      if (imageUrl.startsWith('__BLOB_URL__:')) {
+        imageUrl = imageUrl.replace('__BLOB_URL__:', '');
+      }
+      if (imageUrl.startsWith('data:')) {
+        const m = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (m) return { mimeType: m[1], data: m[2] };
+        return null;
+      }
+      const res = await fetch(imageUrl);
+      const blob = await res.blob();
+      const mimeType = blob.type || 'image/png';
+      const ab = await blob.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(ab)));
+      return { data: base64, mimeType };
+    } catch (e) {
+      logger.warn('VEO: failed to inline image', e);
+      return null;
+    }
+  }
+
   initializeClient(): void {
     const apiKey = process.env.REACT_APP_GOOGLE_API_KEY;
 
@@ -87,13 +109,17 @@ class VeoVideoService {
       logger.debug('Aspect ratio:', aspectRatio);
 
       // Build the video generation request with image context if available
+      // Ensure durationSeconds is a number (API requires number)
+      const durationNum = typeof durationSeconds === 'string' ? parseFloat(durationSeconds) : durationSeconds;
+      const safeDuration = Number.isFinite(durationNum as number) ? (durationNum as number) : 8;
+
       const videoRequest: any = {
         model: modelOverride || MODELS.GOOGLE_VIDEO, // Use override if provided
         prompt: fullPrompt,
         config: {
           aspectRatio: aspectRatio, // VEO-3 supports '16:9' and '9:16'
           negativePrompt: 'low quality, blurry, distorted',
-          durationSeconds: durationSeconds || '8'
+          durationSeconds: safeDuration
         }
       };
       
@@ -148,22 +174,12 @@ ${fullPrompt}`;
 
           // Use the most recent (primary) image for actual video generation
           if (primaryImagePart) {
-            const dataUrl = primaryImagePart.imageUrl;
-            if (dataUrl.startsWith('data:')) {
-              const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-              if (matches) {
-                videoRequest.image = {
-                  imageBytes: matches[2],
-                  mimeType: matches[1]
-                };
-                logger.debug('Primary image parsed:', { 
-                  mimeType: matches[1], 
-                  base64Length: matches[2].length,
-                  totalImages: allImages.length 
-                });
-              } else {
-                logger.warn('Could not parse primary image data URL');
-              }
+            const inline = await this.toInlineData(primaryImagePart.imageUrl);
+            if (inline) {
+              videoRequest.image = { imageBytes: inline.data, mimeType: inline.mimeType };
+              logger.debug('Primary image inlined:', { mimeType: inline.mimeType, totalImages: allImages.length });
+            } else {
+              logger.warn('Could not inline primary image');
             }
           }
         }
