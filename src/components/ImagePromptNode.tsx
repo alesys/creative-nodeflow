@@ -36,7 +36,7 @@ const ImagePromptNode: React.FC<ImagePromptNodeProps> = ({ data, id, isConnectab
     setError
   } = usePromptNode(data.prompt || '', data, id);
 
-  const [aspectRatio, setAspectRatio] = React.useState<string>(data.aspectRatio || '1:1');
+  const [aspectRatio, setAspectRatio] = React.useState<string>(data.aspectRatio || '9:16');
   const [outputImageUrl, setOutputImageUrl] = React.useState<string | null>(data.outputImageUrl || null);
 
   // Resize node to fit image

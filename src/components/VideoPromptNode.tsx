@@ -42,7 +42,7 @@ const VideoPromptNode: React.FC<VideoPromptNodeProps> = ({ data, id, isConnectab
     setError
   } = usePromptNode(data.prompt || '', data, id);
 
-  const [aspectRatio, setAspectRatio] = React.useState<string>(data.aspectRatio || '16:9');
+  const [aspectRatio, setAspectRatio] = React.useState<string>(data.aspectRatio || '9:16');
   const [videoModel, setVideoModel] = React.useState<string>(
     typeof data.videoModel === 'string' && data.videoModel.length > 0
       ? data.videoModel
