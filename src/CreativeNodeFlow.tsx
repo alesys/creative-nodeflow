@@ -84,15 +84,15 @@ type InputHandlerCallback = (data: { content: string; context?: ConversationCont
 
 const initialNodes: Node[] = [
   {
-    id: 'starting-1',
+    id: 'agent-1',
     position: { x: 100, y: 100 },
-    type: 'startingPrompt',
-    width: UI_DIMENSIONS.NODE_MIN_WIDTH,
-    height: UI_DIMENSIONS.NODE_MIN_HEIGHT,
+    type: 'agentPrompt',
+    width: Math.round(UI_DIMENSIONS.NODE_MIN_WIDTH * 1.2),
+    height: Math.round(UI_DIMENSIONS.NODE_MIN_HEIGHT * 1.3),
     zIndex: 1,
     data: {
       prompt: '',
-      systemPrompt: 'You are a creative writing assistant.',
+      systemPrompt: 'You are a creative assistant.',
       onOutput: undefined, // Will be set in component
       onReceiveInput: undefined
     },
@@ -114,8 +114,8 @@ const initialNodes: Node[] = [
 
 const initialEdges: Edge[] = [
   {
-    id: 'starting-output',
-    source: 'starting-1',
+    id: 'agent-output',
+    source: 'agent-1',
     target: 'output-1',
     animated: true,
     style: { stroke: '#10b981', strokeWidth: 2 }
@@ -1408,6 +1408,7 @@ function CreativeNodeFlowInner() {
           <div style={{ padding: '8px 16px', fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 'bold', borderBottom: '1px solid var(--node-border-color)' }}>
             Add Nodes
           </div>
+          {/* Starting Prompt temporarily hidden - kept in backburner 
           <button
             style={{
               display: 'block',
@@ -1426,6 +1427,7 @@ function CreativeNodeFlowInner() {
           >
             Starting Prompt
           </button>
+          */}
           <button
             style={{
               display: 'block',
