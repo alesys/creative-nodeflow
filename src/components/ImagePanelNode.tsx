@@ -225,6 +225,26 @@ const ImagePanelNode: React.FC<ImagePanelNodeProps> = ({ data, id, isConnectable
                 : node
             )
           );
+
+          // Immediately emit an image context downstream so connected nodes receive it
+          if (data.onOutput) {
+            const mimeType = typeof chosenUrl === 'string' && chosenUrl.startsWith('data:')
+              ? chosenUrl.split(';')[0].split(':')[1] || 'image/png'
+              : 'image/png';
+            const imageContext = {
+              messages: [
+                {
+                  role: 'user' as const,
+                  content: [
+                    { type: 'text' as const, text: 'Image dragged from File Panel' },
+                    { type: 'image' as const, imageUrl: chosenUrl, mimeType }
+                  ]
+                }
+              ]
+            };
+            data.onOutput({ nodeId: id, content: chosenUrl, type: 'image', context: imageContext });
+          }
+
           return;
         }
       }
