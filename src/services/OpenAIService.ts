@@ -68,6 +68,43 @@ class OpenAIService {
       });
     }
 
+    // Helper to convert ArrayBuffer to base64
+    const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+      let binary = '';
+      const bytes = new Uint8Array(buffer);
+      const len = bytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary);
+    };
+
+    // Helper to inline blob URLs into data URLs; pass through http(s) and existing data URLs
+    const inlineImageUrl = async (url: string): Promise<{ url: string; detail?: 'auto' | 'low' | 'high' }> => {
+      try {
+        if (!url) return { url };
+        let actualUrl = url;
+        if (actualUrl.startsWith('__BLOB_URL__:')) {
+          actualUrl = actualUrl.replace('__BLOB_URL__:', '');
+        }
+        if (actualUrl.startsWith('data:')) {
+          return { url: actualUrl, detail: 'auto' };
+        }
+        if (actualUrl.startsWith('blob:')) {
+          const resp = await fetch(actualUrl);
+          const contentType = resp.headers.get('content-type') || 'image/png';
+          const buf = await resp.arrayBuffer();
+          const b64 = arrayBufferToBase64(buf);
+          return { url: `data:${contentType};base64,${b64}`, detail: 'auto' };
+        }
+        // For http(s), let OpenAI fetch directly
+        return { url: actualUrl, detail: 'auto' };
+      } catch (e) {
+        // On failure, fall back to passing original URL
+        return { url, detail: 'auto' };
+      }
+    };
+
     // Add context if provided (with windowing to prevent memory leak)
     if (context && context.messages) {
       const recentMessages = context.messages.slice(-LIMITS.MAX_CONTEXT_MESSAGES);
@@ -90,11 +127,12 @@ class OpenAIService {
                 text: part.text
               });
             } else if (part.type === 'image') {
+              const inlined = await inlineImageUrl(part.imageUrl);
               contentParts.push({
                 type: 'image_url',
                 image_url: {
-                  url: part.imageUrl,
-                  detail: 'auto'
+                  url: inlined.url,
+                  detail: inlined.detail || 'auto'
                 }
               });
             }
