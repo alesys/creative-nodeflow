@@ -31,10 +31,12 @@ const OutputNode: React.FC<OutputNodeProps> = ({ data, id, isConnectable }) => {
   const [pages, setPages] = useState<PageData[]>([]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [imageError, setImageError] = useState(false);
+  // Removed unused imageError, maximized
+  const [textEditMode, setTextEditMode] = useState(false);
   const { setNodes } = useReactFlow();
-  const imageRef = useRef<HTMLImageElement>(null);
+  // Removed unused imageRef
   const initializedRef = useRef(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Get current page data
   const currentPage = pages[currentPageIndex] || null;
@@ -115,111 +117,25 @@ const OutputNode: React.FC<OutputNodeProps> = ({ data, id, isConnectable }) => {
 
     switch (contentType) {
       case 'image':
-        if (!content) {
-          return (
-            <div className="helper-text waiting-content">
-              No image data received...
-            </div>
-          );
-        }
-
-        if (imageError) {
-          return (
-            <div className="image-error" style={{display: 'block'}}>
-              Failed to load image
-              <br/>
-              <small>Data: {content ? content.substring(0, 50) + '...' : 'No data'}</small>
-            </div>
-          );
-        }
-
         return (
           <div style={{ width: '100%' }}>
             <img
-              ref={imageRef}
               src={content}
               alt="Generated content"
               className="output-image clickable"
               onClick={() => setLightboxOpen(true)}
-              onError={(e) => {
-                logger.error('Image load error:', (e.target as HTMLImageElement).src);
-                setImageError(true);
-              }}
-              onLoad={(e) => {
-                logger.debug('Image loaded successfully:', content.substring(0, 50));
-                setImageError(false);
-
-                // Auto-resize node to accommodate image
-                const img = e.target as HTMLImageElement;
-                if (img.naturalWidth && img.naturalHeight) {
-                  const aspectRatio = img.naturalHeight / img.naturalWidth;
-                  const nodeWidth = (document.querySelector(`[data-id="${id}"]`) as HTMLElement)?.offsetWidth || 480;
-                  const imageHeight = aspectRatio * nodeWidth;
-                  const nodeHeight = imageHeight + 120; // Add space for header, status bar, and padding
-
-                  setNodes((nodes) =>
-                    nodes.map((node) =>
-                      node.id === id
-                        ? { ...node, height: Math.max(nodeHeight, 320) } // Min height 320px
-                        : node
-                    )
-                  );
-                }
-              }}
-              style={{ 
-                cursor: 'pointer',
-                width: '100%',
-                height: 'auto',
-                display: 'block'
-              }}
+              style={{ cursor: 'pointer', width: '100%', height: 'auto', display: 'block' }}
             />
           </div>
         );
-
       case 'video':
-        if (!content) {
-          return (
-            <div className="helper-text waiting-content">
-              No video data received...
-            </div>
-          );
-        }
-
-        // Check if content is a data URL (video file) or just text
-        const isVideoUrl = content.startsWith('data:video') || content.startsWith('blob:') || content.startsWith('http');
-
-        logger.debug('Video content check:', {
-          isVideoUrl,
-          contentStart: content.substring(0, 50),
-          contentLength: content.length
-        });
-
-        if (!isVideoUrl) {
-          // If it's not a video URL, show as text (error message or status)
-          logger.debug('Showing video content as text (not a URL)');
-          return (
-            <div className="text-content">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {content}
-              </ReactMarkdown>
-            </div>
-          );
-        }
-
-        logger.debug('Rendering video player with src:', content.substring(0, 60));
         return (
           <div style={{ width: '100%', marginTop: '8px' }}>
             <video
               src={content}
               controls
               preload="metadata"
-              style={{
-                width: '100%',
-                height: 'auto',
-                borderRadius: '4px',
-                backgroundColor: '#000',
-                display: 'block'
-              }}
+              style={{ width: '100%', height: 'auto', borderRadius: '4px', backgroundColor: '#000', display: 'block' }}
               onLoadedMetadata={(e) => {
                 const video = e.target as HTMLVideoElement;
                 logger.debug('Video metadata loaded:', {
@@ -227,22 +143,6 @@ const OutputNode: React.FC<OutputNodeProps> = ({ data, id, isConnectable }) => {
                   videoWidth: video.videoWidth,
                   videoHeight: video.videoHeight
                 });
-
-                // Auto-resize node to accommodate video
-                if (video.videoWidth && video.videoHeight) {
-                  const aspectRatio = video.videoHeight / video.videoWidth;
-                  const nodeWidth = (document.querySelector(`[data-id="${id}"]`) as HTMLElement)?.offsetWidth || 480;
-                  const videoHeight = aspectRatio * nodeWidth;
-                  const nodeHeight = videoHeight + 160; // Add space for header, status bar, controls, and padding
-
-                  setNodes((nodes) =>
-                    nodes.map((node) =>
-                      node.id === id
-                        ? { ...node, height: Math.max(nodeHeight, 320) } // Min height 320px
-                        : node
-                    )
-                  );
-                }
               }}
               onCanPlay={() => {
                 logger.debug('Video can play now');
@@ -259,19 +159,31 @@ const OutputNode: React.FC<OutputNodeProps> = ({ data, id, isConnectable }) => {
             >
               Your browser does not support the video tag.
             </video>
-            <div className="helper-text" style={{ marginTop: '4px', fontSize: '10px', opacity: 0.7 }}>
-              {content.substring(0, 80)}...
-            </div>
           </div>
         );
-
       case 'text':
       default:
         return (
-          <div className="text-content">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {content}
-            </ReactMarkdown>
+          <div 
+            className="text-content" 
+            onClick={() => setTextEditMode(true)}
+            style={{ cursor: textEditMode ? 'text' : 'pointer', height: textEditMode ? '100%' : 'auto', display: 'flex', flexDirection: 'column' }}
+          >
+            {textEditMode ? (
+              <textarea
+                ref={textareaRef}
+                className="nodrag"
+                value={content}
+                readOnly
+                style={{ width: '100%', flex: 1, minHeight: '200px', padding: '8px', fontFamily: 'inherit', fontSize: 'inherit', border: '1px solid var(--node-border-color)', borderRadius: '4px', backgroundColor: 'var(--node-bg-color)', color: 'var(--color-text-primary)', resize: 'vertical' }}
+                onBlur={() => setTextEditMode(false)}
+                autoFocus
+              />
+            ) : (
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {content}
+              </ReactMarkdown>
+            )}
           </div>
         );
     }
@@ -402,7 +314,47 @@ const OutputNode: React.FC<OutputNodeProps> = ({ data, id, isConnectable }) => {
     header: {
       title: 'Output',
       variant: 'output',
-      icon: <OutputIcon sx={{ fontSize: '18px' }} />
+      icon: <OutputIcon sx={{ fontSize: '18px' }} />,
+      actions: (
+        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+          {content && (
+            <button
+              className="nodrag output-copy-btn"
+              title="Copy to clipboard"
+              style={{
+                background: 'var(--node-border-color)',
+                color: 'var(--color-text-primary)',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '2px 8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+              onClick={handleCopyToClipboard}
+            >
+              <ContentCopyIcon sx={{ fontSize: '14px' }} />
+            </button>
+          )}
+          <button
+            className="nodrag output-maximize-btn"
+            title={lightboxOpen ? 'Restore' : 'Maximize'}
+            style={{
+              background: lightboxOpen ? 'var(--color-accent-primary)' : 'var(--node-border-color)',
+              color: 'var(--color-text-primary)',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '2px 8px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+            onClick={() => setLightboxOpen((prev) => !prev)}
+          >
+            {lightboxOpen ? '🗗' : '🗖'}
+          </button>
+        </div>
+      )
     },
     statusBar: {
       show: true,
@@ -496,17 +448,6 @@ const OutputNode: React.FC<OutputNodeProps> = ({ data, id, isConnectable }) => {
 
         {/* Node Body */}
         <div className="node-body output-node-body">
-          {/* Floating Copy Button - visible on hover */}
-          {content && (
-            <button
-              onClick={handleCopyToClipboard}
-              className="nodrag output-copy-button"
-              title="Copy to clipboard"
-            >
-              <ContentCopyIcon sx={{ fontSize: '16px' }} />
-            </button>
-          )}
-          
           {/* Content Display Area */}
           <div style={{ marginTop: 'var(--spacing-sm)' }} className="output-content-selectable nodrag">
             {renderContent()}
@@ -562,23 +503,72 @@ const OutputNode: React.FC<OutputNodeProps> = ({ data, id, isConnectable }) => {
       </BaseNode>
 
       {/* Render lightbox using portal to escape node positioning constraints */}
-      {lightboxOpen && contentType === 'image' && ReactDOM.createPortal(
+      {lightboxOpen && ReactDOM.createPortal(
         <div
           className="lightbox-overlay"
+          style={{ zIndex: 9999, position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}
           onClick={() => setLightboxOpen(false)}
         >
-          <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={content}
-              alt="Generated content - Full size"
-              className="lightbox-image"
-            />
-            <button
-              className="lightbox-close"
-              onClick={() => setLightboxOpen(false)}
-            >
-              ✕
-            </button>
+          <button
+            className="lightbox-close"
+            style={{ position: 'absolute', top: 24, right: 32, fontSize: '2em', background: 'none', color: '#fff', border: 'none', cursor: 'pointer', zIndex: 10, textShadow: '0 0 8px #000' }}
+            onClick={(e) => { e.stopPropagation(); setLightboxOpen(false); }}
+          >
+            ✕
+          </button>
+          <div className="lightbox-content" style={{ maxWidth: '90vw', maxHeight: '90vh', overflow: 'auto', background: '#222', borderRadius: '8px', padding: '24px', boxShadow: '0 0 32px #0008', position: 'relative', margin: '48px auto 0 auto' }} onClick={(e) => e.stopPropagation()}>
+            {contentType === 'text' ? (
+              <div
+                style={{
+                  width: '60vw',
+                  minWidth: '600px',
+                  height: '70vh',
+                  minHeight: '200px',
+                  padding: '24px',
+                  fontFamily: 'inherit',
+                  fontSize: '1.15em',
+                  border: '1px solid var(--node-border-color)',
+                  borderRadius: '8px',
+                  backgroundColor: 'var(--node-bg-color, #222)',
+                  color: 'var(--color-text-primary, #eee)',
+                  boxShadow: '0 0 16px #0004',
+                  margin: '0 auto',
+                  display: 'block',
+                  overflowY: 'auto',
+                  userSelect: 'text',
+                  WebkitUserSelect: 'text',
+                  MozUserSelect: 'text',
+                  msUserSelect: 'text',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  cursor: 'text'
+                }}
+                tabIndex={0}
+              >
+                {content}
+              </div>
+            ) : (
+              <>
+                {contentType === 'image' && (
+                  <img
+                    src={content}
+                    alt="Generated content - Full size"
+                    className="lightbox-image"
+                    style={{ maxWidth: '80vw', maxHeight: '80vh', display: 'block', margin: '0 auto', borderRadius: '8px' }}
+                  />
+                )}
+                {contentType === 'video' && (
+                  <video
+                    src={content}
+                    controls
+                    autoPlay
+                    style={{ maxWidth: '80vw', maxHeight: '80vh', display: 'block', margin: '0 auto', borderRadius: '8px', background: '#000' }}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                )}
+              </>
+            )}
           </div>
         </div>,
         document.body
